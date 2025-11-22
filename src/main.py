@@ -7,8 +7,11 @@ gi.require_version('Adw', '1')
 from gi.repository import Adw, Gio, Gtk
 
 # Ensure local schema is found if not installed
+# Schema is in the project root (one level up from src)
 current_dir = os.path.dirname(os.path.abspath(__file__))
-schema_dir = current_dir
+project_root = os.path.dirname(current_dir)
+schema_dir = project_root
+
 if 'GSETTINGS_SCHEMA_DIR' not in os.environ:
     os.environ['GSETTINGS_SCHEMA_DIR'] = schema_dir
 
@@ -39,8 +42,15 @@ class HeaderInspectorApp(Adw.Application):
         self.set_accels_for_action('app.preferences', ['<Ctrl>comma'])
 
     def on_preferences_action(self, action, param):
+        # Check if existing preferences window is open
+        for win in self.get_windows():
+            if isinstance(win, PreferencesWindow):
+                win.present()
+                return
+
         # Create and show preferences
-        prefs = PreferencesWindow(transient_for=self.props.active_window)
+        # IMPORTANT: Pass application=self to prevent GC and register window
+        prefs = PreferencesWindow(application=self, transient_for=self.props.active_window)
         prefs.present()
 
 def main():
