@@ -4,6 +4,7 @@ moduledir = pkgdatadir / 'src'
 python_sources = [
   '__init__.py',
   'inspector.py',
+  'layer_widgets.py',
   'main.py',
   'preferences.py',
   'test_inspector.py',

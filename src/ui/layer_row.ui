@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="adw" version="1.0"/>
+  <template class="LayerRow" parent="AdwExpanderRow">
+    <property name="title">Layer Name</property>
+    <property name="subtitle">New Layer</property>
+    <property name="show-enable-switch">False</property>
+
+    <child type="suffix">
+      <object class="GtkButton" id="delete_btn">
+        <property name="icon-name">user-trash-symbolic</property>
+        <property name="valign">center</property>
+        <property name="has-frame">False</property>
+        <property name="tooltip-text">Delete Layer</property>
+        <style>
+          <class name="destructive-action"/>
+        </style>
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwEntryRow" id="name_row">
+        <property name="title">Name</property>
+      </object>
+    </child>
+    <child>
+      <object class="AdwEntryRow" id="desc_row">
+        <property name="title">Description</property>
+      </object>
+    </child>
+    <child>
+      <object class="AdwEntryRow" id="url_row">
+        <property name="title">Host URL</property>
+      </object>
+    </child>
+
+    <!-- Custom Headers Expander -->
+    <child>
+      <object class="AdwExpanderRow" id="headers_group">
+        <property name="title">Custom Headers</property>
+        <child type="suffix">
+            <object class="GtkButton" id="add_header_btn">
+                <property name="icon-name">list-add-symbolic</property>
+                <property name="valign">center</property>
+                <property name="has-frame">False</property>
+                <property name="tooltip-text">Add Header</property>
+            </object>
+        </child>
+        <!-- Dynamic header rows go here -->
+      </object>
+    </child>
+
+     <!-- Host Overrides Expander -->
+    <child>
+      <object class="AdwExpanderRow" id="overrides_group">
+        <property name="title">Host Overrides</property>
+         <child type="suffix">
+            <object class="GtkButton" id="add_override_btn">
+                <property name="icon-name">list-add-symbolic</property>
+                 <property name="valign">center</property>
+                 <property name="has-frame">False</property>
+                 <property name="tooltip-text">Add Host Override</property>
+            </object>
+        </child>
+        <!-- Dynamic override rows go here -->
+      </object>
+    </child>
+
+     <!-- Path Match Only Expander -->
+    <child>
+      <object class="AdwExpanderRow" id="path_match_group">
+        <property name="title">Path Match Only</property>
+         <child type="suffix">
+            <object class="GtkButton" id="add_path_match_btn">
+                <property name="icon-name">list-add-symbolic</property>
+                 <property name="valign">center</property>
+                 <property name="has-frame">False</property>
+                 <property name="tooltip-text">Add Path Pattern</property>
+            </object>
+        </child>
+         <!-- Dynamic path match rows go here -->
+      </object>
+    </child>
+
+  </template>
+</interface>

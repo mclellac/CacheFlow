@@ -30,25 +30,25 @@
     </key>
 
     <!-- Environment Configurations -->
-    <key name="config-production" type="s">
-      <default>''</default>
+    <key name="config-production" type="aa{sv}">
+      <default>[]</default>
       <summary>Production Configuration</summary>
-      <description>YAML config for Production.</description>
+      <description>Configuration for Production.</description>
     </key>
-    <key name="config-staging" type="s">
-      <default>''</default>
+    <key name="config-staging" type="aa{sv}">
+      <default>[]</default>
       <summary>Staging Configuration</summary>
-      <description>YAML config for Staging.</description>
+      <description>Configuration for Staging.</description>
     </key>
-    <key name="config-qa" type="s">
-      <default>''</default>
+    <key name="config-qa" type="aa{sv}">
+      <default>[]</default>
       <summary>QA Configuration</summary>
-      <description>YAML config for QA.</description>
+      <description>Configuration for QA.</description>
     </key>
-    <key name="config-dev" type="s">
-      <default>''</default>
+    <key name="config-dev" type="aa{sv}">
+      <default>[]</default>
       <summary>Development Configuration</summary>
-      <description>YAML config for Development.</description>
+      <description>Configuration for Development.</description>
     </key>
 
   </schema>
