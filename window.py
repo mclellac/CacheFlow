@@ -1,8 +1,6 @@
 import gi
 import yaml
 import threading
-import json
-import os
 
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
@@ -10,52 +8,16 @@ from gi.repository import Gtk, Adw, Gio, GObject
 
 from inspector import HeaderInspector
 
-DEFAULT_CONFIG_YAML = """
-layers:
-  - name: 'CDN_Edge'
-    description: 'Akamai (External View)'
-    host_url: 'https://www.example.com'
-    custom_headers:
-      Pragma: 'akamai-x-get-request-id, akamai-x-cache-on, akamai-x-cache-key'
-
-  - name: 'Infra_Cache'
-    description: 'Varnish (Internal Cache Layer)'
-    host_url: 'http://cache.examplefarm.com'
-    custom_headers:
-      X-Varnish-Debug: 'true'
-      X-Origin-Auth: 'secret-token-123'
-    host_overrides:
-      - path_pattern: '/api/*'
-        host_header: 'api-internal.example.com'
-
-  - name: 'Application_Backend_A'
-    description: 'Openshift App Backend (mybackend.openshift.app.com)'
-    host_url: 'https://mybackend.openshift.app.com'
-    custom_headers: {}
-    path_match_only:
-      - '/products/*'
-      - '/api/v1/*'
-
-  - name: 'Application_Backend_B'
-    description: 'Secondary Backend (legacy.app.com)'
-    host_url: 'https://legacy.app.com'
-    custom_headers: {}
-    path_match_only:
-      - '/static/*'
-      - '/images/*'
-"""
-
 @Gtk.Template(filename='window.ui')
 class Window(Adw.ApplicationWindow):
     __gtype_name__ = 'HeaderInspectorWindow'
 
+    env_dropdown = Gtk.Template.Child()
     path_row = Gtk.Template.Child()
     ua_row = Gtk.Template.Child()
     run_btn = Gtk.Template.Child()
     spinner = Gtk.Template.Child()
-    config_view = Gtk.Template.Child()
     result_view = Gtk.Template.Child()
-    stack = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -67,75 +29,77 @@ class Window(Adw.ApplicationWindow):
         self.settings.bind('test-path', self.path_row, 'text', Gio.SettingsBindFlags.DEFAULT)
         self.settings.bind('user-agent', self.ua_row, 'text', Gio.SettingsBindFlags.DEFAULT)
 
-        # Load Config
-        self.load_config()
+        # Load Active Environment
+        active_env = self.settings.get_string('active-environment')
+        env_map = {'production': 0, 'staging': 1, 'qa': 2, 'dev': 3}
+        self.env_dropdown.set_selected(env_map.get(active_env, 0))
+        self.env_dropdown.connect('notify::selected-item', self.on_env_changed)
 
-        # Connect Signals
+        # Connect Run
         self.run_btn.connect('clicked', self.on_run_clicked)
 
-        # Setup Menu Actions
-        action_reset = Gio.SimpleAction.new("reset_config", None)
-        action_reset.connect("activate", self.on_reset_config)
-        self.add_action(action_reset)
+        # Apply Theme immediately
+        self.apply_theme()
 
-        # Connect config buffer change to save
-        buffer = self.config_view.get_buffer()
-        buffer.connect("changed", self.on_config_changed)
+        # Listen for theme changes from preferences
+        self.settings.connect('changed::theme', lambda s, k: self.apply_theme())
 
-    def load_config(self):
-        config_str = self.settings.get_string('layers-config')
-        if not config_str or config_str.strip() == "":
-            # Load Default
-            self.config_view.get_buffer().set_text(DEFAULT_CONFIG_YAML)
-            self.save_config_to_settings()
+    def apply_theme(self):
+        theme = self.settings.get_string('theme')
+        style_manager = Adw.StyleManager.get_default()
+        if theme == 'light':
+            style_manager.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
+        elif theme == 'dark':
+            style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
         else:
-            self.config_view.get_buffer().set_text(config_str)
+            style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
 
-    def on_config_changed(self, buffer):
-        # Auto-save config to settings when text changes
-        # In a real app, might want a debounce or explicit save, but GSettings is fast enough for this text size
-        text = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), False)
-        self.settings.set_string('layers-config', text)
+    def on_env_changed(self, dropdown, param):
+        selected = dropdown.get_selected()
+        envs = ['production', 'staging', 'qa', 'dev']
+        if 0 <= selected < len(envs):
+            self.settings.set_string('active-environment', envs[selected])
 
-    def save_config_to_settings(self):
-        buffer = self.config_view.get_buffer()
-        text = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), False)
-        self.settings.set_string('layers-config', text)
+    def get_active_config(self):
+        selected = self.env_dropdown.get_selected()
+        envs = ['production', 'staging', 'qa', 'dev']
+        if 0 <= selected < len(envs):
+            env_key = f'config-{envs[selected]}'
+        else:
+            env_key = 'config-production'
 
-    def on_reset_config(self, action, param):
-        self.config_view.get_buffer().set_text(DEFAULT_CONFIG_YAML)
+        config_str = self.settings.get_string(env_key)
+        if not config_str or config_str.strip() == "":
+            # If empty, use default template from preferences module (simulated)
+            from preferences import DEFAULT_CONFIG_YAML
+            return DEFAULT_CONFIG_YAML
+        return config_str
 
     def on_run_clicked(self, button):
-        # Get current config from text view
-        buffer = self.config_view.get_buffer()
-        config_text = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), False)
+        config_text = self.get_active_config()
 
         try:
             # Parse YAML
             config_data = yaml.safe_load(config_text)
             if not isinstance(config_data, dict) or 'layers' not in config_data:
-                # Try wrapping it if user just pasted the layers list?
-                # Or assume the user messed up.
-                # If the text is just the layers list, we might need to support that,
-                # but the default config is a dict with 'layers' key.
-                # Let's assume the user keeps the structure.
-                if config_data is None: # Empty text
+                if config_data is None:
                      config_data = {}
 
-            # Update global settings in the config object passed to inspector
+            # Merge runtime settings
             config_data['user_agent'] = self.ua_row.get_text()
             config_data['test_path'] = self.path_row.get_text()
 
+            # Pass DNS settings from GSettings
+            dns_servers = self.settings.get_string('dns-servers')
+            config_data['dns_servers'] = dns_servers
+
         except yaml.YAMLError as e:
-            self.show_error(f"Configuration Parse Error:\n{e}")
+            self.show_error(f"Configuration Parse Error for active environment:\n{e}")
             return
 
         self.result_view.get_buffer().set_text("")
         self.run_btn.set_sensitive(False)
         self.spinner.start()
-
-        # Switch to results tab
-        self.stack.set_visible_child_name('results')
 
         thread = threading.Thread(target=self.run_inspection_thread, args=(config_data,))
         thread.start()
