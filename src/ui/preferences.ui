@@ -8,6 +8,7 @@
     <!-- General Settings -->
     <child>
       <object class="AdwPreferencesPage">
+        <property name="visible">True</property>
         <property name="title">Application</property>
         <property name="icon-name">preferences-system-symbolic</property>
 
@@ -49,6 +50,7 @@
     <!-- Production Environment -->
     <child>
       <object class="AdwPreferencesPage">
+        <property name="visible">True</property>
         <property name="title">Production</property>
         <property name="icon-name">network-server-symbolic</property>
         <child>
@@ -84,6 +86,7 @@
     <!-- Staging Environment -->
     <child>
       <object class="AdwPreferencesPage">
+        <property name="visible">True</property>
         <property name="title">Staging</property>
         <property name="icon-name">folder-publicshare-symbolic</property>
         <child>
@@ -117,6 +120,7 @@
     <!-- QA Environment -->
     <child>
       <object class="AdwPreferencesPage">
+        <property name="visible">True</property>
         <property name="title">QA</property>
         <property name="icon-name">user-available-symbolic</property>
         <child>
@@ -150,6 +154,7 @@
     <!-- Dev Environment -->
     <child>
       <object class="AdwPreferencesPage">
+        <property name="visible">True</property>
         <property name="title">Dev</property>
         <property name="icon-name">applications-development-symbolic</property>
         <child>
