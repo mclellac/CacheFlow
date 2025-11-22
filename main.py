@@ -13,6 +13,7 @@ if 'GSETTINGS_SCHEMA_DIR' not in os.environ:
     os.environ['GSETTINGS_SCHEMA_DIR'] = schema_dir
 
 from window import Window
+from preferences import PreferencesWindow
 
 class HeaderInspectorApp(Adw.Application):
     def __init__(self):
@@ -24,6 +25,23 @@ class HeaderInspectorApp(Adw.Application):
         if not win:
             win = Window(application=self)
         win.present()
+
+    def do_startup(self):
+        Adw.Application.do_startup(self)
+
+        # Register Preferences Action
+        action = Gio.SimpleAction.new('preferences', None)
+        action.connect('activate', self.on_preferences_action)
+        self.add_action(action)
+
+        # Setup accelerators
+        self.set_accels_for_action('app.quit', ['<Ctrl>q'])
+        self.set_accels_for_action('app.preferences', ['<Ctrl>comma'])
+
+    def on_preferences_action(self, action, param):
+        # Create and show preferences
+        prefs = PreferencesWindow(transient_for=self.props.active_window)
+        prefs.present()
 
 def main():
     app = HeaderInspectorApp()
