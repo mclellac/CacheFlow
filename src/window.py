@@ -10,7 +10,7 @@ from gi.repository import Gtk, Adw, Gio, GObject
 from inspector import HeaderInspector
 
 # Resolve UI file path relative to this file
-ui_path = os.path.join(os.path.dirname(__file__), 'window.ui')
+ui_path = os.path.join(os.path.dirname(__file__), 'ui', 'window.ui')
 
 @Gtk.Template(filename=ui_path)
 class Window(Adw.ApplicationWindow):
