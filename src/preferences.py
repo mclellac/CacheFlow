@@ -49,7 +49,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.settings = Gio.Settings.new('org.example.headerinspector')
+        self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
 
         # Bind DNS
         self.settings.bind('dns-servers', self.dns_row, 'text', Gio.SettingsBindFlags.DEFAULT)
