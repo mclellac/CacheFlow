@@ -95,7 +95,7 @@ class LayerRow(Adw.ExpanderRow):
         self.on_changed()
 
     def add_header_row(self, key='', value=''):
-        row = HeaderRow(key, value, on_change=self.on_changed, on_delete=self.remove_header_row)
+        row = HeaderRow(key=key, value=value, on_change=self.on_changed, on_delete=self.remove_header_row)
         self.headers_group.add_row(row)
         self.header_rows.append(row)
 
@@ -110,7 +110,7 @@ class LayerRow(Adw.ExpanderRow):
         self.on_changed()
 
     def add_override_row(self, pattern='', host=''):
-        row = OverrideRow(pattern, host, on_change=self.on_changed, on_delete=self.remove_override_row)
+        row = OverrideRow(pattern=pattern, host=host, on_change=self.on_changed, on_delete=self.remove_override_row)
         self.overrides_group.add_row(row)
         self.override_rows.append(row)
 
@@ -125,7 +125,7 @@ class LayerRow(Adw.ExpanderRow):
         self.on_changed()
 
     def add_path_match_row(self, pattern=''):
-        row = PathMatchRow(pattern, on_change=self.on_changed, on_delete=self.remove_path_match_row)
+        row = PathMatchRow(pattern=pattern, on_change=self.on_changed, on_delete=self.remove_path_match_row)
         self.path_match_group.add_row(row)
         self.path_match_rows.append(row)
 
@@ -164,38 +164,25 @@ class LayerRow(Adw.ExpanderRow):
 
         return data
 
+@Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/header_row.ui')
 class HeaderRow(Adw.PreferencesRow):
-    def __init__(self, key='', value='', on_change=None, on_delete=None):
-        super().__init__()
+    __gtype_name__ = 'HeaderRow'
+
+    key_entry = Gtk.Template.Child()
+    val_entry = Gtk.Template.Child()
+    delete_btn = Gtk.Template.Child()
+
+    def __init__(self, key='', value='', on_change=None, on_delete=None, **kwargs):
+        super().__init__(**kwargs)
         self.on_change = on_change
         self.on_delete = on_delete
 
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        box.set_margin_top(6)
-        box.set_margin_bottom(6)
-        box.set_margin_start(12)
-        box.set_margin_end(12)
-
-        self.key_entry = Gtk.Entry(placeholder_text="Header")
         self.key_entry.set_text(key)
-        self.key_entry.set_hexpand(True)
-        self.key_entry.connect('changed', self.notify_change)
-
-        self.val_entry = Gtk.Entry(placeholder_text="Value")
         self.val_entry.set_text(value)
-        self.val_entry.set_hexpand(True)
+
+        self.key_entry.connect('changed', self.notify_change)
         self.val_entry.connect('changed', self.notify_change)
-
-        del_btn = Gtk.Button(icon_name="user-trash-symbolic")
-        del_btn.add_css_class("flat")
-        del_btn.connect('clicked', lambda b: self.on_delete(self) if self.on_delete else None)
-
-        box.append(self.key_entry)
-        box.append(Gtk.Label(label=":"))
-        box.append(self.val_entry)
-        box.append(del_btn)
-
-        self.set_child(box)
+        self.delete_btn.connect('clicked', lambda b: self.on_delete(self) if self.on_delete else None)
 
     def notify_change(self, *args):
         if self.on_change:
@@ -204,38 +191,25 @@ class HeaderRow(Adw.PreferencesRow):
     def get_data(self):
         return self.key_entry.get_text(), self.val_entry.get_text()
 
+@Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/override_row.ui')
 class OverrideRow(Adw.PreferencesRow):
-    def __init__(self, pattern='', host='', on_change=None, on_delete=None):
-        super().__init__()
+    __gtype_name__ = 'OverrideRow'
+
+    pat_entry = Gtk.Template.Child()
+    host_entry = Gtk.Template.Child()
+    delete_btn = Gtk.Template.Child()
+
+    def __init__(self, pattern='', host='', on_change=None, on_delete=None, **kwargs):
+        super().__init__(**kwargs)
         self.on_change = on_change
         self.on_delete = on_delete
 
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        box.set_margin_top(6)
-        box.set_margin_bottom(6)
-        box.set_margin_start(12)
-        box.set_margin_end(12)
-
-        self.pat_entry = Gtk.Entry(placeholder_text="/path/*")
         self.pat_entry.set_text(pattern)
-        self.pat_entry.set_hexpand(True)
-        self.pat_entry.connect('changed', self.notify_change)
-
-        self.host_entry = Gtk.Entry(placeholder_text="host.example.com")
         self.host_entry.set_text(host)
-        self.host_entry.set_hexpand(True)
+
+        self.pat_entry.connect('changed', self.notify_change)
         self.host_entry.connect('changed', self.notify_change)
-
-        del_btn = Gtk.Button(icon_name="user-trash-symbolic")
-        del_btn.add_css_class("flat")
-        del_btn.connect('clicked', lambda b: self.on_delete(self) if self.on_delete else None)
-
-        box.append(self.pat_entry)
-        box.append(Gtk.Label(label="→"))
-        box.append(self.host_entry)
-        box.append(del_btn)
-
-        self.set_child(box)
+        self.delete_btn.connect('clicked', lambda b: self.on_delete(self) if self.on_delete else None)
 
     def notify_change(self, *args):
         if self.on_change:
@@ -244,31 +218,22 @@ class OverrideRow(Adw.PreferencesRow):
     def get_data(self):
         return self.pat_entry.get_text(), self.host_entry.get_text()
 
+@Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/path_match_row.ui')
 class PathMatchRow(Adw.PreferencesRow):
-    def __init__(self, pattern='', on_change=None, on_delete=None):
-        super().__init__()
+    __gtype_name__ = 'PathMatchRow'
+
+    pat_entry = Gtk.Template.Child()
+    delete_btn = Gtk.Template.Child()
+
+    def __init__(self, pattern='', on_change=None, on_delete=None, **kwargs):
+        super().__init__(**kwargs)
         self.on_change = on_change
         self.on_delete = on_delete
 
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
-        box.set_margin_top(6)
-        box.set_margin_bottom(6)
-        box.set_margin_start(12)
-        box.set_margin_end(12)
-
-        self.pat_entry = Gtk.Entry(placeholder_text="/path/*")
         self.pat_entry.set_text(pattern)
-        self.pat_entry.set_hexpand(True)
+
         self.pat_entry.connect('changed', self.notify_change)
-
-        del_btn = Gtk.Button(icon_name="user-trash-symbolic")
-        del_btn.add_css_class("flat")
-        del_btn.connect('clicked', lambda b: self.on_delete(self) if self.on_delete else None)
-
-        box.append(self.pat_entry)
-        box.append(del_btn)
-
-        self.set_child(box)
+        self.delete_btn.connect('clicked', lambda b: self.on_delete(self) if self.on_delete else None)
 
     def notify_change(self, *args):
         if self.on_change:
