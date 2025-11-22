@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=cacheflow
+Exec=cacheflow
+Icon=com.github.mclellac.CacheFlow
+Terminal=false
+Type=Application
+Categories=Utility;
+Keywords=GTK;
+StartupNotify=true
+DBusActivatable=true
