@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=com.github.mclellac.CacheFlow
+Exec=@bindir@/cacheflow --gapplication-service

@@ -1,0 +1,8 @@
+# List of source files containing translatable strings.
+# Please keep this file sorted alphabetically.
+data/com.github.mclellac.CacheFlow.desktop.in
+data/com.github.mclellac.CacheFlow.metainfo.xml.in
+data/com.github.mclellac.CacheFlow.gschema.xml
+src/main.py
+src/window.py
+src/window.ui

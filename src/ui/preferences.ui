@@ -53,7 +53,7 @@
         <property name="icon-name">network-server-symbolic</property>
         <child>
           <object class="AdwPreferencesGroup">
-            <property name="title">Configuration (YAML)</property>
+            <property name="title">Configuration</property>
             <property name="description">Define layers and infrastructure headers.</property>
             <child>
               <object class="GtkBox">
@@ -88,7 +88,7 @@
         <property name="icon-name">folder-publicshare-symbolic</property>
         <child>
           <object class="AdwPreferencesGroup">
-             <property name="title">Configuration (YAML)</property>
+             <property name="title">Configuration</property>
             <child>
               <object class="GtkBox">
                 <property name="orientation">vertical</property>
@@ -121,7 +121,7 @@
         <property name="icon-name">user-available-symbolic</property>
         <child>
           <object class="AdwPreferencesGroup">
-             <property name="title">Configuration (YAML)</property>
+             <property name="title">Configuration</property>
             <child>
               <object class="GtkBox">
                 <property name="orientation">vertical</property>
@@ -154,7 +154,7 @@
         <property name="icon-name">applications-development-symbolic</property>
         <child>
           <object class="AdwPreferencesGroup">
-             <property name="title">Configuration (YAML)</property>
+             <property name="title">Configuration</property>
             <child>
               <object class="GtkBox">
                 <property name="orientation">vertical</property>
