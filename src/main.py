@@ -15,8 +15,12 @@ schema_dir = project_root
 if 'GSETTINGS_SCHEMA_DIR' not in os.environ:
     os.environ['GSETTINGS_SCHEMA_DIR'] = schema_dir
 
-from window import Window
-from preferences import PreferencesWindow
+try:
+    from .window import Window
+    from .preferences import PreferencesWindow
+except ImportError:
+    from window import Window
+    from preferences import PreferencesWindow
 
 class HeaderInspectorApp(Adw.Application):
     def __init__(self):

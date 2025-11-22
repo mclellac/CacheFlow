@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="adw" version="1.0"/>
+  <template class="HeaderInspectorWindow" parent="AdwApplicationWindow">
+    <property name="title">HTTP Header Inspector</property>
+    <property name="default-width">900</property>
+    <property name="default-height">700</property>
+    <property name="content">
+      <object class="GtkBox">
+        <property name="visible">True</property>
+        <property name="orientation">vertical</property>
+
+        <!-- Header Bar -->
+        <child>
+          <object class="AdwHeaderBar">
+            <property name="title-widget">
+              <object class="AdwWindowTitle">
+                <property name="title">Header Inspector</property>
+              </object>
+            </property>
+
+            <child type="start">
+               <object class="GtkDropDown" id="env_dropdown">
+                 <property name="model">
+                   <object class="GtkStringList">
+                     <items>
+                       <item>Production</item>
+                       <item>Staging</item>
+                       <item>QA</item>
+                       <item>Dev</item>
+                     </items>
+                   </object>
+                 </property>
+                 <property name="tooltip-text">Select Environment</property>
+               </object>
+            </child>
+
+            <child type="end">
+               <object class="GtkMenuButton">
+                 <property name="icon-name">open-menu-symbolic</property>
+                 <property name="menu-model">primary_menu</property>
+               </object>
+            </child>
+          </object>
+        </child>
+
+        <!-- Main Content -->
+        <child>
+          <object class="AdwPreferencesPage">
+
+            <!-- Inputs Group -->
+            <child>
+              <object class="AdwPreferencesGroup">
+                <property name="title">Inspection Parameters</property>
+
+                <child>
+                  <object class="AdwEntryRow" id="path_row">
+                    <property name="title">Test Path</property>
+                    <property name="text">/products/widget-x</property>
+                    <property name="show-apply-button">True</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="AdwEntryRow" id="ua_row">
+                    <property name="title">User Agent</property>
+                    <property name="text">HTTP-Header-Inspector/1.0</property>
+                    <property name="show-apply-button">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+
+            <!-- Actions -->
+            <child>
+              <object class="AdwPreferencesGroup">
+                <child>
+                  <object class="GtkButton" id="run_btn">
+                    <property name="label">Run Inspection</property>
+                    <property name="halign">center</property>
+                    <property name="margin-top">10</property>
+                    <property name="margin-bottom">10</property>
+                    <style>
+                      <class name="suggested-action"/>
+                      <class name="pill"/>
+                    </style>
+                  </object>
+                </child>
+                <child>
+                   <object class="GtkSpinner" id="spinner"/>
+                </child>
+              </object>
+            </child>
+
+            <!-- Results -->
+            <child>
+              <object class="AdwPreferencesGroup">
+                <property name="title">Results</property>
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <property name="height-request">400</property>
+
+                    <child>
+                      <object class="GtkScrolledWindow">
+                        <property name="vexpand">True</property>
+                        <property name="child">
+                          <object class="GtkTextView" id="result_view">
+                            <property name="editable">False</property>
+                            <property name="monospace">True</property>
+                            <property name="wrap-mode">word</property>
+                            <property name="top-margin">10</property>
+                            <property name="bottom-margin">10</property>
+                            <property name="left-margin">10</property>
+                            <property name="right-margin">10</property>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+
+          </object>
+        </child>
+      </object>
+    </property>
+  </template>
+
+  <menu id="primary_menu">
+    <section>
+      <item>
+        <attribute name="label">Preferences</attribute>
+        <attribute name="action">app.preferences</attribute>
+      </item>
+    </section>
+  </menu>
+</interface>

@@ -1,5 +1,6 @@
 import gi
 import os
+import pathlib
 
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
@@ -32,45 +33,21 @@ layers:
       - '/api/v1/*'
 """
 
+@Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/preferences.ui')
 class PreferencesWindow(Adw.PreferencesWindow):
     __gtype_name__ = 'PreferencesWindow'
 
+    theme_row = Gtk.Template.Child()
+    dns_row = Gtk.Template.Child()
+
+    config_prod_view = Gtk.Template.Child()
+    config_staging_view = Gtk.Template.Child()
+    config_qa_view = Gtk.Template.Child()
+    config_dev_view = Gtk.Template.Child()
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.set_title("Preferences")
-
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
-
-        # Application Page
-        page_app = Adw.PreferencesPage(title="Application", icon_name="preferences-system-symbolic")
-        self.add(page_app)
-
-        # Appearance Group
-        group_appearance = Adw.PreferencesGroup(title="Appearance")
-        page_app.add(group_appearance)
-
-        self.theme_row = Adw.ComboRow(title="Theme")
-        model = Gtk.StringList()
-        model.append("System")
-        model.append("Light")
-        model.append("Dark")
-        self.theme_row.set_model(model)
-        group_appearance.add(self.theme_row)
-
-        # Network Group
-        group_network = Adw.PreferencesGroup(title="Network")
-        page_app.add(group_network)
-
-        self.dns_row = Adw.EntryRow(title="DNS Servers")
-        self.dns_row.set_tooltip_text("Comma-separated list of DNS servers (e.g., 8.8.8.8, 1.1.1.1)")
-        self.dns_row.set_show_apply_button(True)
-        group_network.add(self.dns_row)
-
-        # Environments
-        self.setup_env_page("Production", "network-server-symbolic", "config-production", "config_prod_view")
-        self.setup_env_page("Staging", "folder-publicshare-symbolic", "config-staging", "config_staging_view")
-        self.setup_env_page("QA", "user-available-symbolic", "config-qa", "config_qa_view")
-        self.setup_env_page("Dev", "applications-development-symbolic", "config-dev", "config_dev_view")
 
         # Bind DNS
         self.settings.bind('dns-servers', self.dns_row, 'text', Gio.SettingsBindFlags.DEFAULT)
@@ -79,35 +56,11 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.theme_row.connect('notify::selected-item', self.on_theme_changed)
         self.load_theme()
 
-    def setup_env_page(self, title, icon, key, view_attr_name):
-        page = Adw.PreferencesPage(title=title, icon_name=icon)
-        self.add(page)
-
-        group = Adw.PreferencesGroup(title="Configuration", description="Define layers and infrastructure headers.")
-        page.add(group)
-
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
-        box.set_height_request(400)
-        group.add(box)
-
-        scrolled = Gtk.ScrolledWindow()
-        scrolled.set_vexpand(True)
-        box.append(scrolled)
-
-        view = Gtk.TextView()
-        view.set_monospace(True)
-        view.set_top_margin(10)
-        view.set_bottom_margin(10)
-        view.set_left_margin(10)
-        view.set_right_margin(10)
-        view.set_wrap_mode(Gtk.WrapMode.WORD)
-        scrolled.set_child(view)
-
-        # Set attribute on self so we can reference it if needed, though mostly for debugging
-        setattr(self, view_attr_name, view)
-
-        # Load Config
-        self.setup_config_view(view, key)
+        # Handle Configs
+        self.setup_config_view(self.config_prod_view, 'config-production')
+        self.setup_config_view(self.config_staging_view, 'config-staging')
+        self.setup_config_view(self.config_qa_view, 'config-qa')
+        self.setup_config_view(self.config_dev_view, 'config-dev')
 
     def load_theme(self):
         theme = self.settings.get_string('theme')
