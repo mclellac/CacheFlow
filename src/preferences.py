@@ -33,7 +33,7 @@ layers:
 """
 
 # Resolve UI file path relative to this file
-ui_path = os.path.join(os.path.dirname(__file__), 'preferences.ui')
+ui_path = os.path.join(os.path.dirname(__file__), 'ui', 'preferences.ui')
 
 @Gtk.Template(filename=ui_path)
 class PreferencesWindow(Adw.PreferencesWindow):
