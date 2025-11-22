@@ -16,7 +16,7 @@ CacheFlow is a desktop utility designed to help developers, SREs, and DevOps eng
 
 ## How It Works
 
-CacheFlow takes a YAML configuration that defines a series of "layers". For a given test path, it sends a request to each configured layer and displays the resulting status code and headers.
+CacheFlow takes a YAML configuration that defines a series of "layers". When a user inputs a URL to fetch the headers of the config file should be consulted to figure out what every layer of request will be. So if they curl example.com/path, then the request will fetch the headers from that location as long as the domain/path isn't overriden in the config. To get the domain for the next level of requests it will be defined in the configuration file, and same for the final. All headers should be shown for every layer of request - ie: Akamai, Varnish, and the application itself. It should be drawn onto a canvas with an interface similar to Unreal Engine Blueprints with the header data inside, and a title based on the layer in the config. They should be connected in order like a node graph, ie: Akamai -> Varnish -> ApplicationName (whatever the names are in the config)
 
 This allows you to verify, for example:
 -   If your CDN is setting the correct `Cache-Control` headers.
