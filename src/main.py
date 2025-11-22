@@ -57,7 +57,7 @@ class HeaderInspectorApp(Adw.Application):
         prefs = PreferencesWindow(application=self, transient_for=self.props.active_window)
         prefs.present()
 
-def main():
+def main(version=None):
     app = HeaderInspectorApp()
     return app.run(sys.argv)
 
