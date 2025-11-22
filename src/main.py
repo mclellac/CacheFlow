@@ -20,7 +20,7 @@ from preferences import PreferencesWindow
 
 class HeaderInspectorApp(Adw.Application):
     def __init__(self):
-        super().__init__(application_id='org.example.headerinspector',
+        super().__init__(application_id='com.github.mclellac.CacheFlow',
                          flags=Gio.ApplicationFlags.FLAGS_NONE)
 
     def do_activate(self):

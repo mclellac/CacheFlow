@@ -1,24 +1,3 @@
-<<<<<<< HEAD
-project('header-inspector',
-  version: '0.1.0',
-  meson_version: '>= 0.50.0',
-)
-
-gnome = import('gnome')
-python = import('python')
-
-py_installation = python.find_installation('python3')
-
-# Compile the GSettings schema
-gnome.compile_schemas(depend_files: 'org.example.headerinspector.gschema.xml')
-
-# Install the schema
-install_data('org.example.headerinspector.gschema.xml',
-  install_dir: get_option('datadir') / 'glib-2.0' / 'schemas'
-)
-
-subdir('src')
-=======
 project('cacheflow',
           version: '0.1.0',
     meson_version: '>= 1.0.0',
@@ -27,9 +6,9 @@ project('cacheflow',
 
 i18n = import('i18n')
 gnome = import('gnome')
+python = import('python')
 
-
-
+py_installation = python.find_installation('python3')
 
 subdir('data')
 subdir('src')
@@ -40,4 +19,3 @@ gnome.post_install(
     gtk_update_icon_cache: true,
   update_desktop_database: true,
 )
->>>>>>> main

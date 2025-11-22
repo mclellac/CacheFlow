@@ -27,7 +27,7 @@ class Window(Adw.ApplicationWindow):
         super().__init__(**kwargs)
 
         # Initialize Settings
-        self.settings = Gio.Settings.new('org.example.headerinspector')
+        self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
 
         # Bind Settings
         self.settings.bind('test-path', self.path_row, 'text', Gio.SettingsBindFlags.DEFAULT)
