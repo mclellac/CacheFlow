@@ -1,12 +1,12 @@
-import yaml
 import requests
 import fnmatch
-from urllib.parse import urljoin
 
 class HeaderInspector:
-    def __init__(self, config_path):
-        with open(config_path, 'r') as f:
-            self.config = yaml.safe_load(f)
+    def __init__(self, config):
+        """
+        Initialize with a configuration dictionary.
+        """
+        self.config = config
 
     def run_inspection(self, test_path=None):
         if test_path is None:

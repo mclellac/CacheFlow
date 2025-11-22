@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="header-inspector">
+  <schema id="org.example.headerinspector" path="/org/example/headerinspector/">
+    <key name="user-agent" type="s">
+      <default>'HTTP-Header-Inspector/1.0 (Python)'</default>
+      <summary>User Agent</summary>
+      <description>The user agent string used for requests.</description>
+    </key>
+    <key name="test-path" type="s">
+      <default>'/products/widget-x'</default>
+      <summary>Test Path</summary>
+      <description>The default path to inspect.</description>
+    </key>
+    <key name="layers-config" type="s">
+      <default>''</default>
+      <summary>Layers Configuration</summary>
+      <description>YAML/JSON string defining the infrastructure layers.</description>
+    </key>
+  </schema>
+</schemalist>

@@ -27,12 +27,10 @@ class TestHeaderInspector(unittest.TestCase):
                 }
             ]
         }
-        with open('test_config.yaml', 'w') as f:
-            yaml.dump(self.config, f)
+        # No need to write config file anymore, passing dict directly
 
     def tearDown(self):
-        if os.path.exists('test_config.yaml'):
-            os.remove('test_config.yaml')
+        pass
 
     @patch('inspector.requests.get')
     def test_run_inspection_default(self, mock_get):
@@ -42,7 +40,8 @@ class TestHeaderInspector(unittest.TestCase):
         mock_resp.headers = {'Server': 'TestServer'}
         mock_get.return_value = mock_resp
 
-        inspector = HeaderInspector('test_config.yaml')
+        # Initialize with dict
+        inspector = HeaderInspector(self.config)
         results = inspector.run_inspection()
 
         self.assertEqual(len(results), 2)
@@ -65,7 +64,7 @@ class TestHeaderInspector(unittest.TestCase):
         mock_resp.headers = {}
         mock_get.return_value = mock_resp
 
-        inspector = HeaderInspector('test_config.yaml')
+        inspector = HeaderInspector(self.config)
         results = inspector.run_inspection('/override/test')
 
         self.assertEqual(len(results), 2)
