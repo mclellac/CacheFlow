@@ -14,6 +14,7 @@ class Window(Adw.ApplicationWindow):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        print("DEBUG: Initializing Programmatic Window")
         self.set_title("HTTP Header Inspector")
         self.set_default_size(900, 700)
 
@@ -117,7 +118,7 @@ class Window(Adw.ApplicationWindow):
         self.env_dropdown.set_selected(env_map.get(active_env, 0))
         self.env_dropdown.connect('notify::selected-item', self.on_env_changed)
 
-        # Connect Run
+        # Connect Run - CRITICAL: Ensure this is present
         self.run_btn.connect('clicked', self.on_run_clicked)
 
         # Apply Theme immediately
