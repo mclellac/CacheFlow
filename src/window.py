@@ -1,19 +1,15 @@
 import gi
-import yaml
 import threading
 import os
 import pathlib
-
-gi.require_version('Gtk', '4.0')
-gi.require_version('Adw', '1')
 from gi.repository import Gtk, Adw, Gio, GObject
 
 try:
     from .inspector import HeaderInspector
-    from .preferences import DEFAULT_CONFIG_YAML
+    from .preferences import DEFAULT_CONFIG
 except ImportError:
     from inspector import HeaderInspector
-    from preferences import DEFAULT_CONFIG_YAML
+    from preferences import DEFAULT_CONFIG
 
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/window.ui')
 class Window(Adw.ApplicationWindow):
@@ -75,33 +71,24 @@ class Window(Adw.ApplicationWindow):
         else:
             env_key = 'config-production'
 
-        config_str = self.settings.get_string(env_key)
-        if not config_str or config_str.strip() == "":
-            # If empty, use default template from preferences module (simulated)
-            return DEFAULT_CONFIG_YAML
-        return config_str
+        val = self.settings.get_value(env_key)
+        layers = val.unpack()
+
+        if not layers:
+            return DEFAULT_CONFIG
+        return layers
 
     def on_run_clicked(self, button):
-        config_text = self.get_active_config()
+        layers = self.get_active_config()
 
-        try:
-            # Parse YAML
-            config_data = yaml.safe_load(config_text)
-            if not isinstance(config_data, dict) or 'layers' not in config_data:
-                if config_data is None:
-                     config_data = {}
-
-            # Merge runtime settings
-            config_data['user_agent'] = self.ua_row.get_text()
-            config_data['test_path'] = self.path_row.get_text()
-
-            # Pass DNS settings from GSettings
-            dns_servers = self.settings.get_string('dns-servers')
-            config_data['dns_servers'] = dns_servers
-
-        except yaml.YAMLError as e:
-            self.show_error(f"Configuration Parse Error for active environment:\n{e}")
-            return
+        # Construct the config object for Inspector
+        # Inspector expects { 'layers': [...], ... }
+        config_data = {
+            'layers': layers,
+            'user_agent': self.ua_row.get_text(),
+            'test_path': self.path_row.get_text(),
+            'dns_servers': self.settings.get_string('dns-servers')
+        }
 
         self.result_view.get_buffer().set_text("")
         self.run_btn.set_sensitive(False)

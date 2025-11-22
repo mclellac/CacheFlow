@@ -54,29 +54,19 @@
         <property name="title">Production</property>
         <property name="icon-name">network-server-symbolic</property>
         <child>
-          <object class="AdwPreferencesGroup">
-            <property name="title">Configuration</property>
+          <object class="AdwPreferencesGroup" id="prod_group">
+            <property name="title">Layers</property>
             <property name="description">Define layers and infrastructure headers.</property>
             <child>
-              <object class="GtkBox">
-                <property name="orientation">vertical</property>
-                <property name="height-request">400</property>
-                <child>
-                  <object class="GtkScrolledWindow">
-                    <property name="vexpand">True</property>
-                    <property name="child">
-                      <object class="GtkTextView" id="config_prod_view">
-                        <property name="monospace">True</property>
-                        <property name="top-margin">10</property>
-                        <property name="bottom-margin">10</property>
-                        <property name="left-margin">10</property>
-                        <property name="right-margin">10</property>
-                        <property name="wrap-mode">word</property>
-                      </object>
-                    </property>
-                  </object>
-                </child>
-              </object>
+               <object class="AdwActionRow" id="prod_add_row">
+                   <property name="title">Add New Layer</property>
+                   <property name="activatable">True</property>
+                   <child type="prefix">
+                        <object class="GtkImage">
+                            <property name="icon-name">list-add-symbolic</property>
+                        </object>
+                   </child>
+               </object>
             </child>
           </object>
         </child>
@@ -90,27 +80,18 @@
         <property name="title">Staging</property>
         <property name="icon-name">folder-publicshare-symbolic</property>
         <child>
-          <object class="AdwPreferencesGroup">
-             <property name="title">Configuration</property>
+          <object class="AdwPreferencesGroup" id="staging_group">
+             <property name="title">Layers</property>
             <child>
-              <object class="GtkBox">
-                <property name="orientation">vertical</property>
-                <property name="height-request">400</property>
-                <child>
-                  <object class="GtkScrolledWindow">
-                    <property name="vexpand">True</property>
-                    <property name="child">
-                      <object class="GtkTextView" id="config_staging_view">
-                        <property name="monospace">True</property>
-                        <property name="top-margin">10</property>
-                        <property name="bottom-margin">10</property>
-                        <property name="left-margin">10</property>
-                        <property name="right-margin">10</property>
-                      </object>
-                    </property>
-                  </object>
-                </child>
-              </object>
+               <object class="AdwActionRow" id="staging_add_row">
+                   <property name="title">Add New Layer</property>
+                   <property name="activatable">True</property>
+                   <child type="prefix">
+                        <object class="GtkImage">
+                            <property name="icon-name">list-add-symbolic</property>
+                        </object>
+                   </child>
+               </object>
             </child>
           </object>
         </child>
@@ -124,27 +105,18 @@
         <property name="title">QA</property>
         <property name="icon-name">user-available-symbolic</property>
         <child>
-          <object class="AdwPreferencesGroup">
-             <property name="title">Configuration</property>
+          <object class="AdwPreferencesGroup" id="qa_group">
+             <property name="title">Layers</property>
             <child>
-              <object class="GtkBox">
-                <property name="orientation">vertical</property>
-                <property name="height-request">400</property>
-                <child>
-                  <object class="GtkScrolledWindow">
-                    <property name="vexpand">True</property>
-                    <property name="child">
-                      <object class="GtkTextView" id="config_qa_view">
-                        <property name="monospace">True</property>
-                        <property name="top-margin">10</property>
-                        <property name="bottom-margin">10</property>
-                        <property name="left-margin">10</property>
-                        <property name="right-margin">10</property>
-                      </object>
-                    </property>
-                  </object>
-                </child>
-              </object>
+               <object class="AdwActionRow" id="qa_add_row">
+                   <property name="title">Add New Layer</property>
+                   <property name="activatable">True</property>
+                   <child type="prefix">
+                        <object class="GtkImage">
+                            <property name="icon-name">list-add-symbolic</property>
+                        </object>
+                   </child>
+               </object>
             </child>
           </object>
         </child>
@@ -158,27 +130,18 @@
         <property name="title">Dev</property>
         <property name="icon-name">applications-development-symbolic</property>
         <child>
-          <object class="AdwPreferencesGroup">
-             <property name="title">Configuration</property>
+          <object class="AdwPreferencesGroup" id="dev_group">
+             <property name="title">Layers</property>
             <child>
-              <object class="GtkBox">
-                <property name="orientation">vertical</property>
-                <property name="height-request">400</property>
-                <child>
-                  <object class="GtkScrolledWindow">
-                    <property name="vexpand">True</property>
-                    <property name="child">
-                      <object class="GtkTextView" id="config_dev_view">
-                        <property name="monospace">True</property>
-                        <property name="top-margin">10</property>
-                        <property name="bottom-margin">10</property>
-                        <property name="left-margin">10</property>
-                        <property name="right-margin">10</property>
-                      </object>
-                    </property>
-                  </object>
-                </child>
-              </object>
+               <object class="AdwActionRow" id="dev_add_row">
+                   <property name="title">Add New Layer</property>
+                   <property name="activatable">True</property>
+                   <child type="prefix">
+                        <object class="GtkImage">
+                            <property name="icon-name">list-add-symbolic</property>
+                        </object>
+                   </child>
+               </object>
             </child>
           </object>
         </child>
