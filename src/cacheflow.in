@@ -32,9 +32,11 @@ import gettext
 
 VERSION = '@VERSION@'
 pkgdatadir = '@pkgdatadir@'
+pythondir = '@pythondir@'
 localedir = '@localedir@'
 
 sys.path.insert(1, pkgdatadir)
+sys.path.insert(1, pythondir)
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 locale.bindtextdomain('cacheflow', localedir)
 locale.textdomain('cacheflow')

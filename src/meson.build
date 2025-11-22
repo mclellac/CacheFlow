@@ -23,6 +23,7 @@ cacheflow_conf = configuration_data()
 cacheflow_conf.set('PYTHON', py_installation.full_path())
 cacheflow_conf.set('VERSION', meson.project_version())
 cacheflow_conf.set('pkgdatadir', get_option('prefix') / pkgdatadir)
+cacheflow_conf.set('pythondir', py_installation.get_install_dir())
 cacheflow_conf.set('localedir', get_option('prefix') / get_option('localedir'))
 
 configure_file(
