@@ -75,5 +75,35 @@ class TestHeaderInspector(unittest.TestCase):
         headers2 = mock_get.call_args_list[1].kwargs['headers']
         self.assertEqual(headers2['Host'], 'override.com')
 
+    @patch('inspector.dns.resolver.Resolver')
+    @patch('inspector.requests.get')
+    def test_dns_resolution(self, mock_get, mock_resolver):
+        # Configure DNS
+        self.config['dns_servers'] = '8.8.8.8'
+
+        # Mock DNS response
+        mock_answer = MagicMock()
+        mock_answer.__str__.return_value = '1.2.3.4'
+
+        mock_inst = mock_resolver.return_value
+        mock_inst.resolve.return_value = [mock_answer]
+
+        # Mock HTTP response
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_get.return_value = mock_resp
+
+        inspector = HeaderInspector(self.config)
+        results = inspector.run_inspection()
+
+        # Check that DNS resolver was called
+        mock_inst.resolve.assert_any_call('layer1.com', 'A')
+
+        # Check that request used the IP
+        # URL for Layer1 should be http://1.2.3.4/default with Host: layer1.com
+        self.assertEqual(mock_get.call_args_list[0].args[0], 'http://1.2.3.4/default')
+        headers = mock_get.call_args_list[0].kwargs['headers']
+        self.assertEqual(headers['Host'], 'layer1.com')
+
 if __name__ == '__main__':
     unittest.main()

@@ -8,6 +8,7 @@
     <property name="default-height">700</property>
     <property name="content">
       <object class="GtkBox">
+        <property name="visible">True</property>
         <property name="orientation">vertical</property>
 
         <!-- Header Bar -->

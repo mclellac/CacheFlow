@@ -12,6 +12,11 @@ from inspector import HeaderInspector
 # Resolve UI file path relative to this file
 ui_path = os.path.join(os.path.dirname(__file__), 'ui', 'window.ui')
 
+if not os.path.exists(ui_path):
+    # Fallback to try and find it if running from a different context
+    # This is just a safety measure.
+    print(f"Warning: UI file not found at {ui_path}")
+
 @Gtk.Template(filename=ui_path)
 class Window(Adw.ApplicationWindow):
     __gtype_name__ = 'HeaderInspectorWindow'
