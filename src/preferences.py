@@ -1,4 +1,6 @@
 import gi
+import os
+
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
 from gi.repository import Gtk, Adw, Gio, GObject
@@ -30,7 +32,10 @@ layers:
       - '/api/v1/*'
 """
 
-@Gtk.Template(filename='preferences.ui')
+# Resolve UI file path relative to this file
+ui_path = os.path.join(os.path.dirname(__file__), 'preferences.ui')
+
+@Gtk.Template(filename=ui_path)
 class PreferencesWindow(Adw.PreferencesWindow):
     __gtype_name__ = 'PreferencesWindow'
 
