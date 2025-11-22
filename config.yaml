@@ -1,0 +1,40 @@
+# --- Global Settings ---
+# A common user-agent string to use for all requests
+user_agent: 'HTTP-Header-Inspector/1.0 (Python)'
+# The initial path to test across all environments
+test_path: '/products/widget-x'
+
+# --- Infrastructure Layers ---
+layers:
+  - name: 'CDN_Edge'
+    description: 'Akamai (External View)'
+    host_url: 'https://www.example.com'
+    custom_headers:
+      Pragma: 'akamai-x-get-request-id, akamai-x-cache-on, akamai-x-cache-key'
+
+  - name: 'Infra_Cache'
+    description: 'Varnish (Internal Cache Layer)'
+    host_url: 'http://cache.examplefarm.com'
+    custom_headers:
+      X-Varnish-Debug: 'true'
+      X-Origin-Auth: 'secret-token-123'
+    # Example of Host header override based on path
+    host_overrides:
+      - path_pattern: '/api/*'
+        host_header: 'api-internal.example.com'
+
+  - name: 'Application_Backend_A'
+    description: 'Openshift App Backend (mybackend.openshift.app.com)'
+    host_url: 'https://mybackend.openshift.app.com'
+    custom_headers: {}
+    path_match_only:
+      - '/products/*'
+      - '/api/v1/*'
+
+  - name: 'Application_Backend_B'
+    description: 'Secondary Backend (legacy.app.com)'
+    host_url: 'https://legacy.app.com'
+    custom_headers: {}
+    path_match_only:
+      - '/static/*'
+      - '/images/*'
