@@ -3,7 +3,7 @@ import cairo
 import logging
 
 gi.require_version('PangoCairo', '1.0')
-from gi.repository import Gtk, Gdk, Adw, Pango, PangoCairo, Gio
+from gi.repository import Gtk, Gdk, Adw, Pango, PangoCairo, Gio, GLib
 
 log = logging.getLogger(__name__)
 
@@ -209,7 +209,11 @@ class NodeGraph(Gtk.DrawingArea):
                 else:
                     cr.set_source_rgba(0.1, 0.1, 0.1, 1)  # Fallback light text
 
-            layout.set_text(f"{header}: {value}", -1)
+            escaped_header = GLib.markup_escape_text(header)
+            escaped_value = GLib.markup_escape_text(value)
+            markup = f"<b>{escaped_header}:</b> {escaped_value}"
+            layout.set_markup(markup, -1)
+            
             cr.move_to(x + PADDING, text_y)
             PangoCairo.show_layout(cr, layout)
             text_y += LINE_HEIGHT
@@ -326,21 +330,26 @@ class NodeGraph(Gtk.DrawingArea):
 
         # Create columns
         renderer_key = Gtk.CellRendererText(wrap_width=280, wrap_mode=Pango.WrapMode.WORD_CHAR)
-        column_key = Gtk.TreeViewColumn("Header", renderer_key, text=0)
+        column_key = Gtk.TreeViewColumn("Header", renderer_key)
         
         renderer_value = Gtk.CellRendererText(wrap_width=280, wrap_mode=Pango.WrapMode.WORD_CHAR)
         column_value = Gtk.TreeViewColumn("Value", renderer_value, text=1)
 
-        # Set cell data function to style rows
-        def style_row(column, cell, model, iter, data):
+        def style_header(column, cell, model, iter, data):
+            key = model.get_value(iter, 0)
+            escaped_key = GLib.markup_escape_text(key)
+            markup = f"<b>{escaped_key}</b>"
+            cell.set_property("markup", markup)
+
+        def style_value(column, cell, model, iter, data):
             is_diff = model.get_value(iter, 2)
             if is_diff:
                 cell.set_property("weight", Pango.Weight.BOLD)
             else:
                 cell.set_property("weight", Pango.Weight.NORMAL)
 
-        column_key.set_cell_data_func(renderer_key, style_row)
-        column_value.set_cell_data_func(renderer_value, style_row)
+        column_key.set_cell_data_func(renderer_key, style_header)
+        column_value.set_cell_data_func(renderer_value, style_value)
 
         treeview.append_column(column_key)
         treeview.append_column(column_value)
