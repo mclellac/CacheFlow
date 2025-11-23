@@ -125,6 +125,44 @@ class NodeGraph(Gtk.DrawingArea):
             cr.curve_to(c1_x, c1_y, c2_x, c2_y, end_x, end_y)
             cr.stroke()
 
+            # Draw request info text on the line
+            request_url = node_b["data"].get("request_url")
+            request_host = node_b["data"].get("request_host")
+
+            if request_url:
+                # Calculate midpoint of Bezier curve (t=0.5)
+                # B(t) = (1-t)^3 P0 + 3(1-t)^2 t P1 + 3(1-t) t^2 P2 + t^3 P3
+                # For t=0.5: 0.125*P0 + 0.375*P1 + 0.375*P2 + 0.125*P3
+
+                mid_x = 0.125 * start_x + 0.375 * c1_x + 0.375 * c2_x + 0.125 * end_x
+                mid_y = 0.125 * start_y + 0.375 * c1_y + 0.375 * c2_y + 0.125 * end_y
+
+                layout = PangoCairo.create_layout(cr)
+                font_desc = Pango.FontDescription("Sans 10")
+                layout.set_font_description(font_desc)
+
+                text = f"GET {request_url}"
+                if request_host:
+                    text += f"\nwith Host: {request_host}"
+
+                layout.set_text(text, -1)
+
+                ink_rect, logical_rect = layout.get_extents()
+                text_width = logical_rect.width / Pango.SCALE
+                text_height = logical_rect.height / Pango.SCALE
+
+                # Center text on the midpoint
+                text_x = mid_x - text_width / 2
+                text_y = mid_y - text_height / 2 - 10
+
+                if Adw.StyleManager.get_default().get_dark():
+                    cr.set_source_rgba(0.8, 0.8, 0.8, 1)
+                else:
+                    cr.set_source_rgba(0.2, 0.2, 0.2, 1)
+
+                cr.move_to(text_x, text_y)
+                PangoCairo.show_layout(cr, layout)
+
     def draw_node(self, cr, node):
         """Draws a single node."""
         x, y, w, h = node["x"], node["y"], node["width"], node["height"]
