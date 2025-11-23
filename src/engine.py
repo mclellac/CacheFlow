@@ -152,7 +152,8 @@ class CacheFlowEngine:
                 'description': layer.get('description', ''),
                 'url': url,
                 'original_url': base_url + test_path,
-                'sent_host_header': headers.get('Host')
+                'sent_host_header': headers.get('Host'),
+                'method': 'GET'
             })
 
             results.append(layer_result)

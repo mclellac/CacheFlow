@@ -141,7 +141,8 @@ class NodeGraph(Gtk.DrawingArea):
                 font_desc = Pango.FontDescription("Sans 12")
                 layout.set_font_description(font_desc)
 
-                text = f"GET {request_url}"
+                method = node_b["data"].get("request_method", "GET")
+                text = f"{method} {request_url}"
                 if request_host:
                     text += f"\nwith Host: {request_host}"
 
@@ -151,9 +152,25 @@ class NodeGraph(Gtk.DrawingArea):
                 text_width = logical_rect.width / Pango.SCALE
                 text_height = logical_rect.height / Pango.SCALE
 
-                # Center text on the midpoint
-                text_x = mid_x - text_width / 2
-                text_y = mid_y - text_height / 2 - 10
+                # Calculate derivative at t=0.5 to determine orientation
+                # B'(t) = 3(1-t)^2(P1-P0) + 6(1-t)t(P2-P1) + 3t^2(P3-P2)
+                # At t=0.5: 0.75(P1-P0) + 1.5(P2-P1) + 0.75(P3-P2)
+                # P0=(start_x, start_y), P1=(c1_x, c1_y), P2=(c2_x, c2_y), P3=(end_x, end_y)
+
+                dx = 0.75 * (c1_x - start_x) + 1.5 * (c2_x - c1_x) + 0.75 * (end_x - c2_x)
+                dy = 0.75 * (c1_y - start_y) + 1.5 * (c2_y - c1_y) + 0.75 * (end_y - c2_y)
+
+                # Determine orientation
+                is_horizontal = abs(dx) >= abs(dy)
+
+                if is_horizontal:
+                    # Place above the line
+                    text_x = mid_x - text_width / 2
+                    text_y = mid_y - text_height - 5
+                else:
+                    # Place to the right of the line
+                    text_x = mid_x + 10
+                    text_y = mid_y - text_height / 2
 
                 if Adw.StyleManager.get_default().get_dark():
                     cr.set_source_rgba(0.8, 0.8, 0.8, 1)
