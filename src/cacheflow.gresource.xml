@@ -7,5 +7,6 @@
     <file preprocess="xml-stripblanks" alias="ui/header_row.ui">ui/header_row.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/override_row.ui">ui/override_row.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/path_match_row.ui">ui/path_match_row.ui</file>
+    <file preprocess="xml-stripblanks" alias="ui/header_dialog.ui">ui/header_dialog.ui</file>
   </gresource>
 </gresources>

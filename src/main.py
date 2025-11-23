@@ -65,7 +65,9 @@ class CacheFlowApplication(Adw.Application):
         """Callback for the app.preferences action."""
         log.debug("Preferences action triggered. Creating new PreferencesWindow.")
         prefs_window = PreferencesWindow(
-            transient_for=self.get_active_window(), modal=True
+            application=self,
+            transient_for=self.get_active_window(),
+            modal=True
         )
         prefs_window.present()
 
