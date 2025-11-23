@@ -12,6 +12,9 @@ class LayerRow(Adw.ExpanderRow):
     header_color_button = Gtk.Template.Child()
     body_color_button = Gtk.Template.Child()
 
+    text_color_button = Gtk.Template.Child()
+    diff_text_color_button = Gtk.Template.Child()
+
     headers_group = Gtk.Template.Child()
     add_header_btn = Gtk.Template.Child()
 
@@ -41,6 +44,8 @@ class LayerRow(Adw.ExpanderRow):
         self.url_row.connect('notify::text', self.on_changed)
         self.header_color_button.connect('color-set', self.on_changed)
         self.body_color_button.connect('color-set', self.on_changed)
+        self.text_color_button.connect('color-set', self.on_changed)
+        self.diff_text_color_button.connect('color-set', self.on_changed)
 
         self.add_header_btn.connect('clicked', self.on_add_header)
         self.add_override_btn.connect('clicked', self.on_add_override)
@@ -49,10 +54,9 @@ class LayerRow(Adw.ExpanderRow):
         if layer_data:
             self.load_data(layer_data)
 
-        if not self.header_color_button.get_rgba():
-            self.header_color_button.set_rgba(Gdk.RGBA(0, 0, 0, 0))
-        if not self.body_color_button.get_rgba():
-            self.body_color_button.set_rgba(Gdk.RGBA(0, 0, 0, 0))
+        for button in [self.header_color_button, self.body_color_button, self.text_color_button, self.diff_text_color_button]:
+            if not button.get_rgba():
+                button.set_rgba(Gdk.RGBA(0, 0, 0, 0))
 
         self._loading = False
 
@@ -72,6 +76,16 @@ class LayerRow(Adw.ExpanderRow):
         if not (data.get('body_color') and body_color.parse(data['body_color'])):
             body_color.parse('rgba(0,0,0,0)')
         self.body_color_button.set_rgba(body_color)
+
+        text_color = Gdk.RGBA()
+        if not (data.get('text_color') and text_color.parse(data['text_color'])):
+            text_color.parse('rgba(0,0,0,0)')
+        self.text_color_button.set_rgba(text_color)
+
+        diff_text_color = Gdk.RGBA()
+        if not (data.get('diff_text_color') and diff_text_color.parse(data['diff_text_color'])):
+            diff_text_color.parse('rgba(0,0,0,0)')
+        self.diff_text_color_button.set_rgba(diff_text_color)
 
         custom_headers = data.get('custom_headers', {})
         if custom_headers:
@@ -165,6 +179,8 @@ class LayerRow(Adw.ExpanderRow):
             'host_url': self.url_row.get_text(),
             'header_color': self.header_color_button.get_rgba().to_string(),
             'body_color': self.body_color_button.get_rgba().to_string(),
+            'text_color': self.text_color_button.get_rgba().to_string(),
+            'diff_text_color': self.diff_text_color_button.get_rgba().to_string(),
             'custom_headers': {},
             'host_overrides': [],
             'path_match_only': []

@@ -25,38 +25,6 @@
       <default>''</default>
       <summary>Comma-separated list of DNS servers to use for resolution.</summary>
     </key>
-    <key name="color-node-body-light" type="s">
-      <default>'rgba(204, 204, 217, 1.0)'</default>
-      <summary>Node body color for the light theme.</summary>
-    </key>
-    <key name="color-node-header-light" type="s">
-      <default>'rgba(179, 179, 191, 1.0)'</default>
-      <summary>Node header color for the light theme.</summary>
-    </key>
-    <key name="color-text-light" type="s">
-      <default>'rgba(26, 26, 26, 1.0)'</default>
-      <summary>Node text color for the light theme.</summary>
-    </key>
-    <key name="color-text-diff-light" type="s">
-      <default>'rgba(0, 128, 0, 1.0)'</default>
-      <summary>Node diff text color for the light theme.</summary>
-    </key>
-    <key name="color-node-body-dark" type="s">
-      <default>'rgba(51, 51, 64, 1.0)'</default>
-      <summary>Node body color for the dark theme.</summary>
-    </key>
-    <key name="color-node-header-dark" type="s">
-      <default>'rgba(77, 77, 89, 1.0)'</default>
-      <summary>Node header color for the dark theme.</summary>
-    </key>
-    <key name="color-text-dark" type="s">
-      <default>'rgba(230, 230, 230, 1.0)'</default>
-      <summary>Node text color for the dark theme.</summary>
-    </key>
-    <key name="color-text-diff-dark" type="s">
-      <default>'rgba(128, 255, 128, 1.0)'</default>
-      <summary>Node diff text color for the dark theme.</summary>
-    </key>
     <key name="config-production" type="aa{sv}">
       <default>[]</default>
       <summary>Configuration for the Production environment</summary>

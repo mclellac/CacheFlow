@@ -1,9 +1,12 @@
 import gi
 import requests
+import logging
 
 from gi.repository import Gtk, Adw, Gio, GObject, GLib
 from .node_graph import NodeGraph
 from .engine import CacheFlowEngine
+
+log = logging.getLogger(__name__)
 
 
 @Gtk.Template(filename='src/ui/main.ui')
@@ -17,6 +20,7 @@ class Window(Adw.ApplicationWindow):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        log.debug("Main window initialized.")
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
         self.environments = ["production", "staging", "qa", "dev"]
 
@@ -61,27 +65,26 @@ class Window(Adw.ApplicationWindow):
         new_env = value.get_string()
         action.set_state(value)
         self.settings.set_string('active-environment', new_env)
-        print(f"Switched to {new_env} environment")
         # Optionally, clear the graph or re-inspect
         self.node_graph.set_data([])
 
     def on_inspect_clicked(self, _):
         """Handler for the 'Inspect' button click."""
+        log.info("Inspect button clicked.")
         path = self.path_entry.get_text()
         if not path or not path.startswith('/'):
-            print("Invalid path")
-            return
-
+            log.error(f"Invalid path for inspection: '{path}'")
+            
         self.settings.set_string('test-path', path)
 
         active_env = self.settings.get_string('active-environment')
         config_key = f'config-{active_env}'
         layers_config = self.settings.get_value(config_key).unpack()
         if not layers_config:
-            print(f"No layers configured for '{active_env}' environment.")
+            log.error(f"No layers configured for '{active_env}' environment.")
             return
-
         self.run_inspection(layers_config, path)
+        self.last_run_layers = layers_config
 
     def run_inspection(self, layers, path):
         """Performs HTTP requests and updates the node graph."""
@@ -93,10 +96,11 @@ class Window(Adw.ApplicationWindow):
         engine = CacheFlowEngine(config)
         results = engine.run_inspection(test_path=path)
 
-        self.process_and_display_results(results)
+        self.process_and_display_results(results, layers)
 
-    def process_and_display_results(self, results):
+    def process_and_display_results(self, results, layer_config):
         """Compares headers and prepares data for the node graph."""
+        log.debug("Processing inspection results for display.")
         processed_nodes = []
 
         if not results:
@@ -106,6 +110,11 @@ class Window(Adw.ApplicationWindow):
         origin_headers = results[-1].get('headers', {})
 
         for i, result in enumerate(results):
+            original_layer = next((layer for layer in layer_config if layer.get('name') == result.get('name')), {})
+            body_color = original_layer.get('body_color', '')
+            header_color = original_layer.get('header_color', '')
+            text_color = original_layer.get('text_color', '')
+            diff_text_color = original_layer.get('diff_text_color', '')
             headers_list = []
             if 'error' in result:
                 headers_list.append(('Error', result['error'], True))
@@ -119,7 +128,11 @@ class Window(Adw.ApplicationWindow):
 
             processed_nodes.append({
                 "name": result['name'],
-                "headers": headers_list
+                "headers": headers_list,
+                "body_color": body_color,
+                "header_color": header_color,
+                "text_color": text_color,
+                "diff_text_color": diff_text_color
             })
 
         self.node_graph.set_data(processed_nodes)

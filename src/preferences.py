@@ -1,26 +1,10 @@
 import gi
+import logging
 from gi.repository import Gtk, Adw, Gio, GObject, GLib, Gdk
 
 from .layer_widgets import LayerRow
 
-
-def setting_to_rgba(variant, _user_data=None):
-    rgba = Gdk.RGBA()
-    if variant:
-        rgba_string = variant.get_string()
-        if rgba_string:
-            rgba.parse(rgba_string)
-            return rgba
-    rgba.parse('rgba(0,0,0,0)')
-    return rgba
-
-
-def rgba_to_setting(gdk_rgba, _user_data=None):
-    if gdk_rgba:
-        return GLib.Variant('s', gdk_rgba.to_string())
-    return GLib.Variant('s', 'rgba(0,0,0,0)')
-
-
+log = logging.getLogger(__name__)
 DEFAULT_CONFIG = [
     {
         "name": "CDN_Edge",
@@ -67,6 +51,7 @@ class ConfigManager:
 
     def __init__(self, settings):
         self.settings = settings
+        log.debug("ConfigManager initialized.")
 
     def get_layers(self, key):
         """Gets and unpacks layers for a given config key."""
@@ -78,6 +63,7 @@ class ConfigManager:
 
     def save_layers(self, key, layer_rows):
         """Constructs a GVariant from a list of LayerRow widgets and saves it."""
+        log.info(f"Saving configuration for key '{key}'.")
         layers_data = [row.get_data() for row in layer_rows]
 
         variant_data = []
@@ -88,6 +74,8 @@ class ConfigManager:
                 'host_url': GLib.Variant('s', l_data.get('host_url', '')),
                 'header_color': GLib.Variant('s', l_data.get('header_color', '')),
                 'body_color': GLib.Variant('s', l_data.get('body_color', '')),
+                'text_color': GLib.Variant('s', l_data.get('text_color', '')),
+                'diff_text_color': GLib.Variant('s', l_data.get('diff_text_color', '')),
                 'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
                 'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
                 'path_match_only': GLib.Variant('as', l_data.get('path_match_only', []))
@@ -98,7 +86,7 @@ class ConfigManager:
             variant = GLib.Variant('aa{sv}', variant_data)
             self.settings.set_value(key, variant)
         except Exception as e:
-            print(f"Error saving config for key '{key}': {e}")
+            log.error(f"Error saving config for key '{key}': {e}")
 
     def ensure_default_config(self, key):
         """
@@ -115,6 +103,8 @@ class ConfigManager:
                     'host_url': GLib.Variant('s', l_data.get('host_url', '')),
                     'header_color': GLib.Variant('s', l_data.get('header_color', '')),
                     'body_color': GLib.Variant('s', l_data.get('body_color', '')),
+                    'text_color': GLib.Variant('s', l_data.get('text_color', '')),
+                    'diff_text_color': GLib.Variant('s', l_data.get('diff_text_color', '')),
                     'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
                     'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
                     'path_match_only': GLib.Variant('as', l_data.get('path_match_only', []))
@@ -124,7 +114,8 @@ class ConfigManager:
                 variant = GLib.Variant('aa{sv}', variant_data)
                 self.settings.set_value(key, variant)
             except Exception as e:
-                print(f"Error creating default config for key '{key}': {e}")
+                log.error(f"Error creating default config for key '{key}': {e}")
+            log.info(f"No config found for '{key}'. Saved default configuration.")
 
 
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/preferences.ui')
@@ -134,15 +125,6 @@ class PreferencesWindow(Adw.PreferencesWindow):
     theme_row = Gtk.Template.Child()
     dns_row = Gtk.Template.Child()
     font_button = Gtk.Template.Child()
-
-    light_body_color_button = Gtk.Template.Child()
-    light_header_color_button = Gtk.Template.Child()
-    light_text_color_button = Gtk.Template.Child()
-    light_text_diff_color_button = Gtk.Template.Child()
-    dark_body_color_button = Gtk.Template.Child()
-    dark_header_color_button = Gtk.Template.Child()
-    dark_text_color_button = Gtk.Template.Child()
-    dark_text_diff_color_button = Gtk.Template.Child()
 
     prod_group = Gtk.Template.Child()
     staging_group = Gtk.Template.Child()
@@ -156,21 +138,13 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        log.debug("PreferencesWindow initializing.")
         self.set_destroy_with_parent(True)
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
         self.config_manager = ConfigManager(self.settings)
         self._layer_rows = {}
 
         self.settings.bind('dns-servers', self.dns_row, 'text', Gio.SettingsBindFlags.DEFAULT)
-
-        color_bindings = {
-            'color-node-body-light': self.light_body_color_button, 'color-node-header-light': self.light_header_color_button,
-            'color-text-light': self.light_text_color_button, 'color-text-diff-light': self.light_text_diff_color_button,
-            'color-node-body-dark': self.dark_body_color_button, 'color-node-header-dark': self.dark_header_color_button,
-            'color-text-dark': self.dark_text_color_button, 'color-text-diff-dark': self.dark_text_diff_color_button
-        }
-        for key, button in color_bindings.items():
-            self.bind_color_setting(key, button)
 
         self.theme_row.connect('notify::selected-item', self.on_theme_changed)
         self.load_theme()
@@ -184,17 +158,11 @@ class PreferencesWindow(Adw.PreferencesWindow):
             key = f'config-{env}'
             add_row_map[env].connect('activated', lambda r, g=group, k=key: self.add_layer(g, k))
             self.setup_env_config(group, key)
-
-    def bind_color_setting(self, key, button):
-        """Binds a color GSetting (string) to a GtkColorButton (Gdk.RGBA)."""
-        self.settings.bind_with_mapping(
-            key, button, 'rgba',
-            Gio.SettingsBindFlags.DEFAULT | Gio.SettingsBindFlags.GET,
-            setting_to_rgba,
-            rgba_to_setting,
-        )
+        
+        self.connect('close-request', lambda win: log.debug("PreferencesWindow close requested."))
 
     def load_theme(self):
+        log.debug("Loading and applying theme preference.")
         theme = self.settings.get_string('theme')
         if theme == 'light':
             self.theme_row.set_selected(1)
@@ -204,6 +172,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
             self.theme_row.set_selected(0)
 
     def on_theme_changed(self, row, param):
+        log.info(f"Theme changed to index {row.get_selected()}.")
         selected = row.get_selected()
         style_manager = Adw.StyleManager.get_default()
         if selected == 1:
@@ -217,10 +186,12 @@ class PreferencesWindow(Adw.PreferencesWindow):
             style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
 
     def on_font_set(self, button):
+        log.info("Node font changed.")
         font_string = button.get_font()
         self.settings.set_string('node-font', font_string)
 
     def setup_env_config(self, group, key):
+        log.debug(f"Setting up configuration for group '{group.get_title()}' with key '{key}'.")
         self._layer_rows[group] = []
         self.config_manager.ensure_default_config(key)
         layers = self.config_manager.get_layers(key)
@@ -258,6 +229,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     def add_layer(self, group, key):
         """Handles adding a new, default layer to a group."""
+        log.info(f"Adding new layer to group '{group.get_title()}'.")
         new_data = {
             'name': 'New Layer',
             'description': '',
@@ -271,6 +243,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     def remove_layer(self, group, key, row):
         """Handles removing a layer from a group."""
+        log.info(f"Removing layer '{row.get_title()}' from group '{group.get_title()}'.")
         group.remove(row)
         if group in self._layer_rows and row in self._layer_rows[group]:
             self._layer_rows[group].remove(row)

@@ -1,8 +1,11 @@
 import gi
 import cairo
+import logging
 
 gi.require_version('PangoCairo', '1.0')
 from gi.repository import Gtk, Gdk, Adw, Pango, PangoCairo, Gio
+
+log = logging.getLogger(__name__)
 
 NODE_WIDTH = 300
 NODE_HEADER_HEIGHT = 40
@@ -25,17 +28,12 @@ class NodeGraph(Gtk.DrawingArea):
         self.drag_offset_y = 0
 
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
+        log.debug("NodeGraph initialized.")
         self.set_draw_func(self.on_draw)
 
         style_manager = Adw.StyleManager.get_default()
         style_manager.connect('notify::dark', self.on_style_changed)
 
-        color_keys = [
-            'color-node-body-light', 'color-node-header-light', 'color-text-light', 'color-text-diff-light',
-            'color-node-body-dark', 'color-node-header-dark', 'color-text-dark', 'color-text-diff-dark'
-        ]
-        for key in color_keys:
-            self.settings.connect(f'changed::{key}', self.on_setting_changed)
         gesture_drag = Gtk.GestureDrag.new()
         gesture_drag.connect("drag-begin", self.on_drag_begin)
         gesture_drag.connect("drag-update", self.on_drag_update)
@@ -47,15 +45,13 @@ class NodeGraph(Gtk.DrawingArea):
         gesture_click.connect("pressed", self.on_click)
         self.add_controller(gesture_click)
 
-    def on_setting_changed(self, settings, key):
-        """Callback for when a GSetting we care about changes."""
-        self.queue_draw()
-
     def on_style_changed(self, style_manager, _):
+        log.debug("System style (light/dark) changed, queueing redraw.")
         self.queue_draw()
 
     def set_data(self, nodes_data):
         """Sets the data for the nodes and arranges them."""
+        log.info(f"Setting node data with {len(nodes_data)} nodes.")
         self.nodes = []
         x, y = 50, 50
         for i, node_data in enumerate(nodes_data):
@@ -121,35 +117,26 @@ class NodeGraph(Gtk.DrawingArea):
         x, y, w, h = node["x"], node["y"], node["width"], node["height"]
         is_dark = Adw.StyleManager.get_default().get_dark()
 
-        body_color_str = node['data'].get('body_color')
-        header_color_str = node['data'].get('header_color')
-
         body_rgba = Gdk.RGBA()
         header_rgba = Gdk.RGBA()
-        if is_dark:
-            default_body_color = self.settings.get_string('color-node-body-dark')
-            default_header_color = self.settings.get_string('color-node-header-dark')
-        else:
-            default_body_color = self.settings.get_string('color-node-body-light')
-            default_header_color = self.settings.get_string('color-node-header-light')
 
-        default_body_rgba = Gdk.RGBA()
-        default_body_rgba.parse(default_body_color)
-
-        default_header_rgba = Gdk.RGBA()
-        default_header_rgba.parse(default_header_color)
-
+        body_color_str = node['data'].get('body_color')
         if body_color_str and body_rgba.parse(body_color_str) and body_rgba.alpha > 0:
             cr.set_source_rgba(body_rgba.red, body_rgba.green, body_rgba.blue, body_rgba.alpha)
+        elif is_dark:
+            cr.set_source_rgba(0.2, 0.2, 0.25, 1)  # Fallback dark body
         else:
-            cr.set_source_rgba(default_body_rgba.red, default_body_rgba.green, default_body_rgba.blue, default_body_rgba.alpha)
+            cr.set_source_rgba(0.8, 0.8, 0.85, 1)  # Fallback light body
         self.rounded_rectangle(cr, x, y, w, h, 10)
         cr.fill()
 
+        header_color_str = node['data'].get('header_color')
         if header_color_str and header_rgba.parse(header_color_str) and header_rgba.alpha > 0:
             cr.set_source_rgba(header_rgba.red, header_rgba.green, header_rgba.blue, header_rgba.alpha)
+        elif is_dark:
+            cr.set_source_rgba(0.3, 0.3, 0.35, 1)  # Fallback dark header
         else:
-            cr.set_source_rgba(default_header_rgba.red, default_header_rgba.green, default_header_rgba.blue, default_header_rgba.alpha)
+            cr.set_source_rgba(0.7, 0.7, 0.75, 1)  # Fallback light header
         self.rounded_rectangle(cr, x, y, w, NODE_HEADER_HEIGHT, 10, corners={'bl': False, 'br': False})
         cr.fill()
 
@@ -172,23 +159,27 @@ class NodeGraph(Gtk.DrawingArea):
         layout.set_width((w - 2 * PADDING) * Pango.SCALE)
         layout.set_ellipsize(Pango.EllipsizeMode.END)
 
-        if is_dark:
-            text_color_str = self.settings.get_string('color-text-dark')
-            diff_color_str = self.settings.get_string('color-text-diff-dark')
-        else:
-            text_color_str = self.settings.get_string('color-text-light')
-            diff_color_str = self.settings.get_string('color-text-diff-light')
-
         text_rgba = Gdk.RGBA()
-        text_rgba.parse(text_color_str)
         diff_rgba = Gdk.RGBA()
-        diff_rgba.parse(diff_color_str)
+
+        text_color_str = node['data'].get('text_color')
+        diff_color_str = node['data'].get('diff_text_color')
 
         for header, value, is_diff in node["data"]["headers"]:
             if is_diff:
-                cr.set_source_rgba(diff_rgba.red, diff_rgba.green, diff_rgba.blue, diff_rgba.alpha)
-            else:
+                if diff_color_str and diff_rgba.parse(diff_color_str) and diff_rgba.alpha > 0:
+                    cr.set_source_rgba(diff_rgba.red, diff_rgba.green, diff_rgba.blue, diff_rgba.alpha)
+                elif is_dark:
+                    cr.set_source_rgba(0.5, 1.0, 0.5, 1)  # Fallback dark diff
+                else:
+                    cr.set_source_rgba(0, 0.5, 0, 1)  # Fallback light diff
+            elif text_color_str and text_rgba.parse(text_color_str) and text_rgba.alpha > 0:
                 cr.set_source_rgba(text_rgba.red, text_rgba.green, text_rgba.blue, text_rgba.alpha)
+            else:
+                if is_dark:
+                    cr.set_source_rgba(0.9, 0.9, 0.9, 1)  # Fallback dark text
+                else:
+                    cr.set_source_rgba(0.1, 0.1, 0.1, 1)  # Fallback light text
 
             layout.set_text(f"{header}: {value}", -1)
             cr.move_to(x + PADDING, text_y)
@@ -224,6 +215,7 @@ class NodeGraph(Gtk.DrawingArea):
 
     def on_drag_begin(self, gesture, start_x, start_y):
         """Handles the beginning of a drag operation."""
+        log.debug(f"Drag begin at ({start_x}, {start_y}).")
         self.dragging_node = None
         self.resizing_node = None
 
@@ -234,6 +226,7 @@ class NodeGraph(Gtk.DrawingArea):
             handle_y = node_y + node_h - RESIZE_HANDLE_SIZE
             if start_x >= handle_x and start_y >= handle_y:
                 self.resizing_node = node
+                log.debug(f"Resizing node '{node['data']['name']}'.")
                 gesture.set_state(Gtk.EventSequenceState.CLAIMED)
                 return
 
@@ -241,6 +234,7 @@ class NodeGraph(Gtk.DrawingArea):
                 self.dragging_node = node
                 self.drag_offset_x = start_x - node["x"]
                 self.drag_offset_y = start_y - node["y"]
+                log.debug(f"Dragging node '{node['data']['name']}'.")
                 gesture.set_state(Gtk.EventSequenceState.CLAIMED)
                 return
 
@@ -263,6 +257,7 @@ class NodeGraph(Gtk.DrawingArea):
 
     def on_drag_end(self, gesture, offset_x, offset_y):
         """Handles the end of a drag operation."""
+        log.debug("Drag ended.")
         if self.dragging_node:
             self.on_drag_update(gesture, offset_x, offset_y)
             self.dragging_node = None
@@ -278,6 +273,7 @@ class NodeGraph(Gtk.DrawingArea):
         for node in reversed(self.nodes):
             if x >= node["x"] and x <= node["x"] + node["width"] and \
                y >= node["y"] and y <= node["y"] + node["height"]:
+                log.debug(f"Double-click on node '{node['data']['name']}', showing details.")
                 self.show_details_window(node)
                 return
 
