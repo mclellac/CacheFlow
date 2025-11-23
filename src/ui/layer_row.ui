@@ -55,7 +55,6 @@
         </child>
       </object>
     </child>
-    <!-- Custom Headers Expander -->
     <child>
       <object class="AdwExpanderRow" id="headers_group">
         <property name="title">Custom Headers</property>
@@ -67,11 +66,8 @@
                 <property name="tooltip-text">Add Header</property>
             </object>
         </child>
-        <!-- Dynamic header rows go here -->
       </object>
     </child>
-
-     <!-- Host Overrides Expander -->
     <child>
       <object class="AdwExpanderRow" id="overrides_group">
         <property name="title">Host Overrides</property>
@@ -83,11 +79,8 @@
                  <property name="tooltip-text">Add Host Override</property>
             </object>
         </child>
-        <!-- Dynamic override rows go here -->
       </object>
     </child>
-
-     <!-- Path Match Only Expander -->
     <child>
       <object class="AdwExpanderRow" id="path_match_group">
         <property name="title">Path Match Only</property>
@@ -99,7 +92,6 @@
                  <property name="tooltip-text">Add Path Pattern</property>
             </object>
         </child>
-         <!-- Dynamic path match rows go here -->
       </object>
     </child>
 

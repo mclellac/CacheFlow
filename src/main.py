@@ -1,5 +1,6 @@
 import sys
 import gi
+import logging
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
@@ -7,6 +8,9 @@ gi.require_version("Adw", "1")
 from gi.repository import Gtk, Gio, Adw
 from .window import Window
 from .preferences import PreferencesWindow
+
+logging.basicConfig(level=logging.DEBUG, format='[%(levelname)s] %(name)s: %(message)s')
+log = logging.getLogger(__name__)
 
 class CacheFlowApplication(Adw.Application):
     """The main application."""
@@ -17,6 +21,7 @@ class CacheFlowApplication(Adw.Application):
         self.create_action('about', self.on_about_action)
         self.connect('activate', self.on_activate)
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
+        log.debug("Application initialized.")
         self.load_theme()
 
     def on_activate(self, app):
@@ -36,15 +41,9 @@ class CacheFlowApplication(Adw.Application):
 
     def on_preferences_action(self, action, param):
         """Callback for the app.preferences action."""
-        if not hasattr(self, 'prefs_window') or self.prefs_window is None:
-            self.prefs_window = PreferencesWindow(transient_for=self.get_active_window(), modal=True)
-            self.prefs_window.connect('destroy', self.on_prefs_window_destroyed)
-
-        self.prefs_window.present()
-
-    def on_prefs_window_destroyed(self, window):
-        """Set window reference to None when it's destroyed."""
-        self.prefs_window = None
+        log.debug("Preferences action triggered. Creating new PreferencesWindow.")
+        prefs_window = PreferencesWindow(transient_for=self.get_active_window(), modal=True)
+        prefs_window.present()
 
     def on_about_action(self, action, param):
         """Callback for the app.about action."""
