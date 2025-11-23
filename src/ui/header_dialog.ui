@@ -9,42 +9,25 @@
       <object class="GtkScrolledWindow">
         <property name="vexpand">True</property>
         <property name="min-content-height">400</property>
-        <property name="hscrollbar-policy">automatic</property>
-        <property name="vscrollbar-policy">automatic</property>
         <child>
-          <object class="GtkTreeView" id="treeview">
+          <object class="GtkColumnView" id="column_view">
             <property name="hexpand">True</property>
-            <property name="can-focus">True</property>
-            <child internal-child="selection">
-                <object class="GtkTreeSelection">
-                    <property name="mode">multiple</property>
-                </object>
-            </child>
+            <property name="show-row-separators">True</property>
+            <property name="show-column-separators">True</property>
+
             <child>
-              <object class="GtkTreeViewColumn" id="column_key">
+              <object class="GtkColumnViewColumn" id="column_key">
                 <property name="title">Header</property>
-                <property name="sizing">autosize</property>
-                <property name="min-width">150</property>
                 <property name="resizable">True</property>
-                <child>
-                  <object class="GtkCellRendererText" id="renderer_key">
-                    <property name="ellipsize">end</property>
-                    <property name="editable">True</property>
-                  </object>
-                </child>
+                <property name="expand">False</property>
+                <property name="fixed-width">150</property>
               </object>
             </child>
             <child>
-              <object class="GtkTreeViewColumn" id="column_value">
+              <object class="GtkColumnViewColumn" id="column_value">
                 <property name="title">Value</property>
                 <property name="resizable">True</property>
                 <property name="expand">True</property>
-                <child>
-                    <object class="GtkCellRendererText" id="renderer_value">
-                        <property name="ellipsize">end</property>
-                        <property name="editable">True</property>
-                    </object>
-                </child>
               </object>
             </child>
           </object>

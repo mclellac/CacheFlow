@@ -18,9 +18,10 @@ log = logging.getLogger(__name__)
 class CacheFlowApplication(Adw.Application):
     """The main application."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, version=None, **kwargs):
         super().__init__(**kwargs)
-        log.debug("Application initialized.")
+        self.version = version or "0.1.0"
+        log.debug(f"Application initialized (Version: {self.version}).")
         self.connect("activate", self.on_activate)
 
     def on_activate(self, app):
@@ -71,7 +72,7 @@ class CacheFlowApplication(Adw.Application):
             application_name="CacheFlow",
             application_icon="com.github.mclellac.CacheFlow",
             developer_name="Carey McLelland",
-            version="0.1.0",
+            version=self.version,
             website="https://github.com/mclellac/CacheFlow",
             transient_for=self.get_active_window(),
         )
@@ -86,7 +87,18 @@ class CacheFlowApplication(Adw.Application):
 
 def main(version):
     """Application entry point."""
+    # Setup file logging
+    log_file = os.path.join(GLib.get_user_cache_dir(), 'cacheflow.log')
+    try:
+        file_handler = logging.FileHandler(log_file)
+        file_handler.setFormatter(logging.Formatter("[%(asctime)s] [%(levelname)s] %(name)s: %(message)s"))
+        logging.getLogger().addHandler(file_handler)
+        log.info(f"Logging to {log_file}")
+    except Exception as e:
+        log.warning(f"Failed to setup file logging: {e}")
+
     app = CacheFlowApplication(
+        version=version,
         application_id="com.github.mclellac.CacheFlow",
         flags=Gio.ApplicationFlags.FLAGS_NONE,
     )

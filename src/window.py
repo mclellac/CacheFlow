@@ -1,116 +1,13 @@
-import gi
-import requests
 import logging
 import threading
 
-from gi.repository import Gtk, Adw, Gio, GObject, GLib, Pango, Gdk
+import gi
+from gi.repository import Gtk, Adw, Gio, GLib
+
 from .node_graph import NodeGraph
+from .header_dialog import HeaderDialog
 
 log = logging.getLogger(__name__)
-
-
-@Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/header_dialog.ui')
-class HeaderDialog(Adw.MessageDialog):
-    """A dialog to display key-value headers from a node."""
-    __gtype_name__ = 'HeaderDialog'
-
-    treeview = Gtk.Template.Child()
-    column_key = Gtk.Template.Child()
-    renderer_key = Gtk.Template.Child()
-    column_value = Gtk.Template.Child()
-    renderer_value = Gtk.Template.Child()
-
-    def __init__(self, headers, **kwargs):
-        super().__init__(**kwargs)
-        self._clipboard_provider = None
-
-        heading = self.get_heading()
-        if heading and heading != "Headers":
-             self.set_heading(f"Headers for {heading}")
-
-        store = Gtk.ListStore(str, str, bool)
-        headers_to_split = ['x-akamai-session-info', 'content-security-policy']
-
-        for header, value, is_diff in headers:
-            if header.lower() in headers_to_split and ';' in value:
-                parts = [p.strip() for p in value.split(';') if p.strip()]
-                if not parts:
-                    store.append([header, '', is_diff])
-                    continue
-                store.append([header, parts[0] + ';', is_diff])
-                for part in parts[1:]:
-                    store.append(['', part + (';' if not part == parts[-1] else ''), is_diff])
-            else:
-                store.append([header, value, is_diff])
-
-        self.treeview.set_model(store)
-
-        self.column_key.set_cell_data_func(self.renderer_key, self.style_header_cell)
-        self.column_value.set_cell_data_func(self.renderer_value, self.style_value_cell)
-
-        self._setup_context_menu()
-
-    def style_header_cell(self, column, cell, model, iter, data):
-        key = model.get_value(iter, 0)
-        escaped_key = GLib.markup_escape_text(key)
-        markup = f"<b>{escaped_key}</b>"
-        cell.set_property("markup", markup)
-
-    def style_value_cell(self, column, cell, model, iter, data):
-        value = model.get_value(iter, 1)
-        cell.set_property("text", value)
-
-        is_diff = model.get_value(iter, 2)
-        if is_diff:
-            cell.set_property("weight", Pango.Weight.BOLD)
-        else:
-            cell.set_property("weight", Pango.Weight.NORMAL)
-
-    def _setup_context_menu(self):
-        copy_action = Gio.SimpleAction.new("copy_selection", None)
-        copy_action.connect("activate", self._on_copy_activated)
-
-        action_group = Gio.SimpleActionGroup()
-        action_group.add_action(copy_action)
-        self.insert_action_group("dialog", action_group)
-        menu_model = Gio.Menu()
-        menu_model.append("Copy", "dialog.copy_selection")
-
-        self.popover = Gtk.PopoverMenu.new_from_model(menu_model)
-        self.popover.set_parent(self.treeview)
-
-        click_controller = Gtk.GestureClick.new()
-        click_controller.set_button(Gdk.BUTTON_SECONDARY)
-        click_controller.connect("pressed", self._on_right_click)
-        self.treeview.add_controller(click_controller)
-
-    def _on_right_click(self, gesture, n_press, x, y):
-        self.popover.set_pointing_to(Gdk.Rectangle(x, y, 1, 1))
-        self.popover.popup()
-
-    def _on_copy_activated(self, action, param):
-        log.debug("Copy action activated.")
-        selection = self.treeview.get_selection()
-        model, paths = selection.get_selected_rows()
-        if not paths:
-            log.debug("No rows selected, nothing to copy.")
-            return
-
-        log.debug(f"Found {len(paths)} rows selected for copying.")
-        clipboard_text = []
-        for path in paths:
-            it = model.get_iter(path)
-            key = model.get_value(it, 0)
-            value = model.get_value(it, 1)
-            if key:
-                clipboard_text.append(f"{key}: {value}")
-
-        text_to_copy = "\n".join(clipboard_text)
-        log.debug(f"Attempting to copy text to clipboard: '{text_to_copy}'")
-        self._clipboard_provider = Gdk.ContentProvider.new_for_value(text_to_copy)
-        clipboard = self.get_clipboard()
-        clipboard.set_content(self._clipboard_provider)
-        log.debug("Clipboard content set.")
 
 
 @Gtk.Template(filename='src/ui/main.ui')
@@ -264,47 +161,55 @@ class Window(Adw.ApplicationWindow):
             return
 
         for i, result in enumerate(results):
-            original_layer = next((layer for layer in layer_config if layer.get('name') == result.get('name')), {})
-            body_color = original_layer.get('body_color', '')
-            header_color = original_layer.get('header_color', '')
-            text_color = original_layer.get('text_color', '')
-            diff_text_color = original_layer.get('diff_text_color', '')
-            headers_list = []
-            if 'error' in result:
-                error_type = result.get('error_type', 'unknown').capitalize()
-                error_message = result['error']
-                headers_list.append((f"Error ({error_type})", error_message, True))
-                log.warning(f"Layer '{result.get('name')}' resulted in an error: {result['error']}")
-            else:
-                upstream_headers = None
-                if i < len(results) - 1:
-                    upstream_result = results[i+1]
-                    if 'headers' in upstream_result:
-                         upstream_headers = {k.lower(): v for k, v in upstream_result.get('headers', {}).items()}
-
-                for key, value in result.get('headers', {}).items():
-                    lower_key = key.lower()
-                    is_diff = False
-                    if upstream_headers is not None:
-                        if lower_key not in upstream_headers or upstream_headers[lower_key] != value:
-                            is_diff = True
-
-                    log.debug(f"Comparing header '{key}': value='{value}', upstream='{upstream_headers.get(lower_key) if upstream_headers else 'None'}', is_diff={is_diff}")
-                    headers_list.append((key, value, is_diff))
-
-            processed_nodes.append({
-                "name": result['name'],
-                "headers": headers_list,
-                "body_color": body_color,
-                "header_color": header_color,
-                "text_color": text_color,
-                "diff_text_color": diff_text_color,
-                "request_url": result.get('url'),
-                "request_host": result.get('sent_host_header'),
-                "request_method": result.get('method', 'GET')
-            })
+            node_data = self._create_node_data(result, i, results, layer_config)
+            processed_nodes.append(node_data)
 
         self.node_graph.set_data(processed_nodes)
+
+    def _create_node_data(self, result, index, all_results, layer_config):
+        original_layer = next((layer for layer in layer_config if layer.get('name') == result.get('name')), {})
+
+        headers_list = []
+        if 'error' in result:
+            error_type = result.get('error_type', 'unknown').capitalize()
+            error_message = result['error']
+            headers_list.append((f"Error ({error_type})", error_message, True))
+            log.warning(f"Layer '{result.get('name')}' resulted in an error: {result['error']}")
+        else:
+            headers_list = self._compare_headers(result, index, all_results)
+
+        return {
+            "name": result['name'],
+            "headers": headers_list,
+            "body_color": original_layer.get('body_color', ''),
+            "header_color": original_layer.get('header_color', ''),
+            "text_color": original_layer.get('text_color', ''),
+            "diff_text_color": original_layer.get('diff_text_color', ''),
+            "request_url": result.get('url'),
+            "request_host": result.get('sent_host_header'),
+            "request_method": result.get('method', 'GET')
+        }
+
+    def _compare_headers(self, result, index, all_results):
+        headers_list = []
+        upstream_headers = None
+
+        if index < len(all_results) - 1:
+            upstream_result = all_results[index+1]
+            if 'headers' in upstream_result:
+                    upstream_headers = {k.lower(): v for k, v in upstream_result.get('headers', {}).items()}
+
+        for key, value in result.get('headers', {}).items():
+            lower_key = key.lower()
+            is_diff = False
+            if upstream_headers is not None:
+                if lower_key not in upstream_headers or upstream_headers[lower_key] != value:
+                    is_diff = True
+
+            # log.debug(f"Comparing header '{key}': ...")
+            headers_list.append((key, value, is_diff))
+
+        return headers_list
 
     def set_inspection_in_progress(self, in_progress):
         self.inspect_button.set_sensitive(not in_progress)

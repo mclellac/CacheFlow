@@ -4,12 +4,17 @@ import dns.resolver
 import dns.exception
 import warnings
 import logging
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse
 
 from urllib3.exceptions import InsecureRequestWarning
+from .dns_adapter import DNSAdapter
 warnings.simplefilter('ignore', InsecureRequestWarning)
 
 log = logging.getLogger(__name__)
+
+ERR_SSL = "SSL Error. The certificate may be invalid."
+ERR_TIMEOUT = "Connection timed out to {}."
+ERR_CONNECTION = "Connection refused by {}."
 
 class CacheFlowEngine:
     def __init__(self, config):
@@ -26,6 +31,12 @@ class CacheFlowEngine:
         if dns_config:
             self.dns_servers = [s.strip() for s in dns_config.split(',') if s.strip()]
             log.debug(f"Using custom DNS servers: {self.dns_servers}")
+
+        self.session = requests.Session()
+        self.dns_map = {}
+        adapter = DNSAdapter(dns_map=self.dns_map)
+        self.session.mount('https://', adapter)
+        self.session.mount('http://', adapter)
 
     def resolve_host(self, hostname):
         if not self.dns_servers:
@@ -79,14 +90,16 @@ class CacheFlowEngine:
             base_url = layer['host_url'].rstrip('/')
             parsed_url = urlparse(base_url)
             hostname = parsed_url.hostname
-            port = parsed_url.port
 
             final_host_header = host_header_override or hostname
 
+            # Resolve DNS if needed and update the adapter map
             target_ip = hostname
             dns_error = None
             if self.dns_servers:
                 target_ip, dns_error = self.resolve_host(hostname)
+                if not dns_error and target_ip != hostname:
+                    self.dns_map[hostname] = target_ip
             
             if dns_error:
                 results.append({
@@ -96,27 +109,20 @@ class CacheFlowEngine:
                 })
                 continue
 
-            if target_ip != hostname:
-                netloc = target_ip
-                if port:
-                    netloc += f":{port}"
-                url_parts = list(parsed_url)
-                url_parts[1] = netloc
-                url_parts[2] = test_path
-                url = urlunparse(url_parts)
-            else:
-                url = base_url + test_path
+            # Keep the original URL to preserve SNI and SSL verification
+            url = base_url + test_path
 
             headers = layer.get('custom_headers', {}).copy()
             headers['User-Agent'] = user_agent
 
-            if target_ip != hostname or host_header_override:
+            # Set Host header if overridden
+            if host_header_override:
                 headers['Host'] = final_host_header
 
             log.debug(f"Request URL: {url}")
             log.debug(f"Request Headers: {headers}")
             try:
-                response = requests.get(url, headers=headers, timeout=5, stream=True, allow_redirects=False, verify=self.verify_ssl)
+                response = self.session.get(url, headers=headers, timeout=10, stream=True, allow_redirects=False, verify=self.verify_ssl)
                 response.close()
 
                 layer_result = {
@@ -127,15 +133,15 @@ class CacheFlowEngine:
                 }
                 log.debug(f"Request successful. Status: {response.status_code}")
             except requests.exceptions.SSLError as e:
-                error_message = "SSL Error. The certificate may be invalid."
+                error_message = ERR_SSL
                 log.error(f"Request failed for {url}: {error_message} - {e}")
                 layer_result = {'name': layer['name'], 'error': error_message, 'error_type': 'ssl'}
             except requests.exceptions.ConnectTimeout as e:
-                error_message = f"Connection timed out to {target_ip}."
+                error_message = ERR_TIMEOUT.format(target_ip)
                 log.error(f"Request failed for {url}: {error_message} - {e}")
                 layer_result = {'name': layer['name'], 'error': error_message, 'error_type': 'timeout'}
             except requests.exceptions.ConnectionError as e:
-                error_message = f"Connection refused by {target_ip}."
+                error_message = ERR_CONNECTION.format(target_ip)
                 log.error(f"Request failed for {url}: {error_message} - {e}")
                 layer_result = {'name': layer['name'], 'error': error_message, 'error_type': 'connection'}
             except Exception as e:
