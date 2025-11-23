@@ -16,6 +16,7 @@ class Window(Adw.ApplicationWindow):
     __gtype_name__ = 'Window'
 
     path_entry = Gtk.Template.Child()
+    env_label = Gtk.Template.Child()
     inspect_button = Gtk.Template.Child()
     node_graph = Gtk.Template.Child()
     spinner = Gtk.Template.Child()
@@ -98,6 +99,7 @@ class Window(Adw.ApplicationWindow):
         else:
             self.env_switcher.set_selected(0)
 
+        self.update_env_label(active_env)
         self.env_switcher.connect('notify::selected', self.on_env_selected)
 
     def on_env_selected(self, dropdown, _):
@@ -105,6 +107,17 @@ class Window(Adw.ApplicationWindow):
         new_env = self.environments[selected_idx]
         self.settings.set_string('active-environment', new_env)
         self.node_graph.set_data([])
+        self.update_env_label(new_env)
+
+    def update_env_label(self, env_name):
+        config_key = f'config-{env_name}'
+        layers_config = self.settings.get_value(config_key).unpack()
+        if layers_config and len(layers_config) > 0:
+            first_layer = layers_config[0]
+            host_url = first_layer.get('host_url', 'No Host Configured')
+            self.env_label.set_text(host_url)
+        else:
+            self.env_label.set_text("No Host Configured")
 
     def on_inspect_clicked(self, _):
         log.info("Inspect button clicked.")
