@@ -1,7 +1,7 @@
 {
     "app-id": "com.github.mclellac.CacheFlow",
     "runtime": "org.gnome.Platform",
-    "runtime-version": "46",
+    "runtime-version": "49",
     "sdk": "org.gnome.Sdk",
     "command": "cacheflow",
     "finish-args": [
@@ -30,8 +30,8 @@
             "sources": [
                 {
                     "type": "file",
-                    "url": "https://files.pythonhosted.org/packages/b8/36/9a756be35334a58f9b8476d7567ad45719d65b4c0f20953a15a498b33c1a/certifi-2024.7.4-py3-none-any.whl",
-                    "sha256": "036c69f4f723659457857416537de79b9ae77e44e945547a0e85553123593434"
+                    "url": "https://files.pythonhosted.org/packages/a2/8c/58f469717fa48465e4a50c014a0400602d3c437d7c0c468e17ada824da3a/certifi-2025.11.12.tar.gz",
+                    "sha256": "d8ab5478f2ecd78af242878415affce761ca6bc54a22a27e026d7c25357c3316"
                 }
             ]
         },
@@ -44,8 +44,8 @@
             "sources": [
                 {
                     "type": "file",
-                    "url": "https://files.pythonhosted.org/packages/99/b5/de3c69f2f55f2a83a9394d820c9e836173255c54c1c1527a44aebc52416b/charset_normalizer-3.3.2-py3-none-any.whl",
-                    "sha256": "432e317392d00d39a3286d733518a28e6a1b52f4730e5a6607a4253e83969f05"
+                    "url": "https://files.pythonhosted.org/packages/0a/4c/925909008ed5a988ccbb72dcc897407e5d6d3bd72410d69e051fc0c14647/charset_normalizer-3.4.4-py3-none-any.whl",
+                    "sha256": "7a32c560861a02ff789ad905a2fe94e3f840803362c84fecf1851cb4cf3dc37f"
                 }
             ]
         },
@@ -58,8 +58,8 @@
             "sources": [
                 {
                     "type": "file",
-                    "url": "https://files.pythonhosted.org/packages/c2/e7/a82b05cf43a6e7c4c200ca823f07278299d3155e584beb78be5066c2196e/idna-3.7-py3-none-any.whl",
-                    "sha256": "a6843f3a1a84c68c1f54350f2c1b9369359a5a43fde44a4d0342f5114a3a1a1f"
+                    "url": "https://files.pythonhosted.org/packages/0e/61/66938bbb5fc52dbdf84594873d5b51fb1f7c7794e9c0f5bd885f30bc507b/idna-3.11-py3-none-any.whl",
+                    "sha256": "771a87f49d9defaf64091e6e6fe9c18d4833f140bd19464795bc32d966ca37ea"
                 }
             ]
         },
@@ -72,8 +72,8 @@
             "sources": [
                 {
                     "type": "file",
-                    "url": "https://files.pythonhosted.org/packages/b0/53/aa91e23d5394c54a553f2c3988d1338a4b8d34c7c515152069b8886b5d4b/urllib3-2.2.2-py3-none-any.whl",
-                    "sha256": "b925f338335ed5f2a545322a817d30a345c255b754a289e40335a260d599a82e"
+                    "url": "https://files.pythonhosted.org/packages/a7/c2/fe1e52489ae3122415c51f387e221dd0773709bad6c6cdaa599e8a2c5185/urllib3-2.5.0-py3-none-any.whl",
+                    "sha256": "e6b01673c0fa6a13e374b50871808eb3bf7046c4b125b216f6bf1cc604cff0dc"
                 }
             ]
         },
@@ -86,8 +86,8 @@
             "sources": [
                 {
                     "type": "file",
-                    "url": "https://files.pythonhosted.org/packages/70/8e/0e2d847013cb52cd35b38c001bb167a1a26b2ce6cd6965382aa5b4dc0ea6/requests-2.32.3-py3-none-any.whl",
-                    "sha256": "a3b1693b3e6b90484a6a356886817b2c45a8273a9bautil.h"
+                    "url": "https://files.pythonhosted.org/packages/1e/db/4254e3eabe8020b458f1a747140d32277ec7a271daf1d235b70dc0b4e6e3/requests-2.32.5-py3-none-any.whl",
+                    "sha256": "2462f94637a34fd532264295e186976db0f5d453d1cdd31473c85a6a161affb6"
                 }
             ]
         },
