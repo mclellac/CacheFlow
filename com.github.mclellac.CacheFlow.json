@@ -1,7 +1,7 @@
 {
     "id" : "com.github.mclellac.CacheFlow",
     "runtime" : "org.gnome.Platform",
-    "runtime-version" : "master",
+    "runtime-version" : "49",
     "sdk" : "org.gnome.Sdk",
     "command" : "cacheflow",
     "finish-args" : [

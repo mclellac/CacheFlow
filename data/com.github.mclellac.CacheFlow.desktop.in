@@ -1,10 +1,8 @@
 [Desktop Entry]
-Name=cacheflow
+Name=CacheFlow
+Comment=Inspect and visualize HTTP cache headers
 Exec=cacheflow
 Icon=com.github.mclellac.CacheFlow
 Terminal=false
 Type=Application
-Categories=Utility;
-Keywords=GTK;
-StartupNotify=true
-DBusActivatable=true
+Categories=GNOME;GTK;Development;Network;
