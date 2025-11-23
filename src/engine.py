@@ -15,10 +15,11 @@ class CacheFlowEngine:
     def __init__(self, config):
         """
         Initialize with a configuration dictionary.
-        Config includes 'layers', 'user_agent', 'test_path', and optional 'dns_servers'.
+        Config includes 'layers', 'user_agent', 'test_path', optional 'dns_servers' and 'verify_ssl'.
         """
         self.config = config
         self.dns_servers = []
+        self.verify_ssl = config.get('verify_ssl', False)
         log.debug("CacheFlowEngine initialized.")
 
         dns_config = self.config.get('dns_servers', '')
@@ -115,7 +116,7 @@ class CacheFlowEngine:
             log.debug(f"Request URL: {url}")
             log.debug(f"Request Headers: {headers}")
             try:
-                response = requests.get(url, headers=headers, timeout=5, stream=True, allow_redirects=False, verify=False)
+                response = requests.get(url, headers=headers, timeout=5, stream=True, allow_redirects=False, verify=self.verify_ssl)
                 response.close()
 
                 layer_result = {
