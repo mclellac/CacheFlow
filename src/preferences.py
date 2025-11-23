@@ -45,7 +45,9 @@ DEFAULT_CONFIG = [
             "Pragma": "akamai-x-get-request-id, akamai-x-cache-on, akamai-x-cache-key"
         },
         "host_overrides": [],
-        "path_match_only": []
+        "path_match_only": [],
+        "text_color": "",
+        "diff_text_color": ""
     },
     {
         "name": "Infra_Cache",
@@ -61,7 +63,9 @@ DEFAULT_CONFIG = [
                 "host_header": "api-internal.example.com"
             }
         ],
-        "path_match_only": []
+        "path_match_only": [],
+        "text_color": "",
+        "diff_text_color": ""
     },
     {
         "name": "Application_Backend_A",
@@ -72,7 +76,9 @@ DEFAULT_CONFIG = [
             "/products/*",
             "/api/v1/*"
         ],
-        "host_overrides": []
+        "host_overrides": [],
+        "text_color": "",
+        "diff_text_color": ""
     }
 ]
 
@@ -269,7 +275,9 @@ class PreferencesWindow(Adw.PreferencesWindow):
             'host_url': 'http://localhost',
             'custom_headers': {},
             'host_overrides': [],
-            'path_match_only': []
+            'path_match_only': [],
+            'text_color': '',
+            'diff_text_color': ''
         }
         self.create_layer_row(group, key, new_data)
         self.config_manager.save_layers(key, self._layer_rows[group])
