@@ -58,8 +58,7 @@ class Window(Adw.ApplicationWindow):
             menu.append(env.capitalize(), f"win.active_environment::{env}")
 
         self.env_switcher.set_menu_model(menu)
-        # Bind the button's state to the action
-        self.env_switcher.bind_property("active-action", self.lookup_action("win.active_environment"), "state", GObject.BindingFlags.DEFAULT)
+        self.env_switcher.set_action_name("win.active_environment")
 
     def on_env_change(self, action, value):
         """Handles state change for the active environment."""
