@@ -189,13 +189,23 @@ class NodeGraph(Gtk.DrawingArea):
 
         # --- 0. Draw Selection Indicator (Glow/Border) ---
         if self.selected_node_index == node["id"]:
-            accent = style_manager.get_accent_color()
+            accent = None
+            # Try to get the actual RGBA color (Libadwaita 1.6+)
+            if hasattr(style_manager, "get_accent_color_rgba"):
+                accent = style_manager.get_accent_color_rgba()
+
+            if accent:
+                r, g, b = accent.red, accent.green, accent.blue
+            else:
+                # Fallback to a default blue
+                r, g, b = 0.2, 0.5, 0.9
+
             # Draw glow
-            cr.set_source_rgba(accent.red, accent.green, accent.blue, 0.3)
+            cr.set_source_rgba(r, g, b, 0.3)
             self.rounded_rectangle(cr, x - 5, y - 5, w + 10, h + 10, 15)
             cr.fill()
             # Draw wider border
-            cr.set_source_rgba(accent.red, accent.green, accent.blue, 1.0)
+            cr.set_source_rgba(r, g, b, 1.0)
             cr.set_line_width(3)
             self.rounded_rectangle(cr, x, y, w, h, 10)
             cr.stroke()
