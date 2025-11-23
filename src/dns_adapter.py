@@ -71,6 +71,5 @@ class DNSAdapter(HTTPAdapter):
             dns_map=self.dns_map,
             num_pools=connections,
             maxsize=maxsize,
-            block=block,
-            strict=True
+            block=block
         )
