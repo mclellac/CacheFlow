@@ -1,6 +1,6 @@
-import gi
-import cairo
 import logging
+import cairo
+import gi
 
 gi.require_version('PangoCairo', '1.0')
 from gi.repository import Gtk, Gdk, Adw, Pango, PangoCairo, Gio, GLib, GObject
@@ -27,6 +27,7 @@ class NodeGraph(Gtk.DrawingArea):
         self.nodes = []
         self.dragging_node = None
         self.resizing_node = None
+        self.selected_node_index = None
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
@@ -183,7 +184,21 @@ class NodeGraph(Gtk.DrawingArea):
     def draw_node(self, cr, node):
         """Draws a single node."""
         x, y, w, h = node["x"], node["y"], node["width"], node["height"]
-        is_dark = Adw.StyleManager.get_default().get_dark()
+        style_manager = Adw.StyleManager.get_default()
+        is_dark = style_manager.get_dark()
+
+        # --- 0. Draw Selection Indicator (Glow/Border) ---
+        if self.selected_node_index == node["id"]:
+            accent = style_manager.get_accent_color()
+            # Draw glow
+            cr.set_source_rgba(accent.red, accent.green, accent.blue, 0.3)
+            self.rounded_rectangle(cr, x - 5, y - 5, w + 10, h + 10, 15)
+            cr.fill()
+            # Draw wider border
+            cr.set_source_rgba(accent.red, accent.green, accent.blue, 1.0)
+            cr.set_line_width(3)
+            self.rounded_rectangle(cr, x, y, w, h, 10)
+            cr.stroke()
 
         # --- 1. Draw Shadow ---
         cr.set_source_rgba(0.0, 0.0, 0.0, 0.4)
@@ -314,19 +329,32 @@ class NodeGraph(Gtk.DrawingArea):
 
             handle_x = node_x + node_w - RESIZE_HANDLE_SIZE
             handle_y = node_y + node_h - RESIZE_HANDLE_SIZE
-            if start_x >= handle_x and start_y >= handle_y:
+
+            # Check resize handle collision (Strictly bounded)
+            if (handle_x <= start_x <= node_x + node_w and
+                    handle_y <= start_y <= node_y + node_h):
                 self.resizing_node = node
+                self.selected_node_index = node["id"]
+                self.queue_draw()
                 log.debug(f"Resizing node '{node['data']['name']}'.")
                 gesture.set_state(Gtk.EventSequenceState.CLAIMED)
                 return
 
+            # Check node body collision
             if node_x <= start_x <= node_x + node_w and node_y <= start_y <= node_y + node_h:
                 self.dragging_node = node
+                self.selected_node_index = node["id"]
+                self.queue_draw()
                 self.drag_offset_x = start_x - node["x"]
                 self.drag_offset_y = start_y - node["y"]
                 log.debug(f"Dragging node '{node['data']['name']}'.")
                 gesture.set_state(Gtk.EventSequenceState.CLAIMED)
                 return
+
+        # If we didn't hit any node, deselect
+        if self.selected_node_index is not None:
+            self.selected_node_index = None
+            self.queue_draw()
 
         gesture.set_state(Gtk.EventSequenceState.DENIED)
 
@@ -357,7 +385,23 @@ class NodeGraph(Gtk.DrawingArea):
             self.resizing_node = None
 
     def on_click(self, gesture, n_press, x, y):
-        """Handles click events, specifically double-clicks."""
+        """Handles click events."""
+
+        # Handle selection on single click (or first click of double)
+        if n_press == 1:
+            hit_node = False
+            for node in reversed(self.nodes):
+                if (node["x"] <= x <= node["x"] + node["width"] and
+                        node["y"] <= y <= node["y"] + node["height"]):
+                    self.selected_node_index = node["id"]
+                    self.queue_draw()
+                    hit_node = True
+                    break
+
+            if not hit_node and self.selected_node_index is not None:
+                self.selected_node_index = None
+                self.queue_draw()
+
         if n_press != 2:
             return
 
