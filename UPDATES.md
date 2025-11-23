@@ -25,8 +25,10 @@
 - **Cleanup**: Removed unused code or simplified complex logic where appropriate.
 - **Standards**: Enforced `AGENTS.md` guidelines regarding GSettings types and template usage.
 
+### New Features
+- **SSL/TLS Verification**: Added a user preference in `PreferencesWindow` to toggle SSL verification. Updated `src/engine.py` to respect this setting and added `verify-ssl` key to GSettings schema.
+
 ## Feature Suggestions
-- **SSL/TLS Verification**: `src/engine.py` currently disables SSL verification (`verify=False`). A future update should add a preference to toggle this, or allow importing custom CA certificates.
 - **Async Inspection**: While the current inspection runs in a thread, `requests` is synchronous. Migrating to `aiohttp` or `httpx` could allow parallel layer inspection (though sequential is often required for flow verification) or better non-blocking behavior.
 - **SNI Support**: When inspecting specific IPs (DNS override), `requests` does not send the correct SNI if the URL is modified to use the IP. This can be improved by using a custom transport adapter that forces the IP connection while keeping the hostname in the URL.
 

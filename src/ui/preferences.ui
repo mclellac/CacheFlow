@@ -36,6 +36,12 @@
           <object class="AdwPreferencesGroup">
             <property name="title">Network</property>
             <child>
+               <object class="AdwSwitchRow" id="ssl_row">
+                 <property name="title">Verify SSL</property>
+                 <property name="subtitle">Enforce certificate validation</property>
+               </object>
+            </child>
+            <child>
                <object class="AdwEntryRow" id="dns_row">
                  <property name="title">DNS Servers</property>
                  <property name="tooltip-text">Comma-separated list of DNS servers (e.g., 8.8.8.8, 1.1.1.1)</property>

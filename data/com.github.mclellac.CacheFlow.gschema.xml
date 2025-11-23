@@ -25,6 +25,10 @@
       <default>''</default>
       <summary>Comma-separated list of DNS servers to use for resolution.</summary>
     </key>
+    <key name="verify-ssl" type="b">
+      <default>false</default>
+      <summary>Whether to verify SSL certificates</summary>
+    </key>
     <key name="config-production" type="aa{sv}">
       <default>[]</default>
       <summary>Configuration for the Production environment</summary>

@@ -229,7 +229,8 @@ class Window(Adw.ApplicationWindow):
             config = {
                 'layers': layers,
                 'user_agent': self.settings.get_string('user-agent'),
-                'dns_servers': self.settings.get_string('dns-servers')
+                'dns_servers': self.settings.get_string('dns-servers'),
+                'verify_ssl': self.settings.get_boolean('verify-ssl')
             }
             engine = CacheFlowEngine(config)
             results = engine.run_inspection(test_path=path)
