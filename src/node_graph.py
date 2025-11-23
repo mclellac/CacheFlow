@@ -38,6 +38,8 @@ class NodeGraph(Gtk.DrawingArea):
         self.pan_start_offset_x = 0
         self.pan_start_offset_y = 0
         self.is_panning = False
+        self.mouse_x = 0
+        self.mouse_y = 0
 
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
         log.debug("NodeGraph initialized.")
@@ -73,6 +75,11 @@ class NodeGraph(Gtk.DrawingArea):
         scroll_controller = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.VERTICAL)
         scroll_controller.connect("scroll", self.on_scroll)
         self.add_controller(scroll_controller)
+
+        # Track mouse for zoom
+        motion_controller = Gtk.EventControllerMotion.new()
+        motion_controller.connect("motion", self.on_motion)
+        self.add_controller(motion_controller)
 
         self._setup_context_menu()
 
@@ -114,15 +121,14 @@ class NodeGraph(Gtk.DrawingArea):
         self.offset_y = self.pan_start_offset_y + offset_y
         self.queue_draw()
 
+    def on_motion(self, controller, x, y):
+        self.mouse_x = x
+        self.mouse_y = y
+
     def on_scroll(self, controller, dx, dy):
         # Zoom towards mouse pointer
-        event = controller.get_current_event()
-        if not event:
-             return False
-
-        ok, x, y = event.get_position()
-        if not ok:
-            return False
+        x = self.mouse_x
+        y = self.mouse_y
 
         # Calculate world coordinate under mouse before zoom
         wx = (x - self.offset_x) / self.scale
