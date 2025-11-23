@@ -54,17 +54,27 @@ class NodeGraph(Gtk.DrawingArea):
         log.info(f"Setting node data with {len(nodes_data)} nodes.")
         self.nodes = []
         x, y = 50, 50
+
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 0, 0)
+        cr = cairo.Context(surface)
+        cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+        cr.set_font_size(16)
+
         for i, node_data in enumerate(nodes_data):
+            text_extents = cr.text_extents(node_data["name"])
+            min_width = text_extents.width + 2 * PADDING
+            node_width = max(NODE_WIDTH, min_width)
             node = {
                 "id": i,
                 "x": x,
                 "y": y,
-                "width": NODE_WIDTH,
+                "width": node_width,
                 "height": NODE_HEADER_HEIGHT + (len(node_data["headers"]) * LINE_HEIGHT) + PADDING,
                 "data": node_data,
+                "min_width": min_width, 
             }
             self.nodes.append(node)
-            x += NODE_WIDTH + 100
+            x += node_width + 100
         self.queue_draw()
 
     def on_draw(self, area, cr, width, height):
@@ -117,9 +127,13 @@ class NodeGraph(Gtk.DrawingArea):
         x, y, w, h = node["x"], node["y"], node["width"], node["height"]
         is_dark = Adw.StyleManager.get_default().get_dark()
 
-        body_rgba = Gdk.RGBA()
-        header_rgba = Gdk.RGBA()
+        # --- 1. Draw Shadow ---
+        cr.set_source_rgba(0.0, 0.0, 0.0, 0.4)
+        self.rounded_rectangle(cr, x + 2, y + 3, w, h, 10)
+        cr.fill()
 
+        # --- 2. Draw Node Body and Border ---
+        body_rgba = Gdk.RGBA()
         body_color_str = node['data'].get('body_color')
         if body_color_str and body_rgba.parse(body_color_str) and body_rgba.alpha > 0:
             cr.set_source_rgba(body_rgba.red, body_rgba.green, body_rgba.blue, body_rgba.alpha)
@@ -127,9 +141,17 @@ class NodeGraph(Gtk.DrawingArea):
             cr.set_source_rgba(0.2, 0.2, 0.25, 1)  # Fallback dark body
         else:
             cr.set_source_rgba(0.8, 0.8, 0.85, 1)  # Fallback light body
+        
         self.rounded_rectangle(cr, x, y, w, h, 10)
-        cr.fill()
+        cr.fill_preserve()
+        
+        border_color = (0.5, 0.5, 0.5, 0.8) if is_dark else (0.4, 0.4, 0.4, 0.8)
+        cr.set_source_rgba(*border_color)
+        cr.set_line_width(1)
+        cr.stroke()
 
+        # --- 3. Draw Header and Border ---
+        header_rgba = Gdk.RGBA()
         header_color_str = node['data'].get('header_color')
         if header_color_str and header_rgba.parse(header_color_str) and header_rgba.alpha > 0:
             cr.set_source_rgba(header_rgba.red, header_rgba.green, header_rgba.blue, header_rgba.alpha)
@@ -137,9 +159,15 @@ class NodeGraph(Gtk.DrawingArea):
             cr.set_source_rgba(0.3, 0.3, 0.35, 1)  # Fallback dark header
         else:
             cr.set_source_rgba(0.7, 0.7, 0.75, 1)  # Fallback light header
+        
         self.rounded_rectangle(cr, x, y, w, NODE_HEADER_HEIGHT, 10, corners={'bl': False, 'br': False})
-        cr.fill()
+        cr.fill_preserve()
+        
+        cr.set_source_rgba(*border_color)
+        cr.set_line_width(0.5)
+        cr.stroke()
 
+        # --- 4. Draw Text ---
         if is_dark:
             cr.set_source_rgba(1, 1, 1, 1)
         else:
@@ -250,7 +278,8 @@ class NodeGraph(Gtk.DrawingArea):
             self.dragging_node["x"] = start_x + offset_x - self.drag_offset_x
             self.dragging_node["y"] = start_y + offset_y - self.drag_offset_y
         elif self.resizing_node:
-            self.resizing_node["width"] = max(150, start_x + offset_x - self.resizing_node["x"])
+            min_w = self.resizing_node.get("min_width", 150)
+            self.resizing_node["width"] = max(min_w, start_x + offset_x - self.resizing_node["x"])
             self.resizing_node["height"] = max(100, start_y + offset_y - self.resizing_node["y"])
 
         self.queue_draw()
@@ -282,26 +311,41 @@ class NodeGraph(Gtk.DrawingArea):
         parent_window = self.get_root()
 
         scrolled_window = Gtk.ScrolledWindow()
-        scrolled_window.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         scrolled_window.set_min_content_height(400)
         scrolled_window.set_vexpand(True)
 
-        text_view = Gtk.TextView()
-        text_view.set_editable(False)
-        text_view.set_cursor_visible(False)
-        text_view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
-        text_view.set_left_margin(10)
-        text_view.set_right_margin(10)
-        text_view.set_top_margin(10)
-        text_view.set_bottom_margin(10)
-        buffer = text_view.get_buffer()
-        scrolled_window.set_child(text_view)
-
-        full_text = ""
+        # Create the model
+        store = Gtk.ListStore(str, str, bool)
         for header, value, is_diff in node["data"]["headers"]:
-            full_text += f"{header}: {value}\n"
+            store.append([header, value, is_diff])
 
-        buffer.set_text(full_text)
+        # Create the view
+        treeview = Gtk.TreeView(model=store)
+        treeview.set_hexpand(True)
+
+        # Create columns
+        renderer_key = Gtk.CellRendererText(wrap_width=280, wrap_mode=Pango.WrapMode.WORD_CHAR)
+        column_key = Gtk.TreeViewColumn("Header", renderer_key, text=0)
+        
+        renderer_value = Gtk.CellRendererText(wrap_width=280, wrap_mode=Pango.WrapMode.WORD_CHAR)
+        column_value = Gtk.TreeViewColumn("Value", renderer_value, text=1)
+
+        # Set cell data function to style rows
+        def style_row(column, cell, model, iter, data):
+            is_diff = model.get_value(iter, 2)
+            if is_diff:
+                cell.set_property("weight", Pango.Weight.BOLD)
+            else:
+                cell.set_property("weight", Pango.Weight.NORMAL)
+
+        column_key.set_cell_data_func(renderer_key, style_row)
+        column_value.set_cell_data_func(renderer_value, style_row)
+
+        treeview.append_column(column_key)
+        treeview.append_column(column_value)
+
+        scrolled_window.set_child(treeview)
 
         dialog = Adw.MessageDialog(
             transient_for=parent_window,

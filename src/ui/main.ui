@@ -17,17 +17,30 @@
               </object>
             </child>
             <child type="start">
-              <object class="GtkMenuButton" id="env_switcher">
-                <property name="icon-name">folder-symbolic</property>
+              <object class="GtkDropDown" id="env_switcher">
                 <property name="tooltip-text">Switch Environment</property>
               </object>
             </child>
             <child type="end">
-                <object class="GtkButton" id="preferences_button">
-                    <property name="icon-name">open-menu-symbolic</property>
-                    <property name="tooltip-text">Preferences</property>
-                    <property name="action-name">app.preferences</property>
-                </object>
+              <object class="GtkMenuButton">
+                <property name="icon-name">open-menu-symbolic</property>
+                <property name="menu-model">
+                  <menu>
+                    <section>
+                      <item>
+                        <attribute name="label" translatable="yes">Preferences</attribute>
+                        <attribute name="action">app.preferences</attribute>
+                      </item>
+                    </section>
+                    <section>
+                      <item>
+                        <attribute name="label" translatable="yes">About</attribute>
+                        <attribute name="action">app.about</attribute>
+                      </item>
+                    </section>
+                  </menu>
+                </property>
+              </object>
             </child>
           </object>
         </child>

@@ -34,38 +34,34 @@ class Window(Adw.ApplicationWindow):
 
     def setup_actions(self):
         """Setup application-wide actions."""
-        action_group = Gio.SimpleActionGroup()
-        self.insert_action_group("win", action_group)
+        self.win_action_group = Gio.SimpleActionGroup()
+        self.insert_action_group("win", self.win_action_group)
 
-        def add_action(name, callback):
-            action = Gio.SimpleAction.new(name, None)
-            action.connect("activate", callback)
-            action_group.add_action(action)
+        self.add_action("inspect", self.on_inspect_clicked)
 
-        add_action("inspect", self.on_inspect_clicked)
-
-        active_env_action = Gio.SimpleAction.new_stateful(
-            "active_environment",
-            GLib.VariantType.new("s"),
-            GLib.Variant("s", self.settings.get_string('active-environment'))
-        )
-        active_env_action.connect("change-state", self.on_env_change)
-        action_group.add_action(active_env_action)
+    def add_action(self, name, callback):
+        action = Gio.SimpleAction.new(name, None)
+        action.connect("activate", callback)
+        self.win_action_group.add_action(action)
 
     def setup_env_switcher(self):
-        """Sets up the environment selection menu button."""
-        menu = Gio.Menu.new()
+        """Sets up the environment selection dropdown."""
+        self.env_model = Gtk.StringList.new(self.environments)
+        self.env_switcher.set_model(self.env_model)
 
-        for env in self.environments:
-            menu.append(env.capitalize(), f"win.active_environment::{env}")
+        # Sync dropdown with settings
+        active_env = self.settings.get_string('active-environment')
+        if active_env in self.environments:
+            self.env_switcher.set_selected(self.environments.index(active_env))
+        else:
+            self.env_switcher.set_selected(0)
 
-        self.env_switcher.set_menu_model(menu)
-        self.env_switcher.action_name = "win.active_environment"
+        self.env_switcher.connect('notify::selected', self.on_env_selected)
 
-    def on_env_change(self, action, value):  # noqa
-        """Handles state change for the active environment."""
-        new_env = value.get_string()
-        action.set_state(value)
+    def on_env_selected(self, dropdown, _):
+        """Handles environment selection change."""
+        selected_idx = dropdown.get_selected()
+        new_env = self.environments[selected_idx]
         self.settings.set_string('active-environment', new_env)
         # Optionally, clear the graph or re-inspect
         self.node_graph.set_data([])
@@ -143,7 +139,7 @@ class Window(Adw.ApplicationWindow):
 
         # Safely get the headers from the last layer (origin) for comparison.
         origin_result = results[-1]
-        origin_headers = origin_result.get('headers', {})
+        origin_headers = {k.lower(): v for k, v in origin_result.get('headers', {}).items()}
 
         for i, result in enumerate(results):
             original_layer = next((layer for layer in layer_config if layer.get('name') == result.get('name')), {})
@@ -163,8 +159,9 @@ class Window(Adw.ApplicationWindow):
                     headers_list.append((key, value, False))
             else:
                 for key, value in result.get('headers', {}).items():
-                    is_diff = key not in origin_headers or origin_headers[key] != value
-                    log.debug(f"Comparing header '{key}': value='{value}', origin='{origin_headers.get(key)}', is_diff={is_diff}")
+                    lower_key = key.lower()
+                    is_diff = lower_key not in origin_headers or origin_headers[lower_key] != value
+                    log.debug(f"Comparing header '{key}': value='{value}', origin='{origin_headers.get(lower_key)}', is_diff={is_diff}")
                     headers_list.append((key, value, is_diff))
 
             processed_nodes.append({
