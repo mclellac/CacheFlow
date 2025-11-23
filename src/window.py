@@ -74,6 +74,14 @@ class Window(Adw.ApplicationWindow):
         self.insert_action_group("win", self.win_action_group)
 
         self.add_action("inspect", self.on_inspect_clicked)
+        self.add_action("export-graph", self.on_export_graph_action)
+        self.add_action("reset-layout", self.on_reset_layout_action)
+
+    def on_export_graph_action(self, action, param):
+        self.node_graph.show_export_dialog()
+
+    def on_reset_layout_action(self, action, param):
+        self.node_graph.on_reset_layout(None, None)
 
     def add_action(self, name, callback):
         action = Gio.SimpleAction.new(name, None)
