@@ -297,7 +297,9 @@ class Window(Adw.ApplicationWindow):
                 "body_color": body_color,
                 "header_color": header_color,
                 "text_color": text_color,
-                "diff_text_color": diff_text_color
+                "diff_text_color": diff_text_color,
+                "request_url": result.get('url'),
+                "request_host": result.get('sent_host_header')
             })
 
         self.node_graph.set_data(processed_nodes)
