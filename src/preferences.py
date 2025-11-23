@@ -214,16 +214,12 @@ class PreferencesWindow(Adw.PreferencesWindow):
     def on_theme_changed(self, row, param):
         log.info(f"Theme changed to index {row.get_selected()}.")
         selected = row.get_selected()
-        style_manager = Adw.StyleManager.get_default()
         if selected == 1:
             self.settings.set_string('theme', 'light')
-            style_manager.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
         elif selected == 2:
             self.settings.set_string('theme', 'dark')
-            style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
         else:
             self.settings.set_string('theme', 'system')
-            style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
 
     def on_font_set(self, button):
         log.info("Node font changed.")
