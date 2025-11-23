@@ -27,6 +27,7 @@ class CacheFlowApplication(Adw.Application):
     def on_activate(self, app):
         self.settings = Gio.Settings.new("com.github.mclellac.CacheFlow")
         self.create_action("preferences", self.on_preferences_action)
+        self.create_action("shortcuts", self.on_shortcuts_action)
         self.create_action("about", self.on_about_action)
         self.style_manager = Adw.StyleManager.get_default()
         self.style_manager.connect("notify::accent-color", self._on_accent_color_changed)
@@ -74,9 +75,21 @@ class CacheFlowApplication(Adw.Application):
             developer_name="Carey McLelland",
             version=self.version,
             website="https://github.com/mclellac/CacheFlow",
+            issue_url="https://github.com/mclellac/CacheFlow/issues",
+            comments="An HTTP inspection tool for infrastructure layers.",
+            copyright="© 2025 csm",
+            license_type=Gtk.License.MIT_X11,
             transient_for=self.get_active_window(),
         )
         about.present()
+
+    def on_shortcuts_action(self, action, param):
+        """Callback for the app.shortcuts action."""
+        builder = Gtk.Builder()
+        builder.add_from_resource("/com/github/mclellac/CacheFlow/ui/shortcuts.ui")
+        win = builder.get_object("shortcuts_window")
+        win.set_transient_for(self.get_active_window())
+        win.present()
 
     def create_action(self, name, callback):
         """Helper to create a simple action and add it to the app."""
@@ -91,7 +104,8 @@ def main(version):
     log_file = os.path.join(GLib.get_user_cache_dir(), 'cacheflow.log')
     try:
         file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(logging.Formatter("[%(asctime)s] [%(levelname)s] %(name)s: %(message)s"))
+        formatter = logging.Formatter("[%(asctime)s] [%(levelname)s] %(name)s: %(message)s")
+        file_handler.setFormatter(formatter)
         logging.getLogger().addHandler(file_handler)
         log.info(f"Logging to {log_file}")
     except Exception as e:

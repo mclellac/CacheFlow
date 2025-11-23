@@ -75,10 +75,10 @@ class NodeGraph(Gtk.DrawingArea):
                 "width": node_width,
                 "height": NODE_HEADER_HEIGHT + (len(node_data["headers"]) * LINE_HEIGHT) + PADDING,
                 "data": node_data,
-                "min_width": min_width, 
+                "min_width": min_width,
             }
             self.nodes.append(node)
-            x += node_width + 100
+            x += node_width + 300
         self.queue_draw()
 
     def on_draw(self, area, cr, width, height):
@@ -224,10 +224,10 @@ class NodeGraph(Gtk.DrawingArea):
             cr.set_source_rgba(0.2, 0.2, 0.25, 1)  # Fallback dark body
         else:
             cr.set_source_rgba(0.8, 0.8, 0.85, 1)  # Fallback light body
-        
+
         self.rounded_rectangle(cr, x, y, w, h, 10)
         cr.fill_preserve()
-        
+
         border_color = (0.5, 0.5, 0.5, 0.8) if is_dark else (0.4, 0.4, 0.4, 0.8)
         cr.set_source_rgba(*border_color)
         cr.set_line_width(1)
@@ -242,10 +242,10 @@ class NodeGraph(Gtk.DrawingArea):
             cr.set_source_rgba(0.3, 0.3, 0.35, 1)  # Fallback dark header
         else:
             cr.set_source_rgba(0.7, 0.7, 0.75, 1)  # Fallback light header
-        
+
         self.rounded_rectangle(cr, x, y, w, NODE_HEADER_HEIGHT, 10, corners={'bl': False, 'br': False})
         cr.fill_preserve()
-        
+
         cr.set_source_rgba(*border_color)
         cr.set_line_width(0.5)
         cr.stroke()
@@ -296,7 +296,7 @@ class NodeGraph(Gtk.DrawingArea):
             escaped_value = GLib.markup_escape_text(value)
             markup = f"<b>{escaped_header}:</b> {escaped_value}"
             layout.set_markup(markup, -1)
-            
+
             cr.move_to(x + PADDING, text_y)
             PangoCairo.show_layout(cr, layout)
             text_y += LINE_HEIGHT
