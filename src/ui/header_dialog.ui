@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="adw" version="1.0"/>
+  <template class="HeaderDialog" parent="AdwMessageDialog">
+    <property name="default-response">close</property>
+    <property name="close-response">close</property>
+    <property name="extra-child">
+      <object class="GtkScrolledWindow">
+        <property name="vexpand">True</property>
+        <property name="min-content-height">400</property>
+        <property name="hscrollbar-policy">automatic</property>
+        <property name="vscrollbar-policy">automatic</property>
+        <child>
+          <object class="GtkTreeView" id="treeview">
+            <property name="hexpand">True</property>
+            <property name="can-focus">True</property>
+            <child internal-child="selection">
+                <object class="GtkTreeSelection">
+                    <property name="mode">multiple</property>
+                </object>
+            </child>
+            <child>
+              <object class="GtkTreeViewColumn" id="column_key">
+                <property name="title">Header</property>
+                <property name="sizing">autosize</property>
+                <property name="min-width">150</property>
+                <property name="resizable">True</property>
+                <child>
+                  <object class="GtkCellRendererText" id="renderer_key">
+                    <property name="ellipsize">end</property>
+                    <property name="editable">True</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkTreeViewColumn" id="column_value">
+                <property name="title">Value</property>
+                <property name="resizable">True</property>
+                <property name="expand">True</property>
+                <child>
+                    <object class="GtkCellRendererText" id="renderer_value">
+                        <property name="ellipsize">end</property>
+                        <property name="editable">True</property>
+                    </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </property>
+    <responses>
+      <response id="close" translatable="yes">Close</response>
+    </responses>
+  </template>
+</interface>
