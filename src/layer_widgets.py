@@ -1,5 +1,6 @@
 from gi.repository import Gtk, Adw, GObject, Gdk
 
+
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/layer_row.ui')
 class LayerRow(Adw.ExpanderRow):
     __gtype_name__ = 'LayerRow'
@@ -35,20 +36,14 @@ class LayerRow(Adw.ExpanderRow):
 
         self.delete_btn.connect('clicked', self.on_delete_clicked)
 
-        # Connect signals for basic fields
         self.name_row.connect('notify::text', self.on_changed)
         self.desc_row.connect('notify::text', self.on_changed)
         self.url_row.connect('notify::text', self.on_changed)
         self.header_color_button.connect('color-set', self.on_changed)
         self.body_color_button.connect('color-set', self.on_changed)
 
-        # Headers
         self.add_header_btn.connect('clicked', self.on_add_header)
-
-        # Overrides
         self.add_override_btn.connect('clicked', self.on_add_override)
-
-        # Path Matches
         self.add_path_match_btn.connect('clicked', self.on_add_path_match)
 
         if layer_data:
@@ -63,7 +58,6 @@ class LayerRow(Adw.ExpanderRow):
         self.set_title(data.get('name', 'New Layer'))
         self.name_row.connect('notify::text', lambda *args: self.set_title(self.name_row.get_text()))
 
-        # Load Colors
         header_color = Gdk.RGBA()
         if data.get('header_color') and header_color.parse(data['header_color']):
             self.header_color_button.set_rgba(header_color)
@@ -72,20 +66,16 @@ class LayerRow(Adw.ExpanderRow):
         if data.get('body_color') and body_color.parse(data['body_color']):
             self.body_color_button.set_rgba(body_color)
 
-
-        # Load Headers
         custom_headers = data.get('custom_headers', {})
         if custom_headers:
             for key, value in custom_headers.items():
                 self.add_header_row(key, value)
 
-        # Load Overrides
         overrides = data.get('host_overrides', [])
         if overrides:
             for override in overrides:
                 self.add_override_row(override.get('path_pattern', ''), override.get('host_header', ''))
 
-        # Load Path Matches
         path_matches = data.get('path_match_only', [])
         if path_matches:
             for pattern in path_matches:
@@ -101,7 +91,6 @@ class LayerRow(Adw.ExpanderRow):
         if self.on_delete_callback:
             self.on_delete_callback(self)
 
-    # --- Headers ---
     def on_add_header(self, btn):
         self.add_header_row()
         self.on_changed()
@@ -116,7 +105,6 @@ class LayerRow(Adw.ExpanderRow):
         self.header_rows.remove(row)
         self.on_changed()
 
-    # --- Overrides ---
     def on_add_override(self, btn):
         self.add_override_row()
         self.on_changed()
@@ -131,7 +119,6 @@ class LayerRow(Adw.ExpanderRow):
         self.override_rows.remove(row)
         self.on_changed()
 
-    # --- Path Match ---
     def on_add_path_match(self, btn):
         self.add_path_match_row()
         self.on_changed()
@@ -158,25 +145,23 @@ class LayerRow(Adw.ExpanderRow):
             'path_match_only': []
         }
 
-        # Headers
         for row in self.header_rows:
             k, v = row.get_data()
-            if k: # Only add if key is present
+            if k:
                 data['custom_headers'][k] = v
 
-        # Overrides
         for row in self.override_rows:
             p, h = row.get_data()
             if p and h:
                 data['host_overrides'].append({'path_pattern': p, 'host_header': h})
 
-        # Path Matches
         for row in self.path_match_rows:
             p = row.get_data()
             if p:
                 data['path_match_only'].append(p)
 
         return data
+
 
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/header_row.ui')
 class HeaderRow(Adw.PreferencesRow):
@@ -205,6 +190,7 @@ class HeaderRow(Adw.PreferencesRow):
     def get_data(self):
         return self.key_entry.get_text(), self.val_entry.get_text()
 
+
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/override_row.ui')
 class OverrideRow(Adw.PreferencesRow):
     __gtype_name__ = 'OverrideRow'
@@ -231,6 +217,7 @@ class OverrideRow(Adw.PreferencesRow):
 
     def get_data(self):
         return self.pat_entry.get_text(), self.host_entry.get_text()
+
 
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/path_match_row.ui')
 class PathMatchRow(Adw.PreferencesRow):

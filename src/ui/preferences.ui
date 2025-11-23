@@ -34,6 +34,76 @@
 
         <child>
           <object class="AdwPreferencesGroup">
+            <property name="title">Colors</property>
+            <property name="description">Set custom colors for the node graph. Changes require a restart to fully apply.</property>
+            <child>
+               <object class="AdwActionRow" id="light_body_color_row">
+                 <property name="title">Node Body (Light)</property>
+                 <child type="suffix">
+                   <object class="GtkColorButton" id="light_body_color_button"/>
+                 </child>
+               </object>
+            </child>
+            <child>
+               <object class="AdwActionRow" id="light_header_color_row">
+                 <property name="title">Node Header (Light)</property>
+                 <child type="suffix">
+                   <object class="GtkColorButton" id="light_header_color_button"/>
+                 </child>
+               </object>
+            </child>
+            <child>
+               <object class="AdwActionRow" id="light_text_color_row">
+                 <property name="title">Text (Light)</property>
+                 <child type="suffix">
+                   <object class="GtkColorButton" id="light_text_color_button"/>
+                 </child>
+               </object>
+            </child>
+            <child>
+               <object class="AdwActionRow" id="light_text_diff_color_row">
+                 <property name="title">Diff Text (Light)</property>
+                 <child type="suffix">
+                   <object class="GtkColorButton" id="light_text_diff_color_button"/>
+                 </child>
+               </object>
+            </child>
+            <child>
+               <object class="AdwActionRow" id="dark_body_color_row">
+                 <property name="title">Node Body (Dark)</property>
+                 <child type="suffix">
+                   <object class="GtkColorButton" id="dark_body_color_button"/>
+                 </child>
+               </object>
+            </child>
+            <child>
+               <object class="AdwActionRow" id="dark_header_color_row">
+                 <property name="title">Node Header (Dark)</property>
+                 <child type="suffix">
+                   <object class="GtkColorButton" id="dark_header_color_button"/>
+                 </child>
+               </object>
+            </child>
+            <child>
+               <object class="AdwActionRow" id="dark_text_color_row">
+                 <property name="title">Text (Dark)</property>
+                 <child type="suffix">
+                   <object class="GtkColorButton" id="dark_text_color_button"/>
+                 </child>
+               </object>
+            </child>
+            <child>
+               <object class="AdwActionRow" id="dark_text_diff_color_row">
+                 <property name="title">Diff Text (Dark)</property>
+                 <child type="suffix">
+                   <object class="GtkColorButton" id="dark_text_diff_color_button"/>
+                 </child>
+               </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="AdwPreferencesGroup">
             <property name="title">Network</property>
             <child>
                <object class="AdwEntryRow" id="dns_row">

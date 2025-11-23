@@ -1,11 +1,27 @@
 import gi
 import os
 import pathlib
-from gi.repository import Gtk, Adw, Gio, GObject, GLib
+from gi.repository import Gtk, Adw, Gio, GObject, GLib, Gdk
 
 from .layer_widgets import LayerRow
 
-# Default config as a Python list of dicts
+
+def rgba_string_to_gdk_rgba(rgba_string, _user_data=None):
+    """Safely converts a string 'rgba(...)' to a Gdk.RGBA object."""
+    rgba = Gdk.RGBA()
+    if not rgba_string or not rgba.parse(rgba_string):
+        rgba.parse('rgba(0,0,0,0)')
+    return rgba
+
+
+def gdk_rgba_to_rgba_string(gdk_rgba, _user_data=None):
+    """Safely converts a Gdk.RGBA object to a string 'rgba(...)'."""
+    if gdk_rgba:
+        rgba_str = gdk_rgba.to_string()
+        return GLib.Variant('s', rgba_str)
+    return GLib.Variant('s', 'rgba(0,0,0,0)')
+
+
 DEFAULT_CONFIG = [
     {
         "name": "CDN_Edge",
@@ -54,6 +70,15 @@ class PreferencesWindow(Adw.PreferencesWindow):
     dns_row = Gtk.Template.Child()
     font_button = Gtk.Template.Child()
 
+    light_body_color_button = Gtk.Template.Child()
+    light_header_color_button = Gtk.Template.Child()
+    light_text_color_button = Gtk.Template.Child()
+    light_text_diff_color_button = Gtk.Template.Child()
+    dark_body_color_button = Gtk.Template.Child()
+    dark_header_color_button = Gtk.Template.Child()
+    dark_text_color_button = Gtk.Template.Child()
+    dark_text_diff_color_button = Gtk.Template.Child()
+
     prod_group = Gtk.Template.Child()
     staging_group = Gtk.Template.Child()
     qa_group = Gtk.Template.Child()
@@ -67,32 +92,40 @@ class PreferencesWindow(Adw.PreferencesWindow):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
-
-        # Registry for LayerRows: {group_widget: [LayerRow, ...]}
         self._layer_rows = {}
-
-        # Bind DNS
         self.settings.bind('dns-servers', self.dns_row, 'text', Gio.SettingsBindFlags.DEFAULT)
+        self.bind_color_setting('color-node-body-light', self.light_body_color_button)
+        self.bind_color_setting('color-node-header-light', self.light_header_color_button)
+        self.bind_color_setting('color-text-light', self.light_text_color_button)
+        self.bind_color_setting('color-text-diff-light', self.light_text_diff_color_button)
+        self.bind_color_setting('color-node-body-dark', self.dark_body_color_button)
+        self.bind_color_setting('color-node-header-dark', self.dark_header_color_button)
+        self.bind_color_setting('color-text-dark', self.dark_text_color_button)
+        self.bind_color_setting('color-text-diff-dark', self.dark_text_diff_color_button)
 
-        # Handle Theme
         self.theme_row.connect('notify::selected-item', self.on_theme_changed)
         self.load_theme()
 
-        # Handle Font
         self.font_button.set_font(self.settings.get_string('node-font'))
         self.font_button.connect('font-set', self.on_font_set)
 
-        # Connect Add Buttons
         self.prod_add_row.connect('activated', lambda row: self.add_layer(self.prod_group, 'config-production'))
         self.staging_add_row.connect('activated', lambda row: self.add_layer(self.staging_group, 'config-staging'))
         self.qa_add_row.connect('activated', lambda row: self.add_layer(self.qa_group, 'config-qa'))
         self.dev_add_row.connect('activated', lambda row: self.add_layer(self.dev_group, 'config-dev'))
-
-        # Handle Configs
         self.setup_env_config(self.prod_group, 'config-production')
         self.setup_env_config(self.staging_group, 'config-staging')
         self.setup_env_config(self.qa_group, 'config-qa')
         self.setup_env_config(self.dev_group, 'config-dev')
+
+    def bind_color_setting(self, key, button):
+        """Binds a color GSetting (string) to a GtkColorButton (Gdk.RGBA)."""
+        self.settings.bind_with_mapping(
+            key, button, 'rgba',
+            Gio.SettingsBindFlags.DEFAULT,
+            rgba_string_to_gdk_rgba,
+            gdk_rgba_to_rgba_string,
+        )
 
     def load_theme(self):
         theme = self.settings.get_string('theme')
@@ -121,18 +154,14 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.settings.set_string('node-font', font_string)
 
     def setup_env_config(self, group, key):
-        # Initialize registry for this group
         self._layer_rows[group] = []
 
         val = self.settings.get_value(key)
-        layers = val.unpack() # Returns native python types (list of dicts)
-
+        layers = val.unpack()
         if not layers:
             layers = DEFAULT_CONFIG
-            # If no config exists, populate with default and save it immediately.
             self.create_and_save_default_config(group, key, layers)
         else:
-            # Populate layers from existing settings
             for layer_data in layers:
                 self.create_layer_row(group, key, layer_data)
 
@@ -151,12 +180,10 @@ class PreferencesWindow(Adw.PreferencesWindow):
             on_change=on_change_callback
         )
 
-        # Add to registry
         if group not in self._layer_rows:
             self._layer_rows[group] = []
         self._layer_rows[group].append(row)
 
-        # Add to UI before the "Add" button
         add_row = None
         if group == self.prod_group: add_row = self.prod_add_row
         elif group == self.staging_group: add_row = self.staging_add_row
@@ -194,17 +221,6 @@ class PreferencesWindow(Adw.PreferencesWindow):
             for row in self._layer_rows[group]:
                 layers.append(row.get_data())
 
-        # Construct Variant
-        # Type: aa{sv}
-
-        # We need to ensure the data matches the strict types for GVariant
-        # name: s
-        # description: s
-        # host_url: s
-        # custom_headers: a{ss}
-        # host_overrides: aa{ss}
-        # path_match_only: as
-
         variant_data = []
         for l in layers:
             layer_dict = {
@@ -219,7 +235,6 @@ class PreferencesWindow(Adw.PreferencesWindow):
             }
             variant_data.append(layer_dict)
 
-        # GLib.Variant('aa{sv}', variant_data)
         try:
             v = GLib.Variant('aa{sv}', variant_data)
             self.settings.set_value(key, v)

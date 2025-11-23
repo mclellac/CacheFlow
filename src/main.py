@@ -1,13 +1,10 @@
-# SPDX-License-Identifier: MIT
-
 import sys
 import gi
-# This MUST be done before any other gi imports.
+
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
 from gi.repository import Gtk, Gio, Adw
-# Now that the versions are set, we can import the rest of the application.
 from .window import Window
 from .preferences import PreferencesWindow
 
@@ -19,8 +16,6 @@ class CacheFlowApplication(Adw.Application):
         self.create_action('preferences', self.on_preferences_action)
         self.create_action('about', self.on_about_action)
         self.connect('activate', self.on_activate)
-
-        # Load and apply the theme at startup
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
         self.load_theme()
 
@@ -36,16 +31,20 @@ class CacheFlowApplication(Adw.Application):
             style_manager.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
         elif theme == 'dark':
             style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
-        else: # 'system' or default
+        else:
             style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
 
     def on_preferences_action(self, action, param):
         """Callback for the app.preferences action."""
-        # There is only one preferences window, so we can create it once and show it
-        if not hasattr(self, 'prefs_window'):
+        if not hasattr(self, 'prefs_window') or self.prefs_window is None:
             self.prefs_window = PreferencesWindow(transient_for=self.get_active_window(), modal=True)
+            self.prefs_window.connect('destroy', self.on_prefs_window_destroyed)
 
         self.prefs_window.present()
+
+    def on_prefs_window_destroyed(self, window):
+        """Set window reference to None when it's destroyed."""
+        self.prefs_window = None
 
     def on_about_action(self, action, param):
         """Callback for the app.about action."""
@@ -64,6 +63,7 @@ class CacheFlowApplication(Adw.Application):
         action = Gio.SimpleAction.new(name, None)
         action.connect('activate', callback)
         self.add_action(action)
+
 
 def main(version):
     """Application entry point."""

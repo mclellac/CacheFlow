@@ -1,5 +1,3 @@
-# SPDX-License-Identifier: MIT
-
 import gi
 import cairo
 
@@ -11,6 +9,7 @@ NODE_HEADER_HEIGHT = 40
 LINE_HEIGHT = 18
 PADDING = 10
 RESIZE_HANDLE_SIZE = 15
+
 
 class NodeGraph(Gtk.DrawingArea):
     """A widget for drawing and interacting with a node-based graph."""
@@ -31,7 +30,12 @@ class NodeGraph(Gtk.DrawingArea):
         style_manager = Adw.StyleManager.get_default()
         style_manager.connect('notify::dark', self.on_style_changed)
 
-        # Event controllers for mouse interaction
+        color_keys = [
+            'color-node-body-light', 'color-node-header-light', 'color-text-light', 'color-text-diff-light',
+            'color-node-body-dark', 'color-node-header-dark', 'color-text-dark', 'color-text-diff-dark'
+        ]
+        for key in color_keys:
+            self.settings.connect(f'changed::{key}', self.on_setting_changed)
         gesture_drag = Gtk.GestureDrag.new()
         gesture_drag.connect("drag-begin", self.on_drag_begin)
         gesture_drag.connect("drag-update", self.on_drag_update)
@@ -39,16 +43,19 @@ class NodeGraph(Gtk.DrawingArea):
         self.add_controller(gesture_drag)
 
         gesture_click = Gtk.GestureClick.new()
-        gesture_click.set_button(1) # Primary button
+        gesture_click.set_button(1)
         gesture_click.connect("pressed", self.on_click)
         self.add_controller(gesture_click)
+
+    def on_setting_changed(self, settings, key):
+        """Callback for when a GSetting we care about changes."""
+        self.queue_draw()
 
     def on_style_changed(self, style_manager, _):
         self.queue_draw()
 
     def set_data(self, nodes_data):
         """Sets the data for the nodes and arranges them."""
-        print(f"[DEBUG] NodeGraph.set_data: Received data for {len(nodes_data)} nodes.")
         self.nodes = []
         x, y = 50, 50
         for i, node_data in enumerate(nodes_data):
@@ -61,8 +68,7 @@ class NodeGraph(Gtk.DrawingArea):
                 "data": node_data,
             }
             self.nodes.append(node)
-            x += NODE_WIDTH + 100  # Arrange horizontally
-        print(f"[DEBUG] NodeGraph.set_data: Created internal node structure: {self.nodes}")
+            x += NODE_WIDTH + 100
         self.queue_draw()
 
     def on_draw(self, area, cr, width, height):
@@ -70,22 +76,17 @@ class NodeGraph(Gtk.DrawingArea):
         style_manager = Adw.StyleManager.get_default()
         is_dark = style_manager.get_dark()
 
-        # Draw background
         if is_dark:
-            cr.set_source_rgba(0.1, 0.1, 0.1, 1) # Dark background
+            cr.set_source_rgba(0.1, 0.1, 0.1, 1)
         else:
-            cr.set_source_rgba(0.95, 0.95, 0.95, 1) # Light background
-
+            cr.set_source_rgba(0.95, 0.95, 0.95, 1)
         cr.paint()
 
-        # Draw connections
         self.draw_connections(cr)
 
-        # Draw nodes
         for node in self.nodes:
             self.draw_node(cr, node)
 
-        # Draw resize handles on top of nodes
         for node in self.nodes:
             self.draw_resize_handle(cr, node)
 
@@ -107,7 +108,6 @@ class NodeGraph(Gtk.DrawingArea):
             end_x = node_b["x"]
             end_y = node_b["y"] + node_b["height"] / 2
 
-            # Use a bezier curve for a smoother connection
             cr.move_to(start_x, start_y)
             c1_x = start_x + 100
             c1_y = start_y
@@ -121,34 +121,38 @@ class NodeGraph(Gtk.DrawingArea):
         x, y, w, h = node["x"], node["y"], node["width"], node["height"]
         is_dark = Adw.StyleManager.get_default().get_dark()
 
-        # Custom colors take precedence
         body_color_str = node['data'].get('body_color')
         header_color_str = node['data'].get('header_color')
 
         body_rgba = Gdk.RGBA()
         header_rgba = Gdk.RGBA()
-
-        # Node body
-        if body_color_str and body_rgba.parse(body_color_str) and body_rgba.alpha > 0:
-             cr.set_source_rgba(body_rgba.red, body_rgba.green, body_rgba.blue, body_rgba.alpha)
-        elif is_dark:
-            cr.set_source_rgba(0.2, 0.2, 0.25, 1) # Default dark
+        if is_dark:
+            default_body_color = self.settings.get_string('color-node-body-dark')
+            default_header_color = self.settings.get_string('color-node-header-dark')
         else:
-            cr.set_source_rgba(0.8, 0.8, 0.85, 1) # Default light
+            default_body_color = self.settings.get_string('color-node-body-light')
+            default_header_color = self.settings.get_string('color-node-header-light')
+
+        default_body_rgba = Gdk.RGBA()
+        default_body_rgba.parse(default_body_color)
+
+        default_header_rgba = Gdk.RGBA()
+        default_header_rgba.parse(default_header_color)
+
+        if body_color_str and body_rgba.parse(body_color_str) and body_rgba.alpha > 0:
+            cr.set_source_rgba(body_rgba.red, body_rgba.green, body_rgba.blue, body_rgba.alpha)
+        else:
+            cr.set_source_rgba(default_body_rgba.red, default_body_rgba.green, default_body_rgba.blue, default_body_rgba.alpha)
         self.rounded_rectangle(cr, x, y, w, h, 10)
         cr.fill()
 
-        # Header
         if header_color_str and header_rgba.parse(header_color_str) and header_rgba.alpha > 0:
             cr.set_source_rgba(header_rgba.red, header_rgba.green, header_rgba.blue, header_rgba.alpha)
-        elif is_dark:
-            cr.set_source_rgba(0.3, 0.3, 0.35, 1) # Default dark
         else:
-            cr.set_source_rgba(0.7, 0.7, 0.75, 1) # Default light
+            cr.set_source_rgba(default_header_rgba.red, default_header_rgba.green, default_header_rgba.blue, default_header_rgba.alpha)
         self.rounded_rectangle(cr, x, y, w, NODE_HEADER_HEIGHT, 10, corners={'bl': False, 'br': False})
         cr.fill()
 
-        # Header text
         if is_dark:
             cr.set_source_rgba(1, 1, 1, 1)
         else:
@@ -158,26 +162,33 @@ class NodeGraph(Gtk.DrawingArea):
         cr.move_to(x + PADDING, y + 25)
         cr.show_text(node["data"]["name"])
 
-        # Content text (headers)
         font_desc_str = self.settings.get_string('node-font')
         if not font_desc_str:
             font_desc_str = "Monospace 14"
         font_desc = Pango.FontDescription.from_string(font_desc_str)
         text_y = y + NODE_HEADER_HEIGHT + PADDING
-
-        # Create a Pango layout for robust text rendering and truncation
         layout = PangoCairo.create_layout(cr)
         layout.set_font_description(font_desc)
-        layout.set_width((w - 2 * PADDING) * Pango.SCALE) # Set max width for text
+        layout.set_width((w - 2 * PADDING) * Pango.SCALE)
         layout.set_ellipsize(Pango.EllipsizeMode.END)
+
+        if is_dark:
+            text_color_str = self.settings.get_string('color-text-dark')
+            diff_color_str = self.settings.get_string('color-text-diff-dark')
+        else:
+            text_color_str = self.settings.get_string('color-text-light')
+            diff_color_str = self.settings.get_string('color-text-diff-light')
+
+        text_rgba = Gdk.RGBA()
+        text_rgba.parse(text_color_str)
+        diff_rgba = Gdk.RGBA()
+        diff_rgba.parse(diff_color_str)
 
         for header, value, is_diff in node["data"]["headers"]:
             if is_diff:
-                cr.set_source_rgba(0.5, 1.0, 0.5, 1)  # Highlight diffs in green
-            elif is_dark:
-                cr.set_source_rgba(0.9, 0.9, 0.9, 1)
+                cr.set_source_rgba(diff_rgba.red, diff_rgba.green, diff_rgba.blue, diff_rgba.alpha)
             else:
-                cr.set_source_rgba(0.1, 0.1, 0.1, 1)
+                cr.set_source_rgba(text_rgba.red, text_rgba.green, text_rgba.blue, text_rgba.alpha)
 
             layout.set_text(f"{header}: {value}", -1)
             cr.move_to(x + PADDING, text_y)
@@ -216,10 +227,9 @@ class NodeGraph(Gtk.DrawingArea):
         self.dragging_node = None
         self.resizing_node = None
 
-        for node in reversed(self.nodes): # Check from top-most node
+        for node in reversed(self.nodes):
             node_x, node_y, node_w, node_h = node["x"], node["y"], node["width"], node["height"]
 
-            # Check if drag is on the resize handle
             handle_x = node_x + node_w - RESIZE_HANDLE_SIZE
             handle_y = node_y + node_h - RESIZE_HANDLE_SIZE
             if start_x >= handle_x and start_y >= handle_y:
@@ -227,9 +237,7 @@ class NodeGraph(Gtk.DrawingArea):
                 gesture.set_state(Gtk.EventSequenceState.CLAIMED)
                 return
 
-            # Check if drag is on the node body
-            if start_x >= node_x and start_x <= node_x + node_w and \
-               start_y >= node_y and start_y <= node_y + node_h:
+            if node_x <= start_x <= node_x + node_w and node_y <= start_y <= node_y + node_h:
                 self.dragging_node = node
                 self.drag_offset_x = start_x - node["x"]
                 self.drag_offset_y = start_y - node["y"]
@@ -256,15 +264,15 @@ class NodeGraph(Gtk.DrawingArea):
     def on_drag_end(self, gesture, offset_x, offset_y):
         """Handles the end of a drag operation."""
         if self.dragging_node:
-            self.on_drag_update(gesture, offset_x, offset_y) # Final update
+            self.on_drag_update(gesture, offset_x, offset_y)
             self.dragging_node = None
         elif self.resizing_node:
-            self.on_drag_update(gesture, offset_x, offset_y) # Final update
+            self.on_drag_update(gesture, offset_x, offset_y)
             self.resizing_node = None
 
     def on_click(self, gesture, n_press, x, y):
         """Handles click events, specifically double-clicks."""
-        if n_press != 2: # We only care about double-clicks
+        if n_press != 2:
             return
 
         for node in reversed(self.nodes):
@@ -282,7 +290,6 @@ class NodeGraph(Gtk.DrawingArea):
         scrolled_window.set_min_content_height(400)
         scrolled_window.set_vexpand(True)
 
-        # Use a TextView for selectable text
         text_view = Gtk.TextView()
         text_view.set_editable(False)
         text_view.set_cursor_visible(False)

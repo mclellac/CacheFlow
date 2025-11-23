@@ -1,11 +1,10 @@
-# SPDX-License-Identifier: MIT
-
 import gi
 import requests
 
 from gi.repository import Gtk, Adw, Gio, GObject, GLib
 from .node_graph import NodeGraph
 from .engine import CacheFlowEngine
+
 
 @Gtk.Template(filename='src/ui/main.ui')
 class Window(Adw.ApplicationWindow):
@@ -57,7 +56,7 @@ class Window(Adw.ApplicationWindow):
         self.env_switcher.set_menu_model(menu)
         self.env_switcher.action_name = "win.active_environment"
 
-    def on_env_change(self, action, value):
+    def on_env_change(self, action, value):  # noqa
         """Handles state change for the active environment."""
         new_env = value.get_string()
         action.set_state(value)
@@ -70,16 +69,14 @@ class Window(Adw.ApplicationWindow):
         """Handler for the 'Inspect' button click."""
         path = self.path_entry.get_text()
         if not path or not path.startswith('/'):
-            print("Invalid path") # Replace with a dialog later
+            print("Invalid path")
             return
 
         self.settings.set_string('test-path', path)
 
         active_env = self.settings.get_string('active-environment')
-        print(f"[DEBUG] Window.on_inspect_clicked: Reading active environment: '{active_env}'")
         config_key = f'config-{active_env}'
         layers_config = self.settings.get_value(config_key).unpack()
-
         if not layers_config:
             print(f"No layers configured for '{active_env}' environment.")
             return
@@ -100,28 +97,23 @@ class Window(Adw.ApplicationWindow):
 
     def process_and_display_results(self, results):
         """Compares headers and prepares data for the node graph."""
-        print("[DEBUG] Window.process_and_display_results: Processing results for display.")
         processed_nodes = []
 
         if not results:
-            print("[DEBUG] Window.process_and_display_results: No results to process.")
             self.node_graph.set_data([])
             return
 
-        # The last layer is the origin, our source of truth.
         origin_headers = results[-1].get('headers', {})
 
         for i, result in enumerate(results):
             headers_list = []
-            # If there's an error, there are no headers to process.
             if 'error' in result:
                 headers_list.append(('Error', result['error'], True))
-            elif i == len(results) - 1: # This is the origin layer
+            elif i == len(results) - 1:
                 for key, value in result.get('headers', {}).items():
-                    headers_list.append((key, value, False)) # Nothing to compare against
+                    headers_list.append((key, value, False))
             else:
                 for key, value in result.get('headers', {}).items():
-                    # Compare against the origin
                     is_diff = key not in origin_headers or origin_headers[key] != value
                     headers_list.append((key, value, is_diff))
 
@@ -129,6 +121,5 @@ class Window(Adw.ApplicationWindow):
                 "name": result['name'],
                 "headers": headers_list
             })
-        print(f"[DEBUG] Window.process_and_display_results: Processed nodes data: {processed_nodes}")
 
         self.node_graph.set_data(processed_nodes)

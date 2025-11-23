@@ -1,3 +1,5 @@
+gnome = import('gnome')
+
 pkgdatadir = get_option('datadir') / meson.project_name()
 moduledir = pkgdatadir / 'src'
 
@@ -9,7 +11,6 @@ python_sources = [
   'main.py',
   'node_graph.py',
   'preferences.py',
-  'test_engine.py',
 ]
 
 py_installation.install_sources(python_sources, subdir: 'cacheflow')
