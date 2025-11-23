@@ -120,7 +120,9 @@ class NodeGraph(Gtk.DrawingArea):
         if not event:
              return False
 
-        x, y = event.get_position()
+        ok, x, y = event.get_position()
+        if not ok:
+            return False
 
         # Calculate world coordinate under mouse before zoom
         wx = (x - self.offset_x) / self.scale
