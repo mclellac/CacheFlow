@@ -138,7 +138,7 @@ class NodeGraph(Gtk.DrawingArea):
                 mid_y = 0.125 * start_y + 0.375 * c1_y + 0.375 * c2_y + 0.125 * end_y
 
                 layout = PangoCairo.create_layout(cr)
-                font_desc = Pango.FontDescription("Sans 10")
+                font_desc = Pango.FontDescription("Sans 12")
                 layout.set_font_description(font_desc)
 
                 text = f"GET {request_url}"
