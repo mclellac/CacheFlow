@@ -3,9 +3,6 @@
 import gi
 import requests
 
-gi.require_version('Gtk', '4.0')
-gi.require_version('Adw', '1')
-
 from gi.repository import Gtk, Adw, Gio, GObject, GLib
 from .node_graph import NodeGraph
 from .engine import CacheFlowEngine

@@ -1,55 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <schemalist gettext-domain="cacheflow">
   <schema id="com.github.mclellac.CacheFlow" path="/com/github/mclellac/CacheFlow/">
-
-    <!-- Global Settings -->
     <key name="user-agent" type="s">
-      <default>'HTTP-Header-Inspector/1.0 (Python)'</default>
-      <summary>User Agent</summary>
-      <description>The user agent string used for requests.</description>
+      <default>'CacheFlow/0.1.0'</default>
+      <summary>User-Agent for requests</summary>
     </key>
     <key name="test-path" type="s">
-      <default>'/products/widget-x'</default>
-      <summary>Test Path</summary>
-      <description>The default path to inspect.</description>
-    </key>
-    <key name="theme" type="s">
-      <default>'system'</default>
-      <summary>Application Theme</summary>
-      <description>Theme variant: system, light, or dark.</description>
-    </key>
-    <key name="dns-servers" type="s">
-      <default>''</default>
-      <summary>DNS Servers</summary>
-      <description>Comma-separated list of DNS servers to use. Empty for system default.</description>
+      <default>'/'</default>
+      <summary>The last used test path</summary>
     </key>
     <key name="active-environment" type="s">
       <default>'production'</default>
-      <summary>Active Environment</summary>
-      <description>The currently selected environment (production, staging, qa, dev).</description>
+      <summary>The currently active environment</summary>
     </key>
-
-    <!-- Environment Configurations -->
+    <key name="node-font" type="s">
+      <default>'Monospace 14'</default>
+      <summary>The font used for node content</summary>
+    </key>
+    <key name="theme" type="s">
+      <default>'system'</default>
+      <summary>The application color scheme</summary>
+    </key>
+    <key name="dns-servers" type="s">
+      <default>''</default>
+      <summary>Comma-separated list of DNS servers to use for resolution.</summary>
+    </key>
     <key name="config-production" type="aa{sv}">
       <default>[]</default>
-      <summary>Production Configuration</summary>
-      <description>Configuration for Production.</description>
+      <summary>Configuration for the Production environment</summary>
     </key>
     <key name="config-staging" type="aa{sv}">
       <default>[]</default>
-      <summary>Staging Configuration</summary>
-      <description>Configuration for Staging.</description>
+      <summary>Configuration for the Staging environment</summary>
     </key>
     <key name="config-qa" type="aa{sv}">
       <default>[]</default>
-      <summary>QA Configuration</summary>
-      <description>Configuration for QA.</description>
+      <summary>Configuration for the QA environment</summary>
     </key>
     <key name="config-dev" type="aa{sv}">
       <default>[]</default>
-      <summary>Development Configuration</summary>
-      <description>Configuration for Development.</description>
+      <summary>Configuration for the Dev environment</summary>
     </key>
-
   </schema>
 </schemalist>

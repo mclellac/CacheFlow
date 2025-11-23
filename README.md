@@ -25,8 +25,8 @@ It provides a node-based graphical interface where each layer is represented as 
 4.  **Analyze the Results**:
     *   CacheFlow will send a request to each configured layer for the specified path.
     *   A graph will be displayed, with each node representing a layer in your stack.
-    *   Each node shows the HTTP response headers received from that layer.
-    *   Headers that are *different* from the subsequent layer are highlighted in green, making it easy to spot where headers are being added, removed, or modified.
+    *   Each node shows the HTTP response headers received from that layer. The final layer in the chain is considered the "origin" or source of truth.
+    *   In the preceding layers, headers that are *different* from the origin's response are highlighted in green. This makes it easy to spot where headers are being added, removed, or modified as they move up the stack.
     *   You can drag and rearrange the nodes on the canvas to organize the view to your liking.
 
 ## Features

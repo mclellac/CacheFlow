@@ -52,6 +52,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     theme_row = Gtk.Template.Child()
     dns_row = Gtk.Template.Child()
+    font_button = Gtk.Template.Child()
 
     prod_group = Gtk.Template.Child()
     staging_group = Gtk.Template.Child()
@@ -76,6 +77,10 @@ class PreferencesWindow(Adw.PreferencesWindow):
         # Handle Theme
         self.theme_row.connect('notify::selected-item', self.on_theme_changed)
         self.load_theme()
+
+        # Handle Font
+        self.font_button.set_font(self.settings.get_string('node-font'))
+        self.font_button.connect('font-set', self.on_font_set)
 
         # Connect Add Buttons
         self.prod_add_row.connect('activated', lambda row: self.add_layer(self.prod_group, 'config-production'))
@@ -110,6 +115,10 @@ class PreferencesWindow(Adw.PreferencesWindow):
         else:
             self.settings.set_string('theme', 'system')
             style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
+
+    def on_font_set(self, button):
+        font_string = button.get_font()
+        self.settings.set_string('node-font', font_string)
 
     def setup_env_config(self, group, key):
         # Initialize registry for this group
@@ -202,6 +211,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
                 'name': GLib.Variant('s', l.get('name', '')),
                 'description': GLib.Variant('s', l.get('description', '')),
                 'host_url': GLib.Variant('s', l.get('host_url', '')),
+                'header_color': GLib.Variant('s', l.get('header_color', '')),
+                'body_color': GLib.Variant('s', l.get('body_color', '')),
                 'custom_headers': GLib.Variant('a{ss}', l.get('custom_headers', {})),
                 'host_overrides': GLib.Variant('aa{ss}', l.get('host_overrides', [])),
                 'path_match_only': GLib.Variant('as', l.get('path_match_only', []))

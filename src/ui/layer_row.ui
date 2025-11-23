@@ -35,6 +35,26 @@
       </object>
     </child>
 
+    <child>
+      <object class="AdwActionRow" id="header_color_row">
+        <property name="title">Header Color</property>
+        <child type="suffix">
+          <object class="GtkColorButton" id="header_color_button">
+            <property name="valign">center</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="AdwActionRow" id="body_color_row">
+        <property name="title">Body Color</property>
+        <child type="suffix">
+          <object class="GtkColorButton" id="body_color_button">
+            <property name="valign">center</property>
+          </object>
+        </child>
+      </object>
+    </child>
     <!-- Custom Headers Expander -->
     <child>
       <object class="AdwExpanderRow" id="headers_group">

@@ -3,8 +3,7 @@
 import gi
 import cairo
 
-gi.require_version('Gtk', '4.0')
-from gi.repository import Gtk, Gdk, Adw
+from gi.repository import Gtk, Gdk, Adw, Pango, Gio
 
 NODE_WIDTH = 300
 NODE_HEADER_HEIGHT = 40
@@ -23,6 +22,7 @@ class NodeGraph(Gtk.DrawingArea):
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
+        self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
         self.set_draw_func(self.on_draw)
 
         style_manager = Adw.StyleManager.get_default()
@@ -100,8 +100,13 @@ class NodeGraph(Gtk.DrawingArea):
             end_x = node_b["x"]
             end_y = node_b["y"] + node_b["height"] / 2
 
+            # Use a bezier curve for a smoother connection
             cr.move_to(start_x, start_y)
-            cr.line_to(end_x, end_y)
+            c1_x = start_x + 100
+            c1_y = start_y
+            c2_x = end_x - 100
+            c2_y = end_y
+            cr.curve_to(c1_x, c1_y, c2_x, c2_y, end_x, end_y)
             cr.stroke()
 
     def draw_node(self, cr, node):
@@ -109,19 +114,30 @@ class NodeGraph(Gtk.DrawingArea):
         x, y, w, h = node["x"], node["y"], node["width"], node["height"]
         is_dark = Adw.StyleManager.get_default().get_dark()
 
+        # Custom colors take precedence
+        body_color_str = node['data'].get('body_color')
+        header_color_str = node['data'].get('header_color')
+
+        body_rgba = Gdk.RGBA()
+        header_rgba = Gdk.RGBA()
+
         # Node body
-        if is_dark:
-            cr.set_source_rgba(0.2, 0.2, 0.25, 1)
+        if body_color_str and body_rgba.parse(body_color_str) and body_rgba.alpha > 0:
+             cr.set_source_rgba(body_rgba.red, body_rgba.green, body_rgba.blue, body_rgba.alpha)
+        elif is_dark:
+            cr.set_source_rgba(0.2, 0.2, 0.25, 1) # Default dark
         else:
-            cr.set_source_rgba(0.8, 0.8, 0.85, 1)
+            cr.set_source_rgba(0.8, 0.8, 0.85, 1) # Default light
         self.rounded_rectangle(cr, x, y, w, h, 10)
         cr.fill()
 
         # Header
-        if is_dark:
-            cr.set_source_rgba(0.3, 0.3, 0.35, 1)
+        if header_color_str and header_rgba.parse(header_color_str) and header_rgba.alpha > 0:
+            cr.set_source_rgba(header_rgba.red, header_rgba.green, header_rgba.blue, header_rgba.alpha)
+        elif is_dark:
+            cr.set_source_rgba(0.3, 0.3, 0.35, 1) # Default dark
         else:
-            cr.set_source_rgba(0.7, 0.7, 0.75, 1)
+            cr.set_source_rgba(0.7, 0.7, 0.75, 1) # Default light
         self.rounded_rectangle(cr, x, y, w, NODE_HEADER_HEIGHT, 10, corners={'bl': False, 'br': False})
         cr.fill()
 
@@ -136,8 +152,12 @@ class NodeGraph(Gtk.DrawingArea):
         cr.show_text(node["data"]["name"])
 
         # Content text (headers)
-        cr.select_font_face("Monospace", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-        cr.set_font_size(12)
+        font_desc_str = self.settings.get_string('node-font')
+        if not font_desc_str:
+            font_desc_str = "Monospace 14"
+        font_desc = Pango.FontDescription.from_string(font_desc_str)
+        cr.select_font_face(font_desc.get_family(), cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+        cr.set_font_size(font_desc.get_size() / Pango.SCALE)
         text_y = y + NODE_HEADER_HEIGHT + PADDING
         for header, value, is_diff in node["data"]["headers"]:
             if is_diff:

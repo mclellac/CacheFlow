@@ -2,11 +2,12 @@
 
 import sys
 import gi
-
-gi.require_version('Gtk', '4.0')
-gi.require_version('Adw', '1')
+# This MUST be done before any other gi imports.
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
 
 from gi.repository import Gtk, Gio, Adw
+# Now that the versions are set, we can import the rest of the application.
 from .window import Window
 from .preferences import PreferencesWindow
 

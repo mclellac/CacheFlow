@@ -1,7 +1,4 @@
-import gi
-gi.require_version('Gtk', '4.0')
-gi.require_version('Adw', '1')
-from gi.repository import Gtk, Adw, GObject
+from gi.repository import Gtk, Adw, GObject, Gdk
 
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/layer_row.ui')
 class LayerRow(Adw.ExpanderRow):
@@ -10,6 +7,9 @@ class LayerRow(Adw.ExpanderRow):
     name_row = Gtk.Template.Child()
     desc_row = Gtk.Template.Child()
     url_row = Gtk.Template.Child()
+
+    header_color_button = Gtk.Template.Child()
+    body_color_button = Gtk.Template.Child()
 
     headers_group = Gtk.Template.Child()
     add_header_btn = Gtk.Template.Child()
@@ -39,6 +39,8 @@ class LayerRow(Adw.ExpanderRow):
         self.name_row.connect('notify::text', self.on_changed)
         self.desc_row.connect('notify::text', self.on_changed)
         self.url_row.connect('notify::text', self.on_changed)
+        self.header_color_button.connect('color-set', self.on_changed)
+        self.body_color_button.connect('color-set', self.on_changed)
 
         # Headers
         self.add_header_btn.connect('clicked', self.on_add_header)
@@ -60,6 +62,16 @@ class LayerRow(Adw.ExpanderRow):
         self.url_row.set_text(data.get('host_url', ''))
         self.set_title(data.get('name', 'New Layer'))
         self.name_row.connect('notify::text', lambda *args: self.set_title(self.name_row.get_text()))
+
+        # Load Colors
+        header_color = Gdk.RGBA()
+        if data.get('header_color') and header_color.parse(data['header_color']):
+            self.header_color_button.set_rgba(header_color)
+
+        body_color = Gdk.RGBA()
+        if data.get('body_color') and body_color.parse(data['body_color']):
+            self.body_color_button.set_rgba(body_color)
+
 
         # Load Headers
         custom_headers = data.get('custom_headers', {})
@@ -139,6 +151,8 @@ class LayerRow(Adw.ExpanderRow):
             'name': self.name_row.get_text(),
             'description': self.desc_row.get_text(),
             'host_url': self.url_row.get_text(),
+            'header_color': self.header_color_button.get_rgba().to_string(),
+            'body_color': self.body_color_button.get_rgba().to_string(),
             'custom_headers': {},
             'host_overrides': [],
             'path_match_only': []
