@@ -34,6 +34,24 @@
             <property name="title">Node Graph</property>
             <child>
               <object class="GtkShortcutsShortcut">
+                <property name="title">Inspect Path</property>
+                <property name="accelerator">&lt;Ctrl&gt;Return</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title">Export Graph</property>
+                <property name="accelerator">&lt;Ctrl&gt;E</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title">Reset Layout</property>
+                <property name="accelerator">&lt;Ctrl&gt;R</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
                 <property name="title">Inspect Node Headers</property>
                 <property name="shortcut-type">other</property>
                 <property name="subtitle">Double Click Node</property>
