@@ -45,9 +45,7 @@ DEFAULT_CONFIG = [
             "Pragma": "akamai-x-get-request-id, akamai-x-cache-on, akamai-x-cache-key"
         },
         "host_overrides": [],
-        "path_match_only": [],
-        "text_color": "",
-        "diff_text_color": ""
+        "path_match_only": []
     },
     {
         "name": "Infra_Cache",
@@ -63,9 +61,7 @@ DEFAULT_CONFIG = [
                 "host_header": "api-internal.example.com"
             }
         ],
-        "path_match_only": [],
-        "text_color": "",
-        "diff_text_color": ""
+        "path_match_only": []
     },
     {
         "name": "Application_Backend_A",
@@ -76,9 +72,7 @@ DEFAULT_CONFIG = [
             "/products/*",
             "/api/v1/*"
         ],
-        "host_overrides": [],
-        "text_color": "",
-        "diff_text_color": ""
+        "host_overrides": []
     }
 ]
 
@@ -105,15 +99,12 @@ class ConfigManager:
 
         variant_data = []
         for l_data in layers_data:
-            log.debug(f"ConfigManager saving layer: name='{l_data.get('name')}', text_color='{l_data.get('text_color')}'")
             layer_dict = {
                 'name': GLib.Variant('s', l_data.get('name', '')),
                 'description': GLib.Variant('s', l_data.get('description', '')),
                 'host_url': GLib.Variant('s', l_data.get('host_url', '')),
                 'header_color': GLib.Variant('s', l_data.get('header_color', '')),
                 'body_color': GLib.Variant('s', l_data.get('body_color', '')),
-                'text_color': GLib.Variant('s', l_data.get('text_color', '')),
-                'diff_text_color': GLib.Variant('s', l_data.get('diff_text_color', '')),
                 'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
                 'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
                 'path_match_only': GLib.Variant('as', l_data.get('path_match_only', []))
@@ -141,8 +132,6 @@ class ConfigManager:
                     'host_url': GLib.Variant('s', l_data.get('host_url', '')),
                     'header_color': GLib.Variant('s', l_data.get('header_color', '')),
                     'body_color': GLib.Variant('s', l_data.get('body_color', '')),
-                    'text_color': GLib.Variant('s', l_data.get('text_color', '')),
-                    'diff_text_color': GLib.Variant('s', l_data.get('diff_text_color', '')),
                     'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
                     'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
                     'path_match_only': GLib.Variant('as', l_data.get('path_match_only', []))
@@ -156,12 +145,11 @@ class ConfigManager:
             log.info(f"No config found for '{key}'. Saved default configuration.")
 
 
-@Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/preferences.ui')
+@Gtk.Template(filename='src/ui/preferences.ui')
 class PreferencesWindow(Adw.PreferencesWindow):
     __gtype_name__ = 'PreferencesWindow'
 
     theme_row = Gtk.Template.Child()
-    ssl_row = Gtk.Template.Child()
     dns_row = Gtk.Template.Child()
     font_button = Gtk.Template.Child()
 
@@ -184,7 +172,6 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self._layer_rows = {}
 
         self.settings.bind('dns-servers', self.dns_row, 'text', Gio.SettingsBindFlags.DEFAULT)
-        self.settings.bind('verify-ssl', self.ssl_row, 'active', Gio.SettingsBindFlags.DEFAULT)
 
         self.theme_row.connect('notify::selected-item', self.on_theme_changed)
         self.load_theme()
@@ -214,12 +201,16 @@ class PreferencesWindow(Adw.PreferencesWindow):
     def on_theme_changed(self, row, param):
         log.info(f"Theme changed to index {row.get_selected()}.")
         selected = row.get_selected()
+        style_manager = Adw.StyleManager.get_default()
         if selected == 1:
             self.settings.set_string('theme', 'light')
+            style_manager.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
         elif selected == 2:
             self.settings.set_string('theme', 'dark')
+            style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
         else:
             self.settings.set_string('theme', 'system')
+            style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
 
     def on_font_set(self, button):
         log.info("Node font changed.")
@@ -272,9 +263,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
             'host_url': 'http://localhost',
             'custom_headers': {},
             'host_overrides': [],
-            'path_match_only': [],
-            'text_color': '',
-            'diff_text_color': ''
+            'path_match_only': []
         }
         self.create_layer_row(group, key, new_data)
         self.config_manager.save_layers(key, self._layer_rows[group])

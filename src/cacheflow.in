@@ -22,11 +22,22 @@ gettext.install('cacheflow', localedir)
 
 os.environ['GI_TYPELIB_PATH'] = '@gi_typelib_path@'
 
-if __name__ == '__main__':
+# This block must run first, before any other application modules are imported.
+# We import the necessary GTK libraries and load the application's resources.
+try:
     import gi
-    from gi.repository import Gio
-    resource = Gio.Resource.load(os.path.join(pkgdatadir, 'cacheflow.gresource'))
-    resource._register()
+    gi.require_version('Gtk', '4.0')
+    gi.require_version('Adw', '1')
+    from gi.repository import Gio, GLib
 
+    # Load the GResource bundle
+    resource_path = os.path.join(pkgdatadir, 'cacheflow.gresource')
+    resource = Gio.Resource.load(resource_path)
+    Gio.Resource._register(resource)
+except (ImportError, GLib.Error) as e:
+    sys.exit(f"FATAL: Failed to load application resources from {resource_path}. {e}")
+
+# Now that resources are loaded and registered, we can safely import and run the application.
+if __name__ == '__main__':
     from cacheflow import main
     sys.exit(main.main(VERSION))

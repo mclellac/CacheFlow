@@ -1,11 +1,13 @@
 import sys
 import gi
+import os
 import logging
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Gtk, Gio, Adw
+from gi.repository import Gtk, Gio, Adw, GLib
+
 from .window import Window
 from .preferences import PreferencesWindow
 
@@ -16,50 +18,24 @@ log = logging.getLogger(__name__)
 class CacheFlowApplication(Adw.Application):
     """The main application."""
 
-    def __init__(self, version="0.1.0", **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.version = version
-        self.prefs_window = None
-
-        self.create_action("preferences", self.on_preferences_action)
-        self.create_action("about", self.on_about_action)
+        log.debug("Application initialized.")
         self.connect("activate", self.on_activate)
 
+    def on_activate(self, app):
         self.settings = Gio.Settings.new("com.github.mclellac.CacheFlow")
-        self.settings.connect("changed::theme", self._on_theme_setting_changed)
-
-        log.debug("Application initialized.")
-
+        self.create_action("preferences", self.on_preferences_action)
+        self.create_action("about", self.on_about_action)
         self.style_manager = Adw.StyleManager.get_default()
-        self.style_manager.connect(
-            "notify::accent-color", self._on_accent_color_changed
-        )
-        self.style_manager.connect(
-            "notify::high-contrast", self._on_high_contrast_changed
-        )
-
+        self.style_manager.connect("notify::accent-color", self._on_accent_color_changed)
+        self.style_manager.connect("notify::high-contrast", self._on_high_contrast_changed)
         self._update_color_scheme()
-
         self.set_accels_for_action("app.preferences", ["<Primary>comma"])
         self.set_accels_for_action("app.about", ["<Primary>question"])
-
-    def on_activate(self, app):
-        self.win = Window(application=app)
-        self.win.present()
-
-    def _update_color_scheme(self):
-        """Reads theme from settings and applies it."""
-        theme = self.settings.get_string("theme")
-        if theme == "light":
-            self.style_manager.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
-        elif theme == "dark":
-            self.style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
-        else:
-            self.style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
-
-    def _on_theme_setting_changed(self, settings, key):
-        log.debug(f"Theme setting changed: {key}")
-        self._update_color_scheme()
+        if not self.get_active_window():
+            self.win = Window(application=app)
+            self.win.present()
 
     def _on_accent_color_changed(self, style_manager, _):
         log.debug(f"System accent color changed to: {style_manager.get_accent_color()}")
@@ -71,24 +47,23 @@ class CacheFlowApplication(Adw.Application):
         )
         self._update_color_scheme()
 
+    def _update_color_scheme(self):
+        """Reads theme from settings and applies it."""
+        theme = self.settings.get_string("theme")
+        if theme == "light":
+            self.style_manager.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
+        elif theme == "dark":
+            self.style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
+        else:
+            self.style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
+
     def on_preferences_action(self, action, param):
         """Callback for the app.preferences action."""
-        if not self.prefs_window:
-            log.debug("Creating new PreferencesWindow.")
-            self.prefs_window = PreferencesWindow(
-                application=self,
-                transient_for=self.get_active_window(),
-                modal=True
-            )
-            self.prefs_window.connect('destroy', self._on_prefs_destroyed)
-            self.prefs_window.present()
-        else:
-            log.debug("Presenting existing PreferencesWindow.")
-            self.prefs_window.present()
-
-    def _on_prefs_destroyed(self, window):
-        log.debug("PreferencesWindow destroyed.")
-        self.prefs_window = None
+        log.debug("Preferences action triggered. Creating new PreferencesWindow.")
+        prefs_window = PreferencesWindow(
+            transient_for=self.get_active_window(), modal=True
+        )
+        prefs_window.present()
 
     def on_about_action(self, action, param):
         """Callback for the app.about action."""
@@ -96,7 +71,7 @@ class CacheFlowApplication(Adw.Application):
             application_name="CacheFlow",
             application_icon="com.github.mclellac.CacheFlow",
             developer_name="Carey McLelland",
-            version=self.version,
+            version="0.1.0",
             website="https://github.com/mclellac/CacheFlow",
             transient_for=self.get_active_window(),
         )
@@ -112,7 +87,6 @@ class CacheFlowApplication(Adw.Application):
 def main(version):
     """Application entry point."""
     app = CacheFlowApplication(
-        version=version,
         application_id="com.github.mclellac.CacheFlow",
         flags=Gio.ApplicationFlags.FLAGS_NONE,
     )

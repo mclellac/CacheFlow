@@ -3,7 +3,7 @@
     "runtime": "org.gnome.Platform",
     "runtime-version": "49",
     "sdk": "org.gnome.Sdk",
-    "command": "cacheflow",
+    "command": "run.sh",
     "finish-args": [
         "--share=network",
         "--share=ipc",
@@ -93,29 +93,28 @@
         },
         {
             "name": "cacheflow",
-            "buildsystem": "meson",
+            "buildsystem": "simple",
+            "build-commands": [
+                "meson setup --prefix=/app --libdir=/app/lib --wipe _build",
+                "ninja -C _build",
+                "ninja -C _build install"
+            ],
             "post-install": [
                 "cp -r src /app/share/cacheflow/"
             ],
             "sources": [
-                {
-                    "type": "dir",
-                    "path": "."
-                }
+                { "type": "dir", "path": "." }
             ]
         },
         {
             "name": "launcher",
             "buildsystem": "simple",
             "build-commands": [
-                "install -D /dev/stdin /app/bin/run.sh <<EOF",
-                "#!/bin/sh",
-                "cd /app/share/cacheflow",
-                "exec python3 -m cacheflow.main \"$@\"",
-                "EOF"
-            ],
-            "sources": [
-                { "type": "dir", "path": "." }
+                "echo '#!/bin/sh' > run.sh",
+                "echo 'cd /app/share/cacheflow' >> run.sh",
+                "echo 'exec cacheflow \"$@\"' >> run.sh",
+                "chmod +x run.sh",
+                "install -D run.sh /app/bin/run.sh"
             ]
         }
     ]
