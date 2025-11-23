@@ -6,11 +6,12 @@ log = logging.getLogger(__name__)
 class HeaderItem(GObject.Object):
     __gtype_name__ = 'HeaderItem'
 
-    def __init__(self, key, value, is_diff):
+    def __init__(self, key, value, is_diff, note=""):
         super().__init__()
         self.key = key
         self.value = value
         self.is_diff = is_diff
+        self.note = note
 
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/header_dialog.ui')
 class HeaderDialog(Adw.MessageDialog):
@@ -20,6 +21,7 @@ class HeaderDialog(Adw.MessageDialog):
     column_view = Gtk.Template.Child()
     column_key = Gtk.Template.Child()
     column_value = Gtk.Template.Child()
+    column_note = Gtk.Template.Child()
 
     def __init__(self, headers, **kwargs):
         super().__init__(**kwargs)
@@ -32,17 +34,17 @@ class HeaderDialog(Adw.MessageDialog):
         self.model = Gio.ListStore(item_type=HeaderItem)
         headers_to_split = ['x-akamai-session-info', 'content-security-policy']
 
-        for header, value, is_diff in headers:
+        for header, value, is_diff, note in headers:
             if header.lower() in headers_to_split and ';' in value:
                 parts = [p.strip() for p in value.split(';') if p.strip()]
                 if not parts:
-                    self.model.append(HeaderItem(header, '', is_diff))
+                    self.model.append(HeaderItem(header, '', is_diff, note))
                     continue
-                self.model.append(HeaderItem(header, parts[0] + ';', is_diff))
+                self.model.append(HeaderItem(header, parts[0] + ';', is_diff, note))
                 for part in parts[1:]:
-                    self.model.append(HeaderItem('', part + (';' if not part == parts[-1] else ''), is_diff))
+                    self.model.append(HeaderItem('', part + (';' if not part == parts[-1] else ''), is_diff, ""))
             else:
-                self.model.append(HeaderItem(header, value, is_diff))
+                self.model.append(HeaderItem(header, value, is_diff, note))
 
         self.selection_model = Gtk.MultiSelection(model=self.model)
         self.column_view.set_model(self.selection_model)
@@ -60,6 +62,11 @@ class HeaderDialog(Adw.MessageDialog):
         factory_value.connect("setup", self._on_factory_setup_value)
         factory_value.connect("bind", self._on_factory_bind_value)
         self.column_value.set_factory(factory_value)
+
+        factory_note = Gtk.SignalListItemFactory()
+        factory_note.connect("setup", self._on_factory_setup_note)
+        factory_note.connect("bind", self._on_factory_bind_note)
+        self.column_note.set_factory(factory_note)
 
     def _on_factory_setup_key(self, factory, item):
         label = Gtk.Label(xalign=0)
@@ -86,6 +93,16 @@ class HeaderDialog(Adw.MessageDialog):
         else:
             attrs.insert(Pango.attr_weight_new(Pango.Weight.NORMAL))
         label.set_attributes(attrs)
+
+    def _on_factory_setup_note(self, factory, item):
+        label = Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END)
+        label.add_css_class("dim-label")
+        item.set_child(label)
+
+    def _on_factory_bind_note(self, factory, item):
+        header_item = item.get_item()
+        label = item.get_child()
+        label.set_text(header_item.note)
 
     def _setup_context_menu(self):
         copy_action = Gio.SimpleAction.new("copy_selection", None)
