@@ -94,11 +94,28 @@
         {
             "name": "cacheflow",
             "buildsystem": "meson",
+            "post-install": [
+                "cp -r src /app/share/cacheflow/"
+            ],
             "sources": [
                 {
                     "type": "dir",
                     "path": "."
                 }
+            ]
+        },
+        {
+            "name": "launcher",
+            "buildsystem": "simple",
+            "build-commands": [
+                "install -D /dev/stdin /app/bin/run.sh <<EOF",
+                "#!/bin/sh",
+                "cd /app/share/cacheflow",
+                "exec python3 -m cacheflow.main \"$@\"",
+                "EOF"
+            ],
+            "sources": [
+                { "type": "dir", "path": "." }
             ]
         }
     ]
