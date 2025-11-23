@@ -26,27 +26,27 @@ This document outlines the audit findings and suggested improvements for the Nod
 **Request**: Add a column to the header dialogs to note changed or set headers.
 **Implementation**:
 
-- Modify `Window._compare_headers` to generate descriptive notes (e.g., "Changed from 'X' at Origin").
-- Update `HeaderDialog` to include a "Notes" column.
-- Update `HeaderItem` to store this note.
+- [x] Modify `Window._compare_headers` to generate descriptive notes (e.g., "Changed from 'X' at Origin").
+- [x] Update `HeaderDialog` to include a "Notes" column.
+- [x] Update `HeaderItem` to store this note.
 
 ### 2. Search and Filtering
 
-Add a search entry to the `HeaderDialog` to allow users to quickly find specific headers (e.g., "cache-control", "x-amz").
+- [x] Add a search entry to the `HeaderDialog` to allow users to quickly find specific headers (e.g., "cache-control", "x-amz").
 
 ### 3. Graph Export
 
-Add functionality to export the rendered graph as an image file (PNG) vector file (SVG) and Text file (UTF-8 ASCII ART). This would be useful for documentation or sharing inspection results.
+- [x] Add functionality to export the rendered graph as an image file (PNG) vector file (SVG) and Text file (UTF-8 ASCII ART). This would be useful for documentation or sharing inspection results.
 
 ### 4. Layout Management
 
-- **Reset Layout**: Add a button to reset node positions to the default linear arrangement.
-- **Auto-Snap**: Implement grid snapping for cleaner manual layout.
+- [x] **Reset Layout**: Add a button to reset node positions to the default linear arrangement.
+- [x] **Auto-Snap**: Implement grid snapping for cleaner manual layout.
 
 ### 5. Zoom and Pan
 
-Implement a viewport system to allow zooming in/out and panning the graph canvas, enabling support for larger/more complex graphs.
+- [x] Implement a viewport system to allow zooming in/out and panning the graph canvas, enabling support for larger/more complex graphs.
 
 ### 6. Refactoring
 
-- **Node Data Model**: Define a proper `GObject` or Python dataclass for `NodeData` to improve type safety and clarity when passing data between the graph and the window.
+- [x] **Node Data Model**: Define a proper `GObject` or Python dataclass for `NodeData` to improve type safety and clarity when passing data between the graph and the window.

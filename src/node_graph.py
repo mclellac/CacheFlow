@@ -30,6 +30,13 @@ class NodeGraph(Gtk.DrawingArea):
         self.selected_node_index = None
         self.drag_offset_x = 0
         self.drag_offset_y = 0
+        self.scale = 1.0
+        self.offset_x = 0
+        self.offset_y = 0
+        self.pan_start_x = 0
+        self.pan_start_y = 0
+        self.pan_start_offset_x = 0
+        self.pan_start_offset_y = 0
 
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
         log.debug("NodeGraph initialized.")
@@ -49,6 +56,176 @@ class NodeGraph(Gtk.DrawingArea):
         gesture_click.connect("pressed", self.on_click)
         self.add_controller(gesture_click)
 
+        gesture_right_click = Gtk.GestureClick.new()
+        gesture_right_click.set_button(3)
+        gesture_right_click.connect("pressed", self.on_right_click)
+        self.add_controller(gesture_right_click)
+
+        # Pan (Middle click)
+        gesture_pan = Gtk.GestureDrag.new()
+        gesture_pan.set_button(2)
+        gesture_pan.connect("drag-begin", self.on_pan_begin)
+        gesture_pan.connect("drag-update", self.on_pan_update)
+        self.add_controller(gesture_pan)
+
+        # Zoom (Scroll)
+        scroll_controller = Gtk.EventControllerScroll.new(Gtk.EventControllerScrollFlags.VERTICAL)
+        scroll_controller.connect("scroll", self.on_scroll)
+        self.add_controller(scroll_controller)
+
+        self._setup_context_menu()
+
+    def _setup_context_menu(self):
+        menu = Gio.Menu()
+        menu.append("Reset Layout", "node-graph.reset-layout")
+        menu.append("Export Graph...", "node-graph.export")
+
+        self.popover_menu = Gtk.PopoverMenu.new_from_model(menu)
+        self.popover_menu.set_parent(self)
+        self.popover_menu.set_has_arrow(False)
+
+        # Actions
+        action_group = Gio.SimpleActionGroup()
+
+        action_reset = Gio.SimpleAction.new("reset-layout", None)
+        action_reset.connect("activate", self.on_reset_layout)
+        action_group.add_action(action_reset)
+
+        action_export = Gio.SimpleAction.new("export", None)
+        action_export.connect("activate", self.on_export_action)
+        action_group.add_action(action_export)
+
+        self.insert_action_group("node-graph", action_group)
+
+    def on_right_click(self, gesture, n_press, x, y):
+        self.popover_menu.set_pointing_to(Gdk.Rectangle(int(x), int(y), 1, 1))
+        self.popover_menu.popup()
+
+    def on_pan_begin(self, gesture, start_x, start_y):
+        self.pan_start_x = start_x
+        self.pan_start_y = start_y
+        self.pan_start_offset_x = self.offset_x
+        self.pan_start_offset_y = self.offset_y
+        gesture.set_state(Gtk.EventSequenceState.CLAIMED)
+
+    def on_pan_update(self, gesture, offset_x, offset_y):
+        self.offset_x = self.pan_start_offset_x + offset_x
+        self.offset_y = self.pan_start_offset_y + offset_y
+        self.queue_draw()
+
+    def on_scroll(self, controller, dx, dy):
+        # Zoom centered on mouse pointer not implemented for simplicity, just zoom in/out
+
+        zoom_factor = 1.1 if dy < 0 else 0.9
+        new_scale = self.scale * zoom_factor
+
+        # Clamp scale
+        new_scale = max(0.1, min(new_scale, 5.0))
+
+        # Adjust offset to zoom towards center
+        width = self.get_width()
+        height = self.get_height()
+
+        # center world before
+        cx = (width / 2 - self.offset_x) / self.scale
+        cy = (height / 2 - self.offset_y) / self.scale
+
+        self.scale = new_scale
+
+        # new offset
+        self.offset_x = width / 2 - cx * self.scale
+        self.offset_y = height / 2 - cy * self.scale
+
+        self.queue_draw()
+        return True
+
+    def on_reset_layout(self, action, param):
+        self.scale = 1.0
+        self.offset_x = 0
+        self.offset_y = 0
+        self.set_data([n['data'] for n in self.nodes])
+
+    def on_export_action(self, action, param):
+        self.show_export_dialog()
+
+    def show_export_dialog(self):
+        dialog = Gtk.FileChooserNative(title="Export Graph",
+                                       action=Gtk.FileChooserAction.SAVE,
+                                       transient_for=self.get_root())
+
+        filter_png = Gtk.FileFilter()
+        filter_png.set_name("PNG Image")
+        filter_png.add_pattern("*.png")
+        dialog.add_filter(filter_png)
+
+        filter_svg = Gtk.FileFilter()
+        filter_svg.set_name("SVG Image")
+        filter_svg.add_pattern("*.svg")
+        dialog.add_filter(filter_svg)
+
+        filter_txt = Gtk.FileFilter()
+        filter_txt.set_name("Text File")
+        filter_txt.add_pattern("*.txt")
+        dialog.add_filter(filter_txt)
+
+        dialog.connect("response", self.on_export_response)
+        dialog.show()
+
+    def on_export_response(self, dialog, response_id):
+        if response_id == Gtk.ResponseType.ACCEPT:
+            file = dialog.get_file()
+            filepath = file.get_path()
+            if filepath:
+                 self.export_graph(filepath)
+        dialog.destroy()
+
+    def export_graph(self, filepath):
+        if filepath.endswith('.png'):
+             self._export_png(filepath)
+        elif filepath.endswith('.svg'):
+             self._export_svg(filepath)
+        elif filepath.endswith('.txt'):
+             self._export_text(filepath)
+        else:
+             # Default to png
+             self._export_png(filepath + ".png")
+
+    def _get_total_bounds(self):
+        if not self.nodes:
+            return 100, 100
+
+        max_x = max(n['x'] + n['width'] for n in self.nodes)
+        max_y = max(n['y'] + n['height'] for n in self.nodes)
+        return max_x + 50, max_y + 50
+
+    def _export_png(self, filepath):
+        width, height = self._get_total_bounds()
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width), int(height))
+        cr = cairo.Context(surface)
+        self.draw_graph_content(cr, width, height)
+        surface.write_to_png(filepath)
+
+    def _export_svg(self, filepath):
+        width, height = self._get_total_bounds()
+        surface = cairo.SVGSurface(filepath, width, height)
+        cr = cairo.Context(surface)
+        self.draw_graph_content(cr, width, height)
+        surface.finish()
+
+    def _export_text(self, filepath):
+        with open(filepath, 'w') as f:
+            for node in self.nodes:
+                 f.write(f"Node: {node['data'].name}\n")
+                 f.write(f"URL: {node['data'].request_method} {node['data'].request_url}\n")
+                 f.write("Headers:\n")
+                 for h, v, diff, note in node['data'].headers:
+                     marker = "*" if diff else " "
+                     f.write(f" {marker} {h}: {v}")
+                     if note:
+                         f.write(f" ({note})")
+                     f.write("\n")
+                 f.write("\n" + "-"*40 + "\n\n")
+
     def on_style_changed(self, style_manager, _):
         log.debug("System style (light/dark) changed, queueing redraw.")
         self.queue_draw()
@@ -65,7 +242,7 @@ class NodeGraph(Gtk.DrawingArea):
         cr.set_font_size(16)
 
         for i, node_data in enumerate(nodes_data):
-            text_extents = cr.text_extents(node_data["name"])
+            text_extents = cr.text_extents(node_data.name)
             min_width = text_extents.width + 2 * PADDING
             node_width = max(NODE_WIDTH, min_width)
             node = {
@@ -73,7 +250,7 @@ class NodeGraph(Gtk.DrawingArea):
                 "x": x,
                 "y": y,
                 "width": node_width,
-                "height": NODE_HEADER_HEIGHT + (len(node_data["headers"]) * LINE_HEIGHT) + PADDING,
+                "height": NODE_HEADER_HEIGHT + (len(node_data.headers) * LINE_HEIGHT) + PADDING,
                 "data": node_data,
                 "min_width": min_width,
             }
@@ -83,6 +260,9 @@ class NodeGraph(Gtk.DrawingArea):
 
     def on_draw(self, area, cr, width, height):
         """The main drawing method."""
+        self.draw_graph_content(cr, width, height)
+
+    def draw_graph_content(self, cr, width, height):
         style_manager = Adw.StyleManager.get_default()
         is_dark = style_manager.get_dark()
 
@@ -90,7 +270,12 @@ class NodeGraph(Gtk.DrawingArea):
             cr.set_source_rgba(0.1, 0.1, 0.1, 1)
         else:
             cr.set_source_rgba(0.95, 0.95, 0.95, 1)
-        cr.paint()
+        cr.rectangle(0, 0, width, height)
+        cr.fill()
+
+        cr.save()
+        cr.translate(self.offset_x, self.offset_y)
+        cr.scale(self.scale, self.scale)
 
         self.draw_connections(cr)
 
@@ -99,6 +284,8 @@ class NodeGraph(Gtk.DrawingArea):
 
         for node in self.nodes:
             self.draw_resize_handle(cr, node)
+
+        cr.restore()
 
     def draw_connections(self, cr):
         """Draws lines connecting the nodes."""
@@ -127,8 +314,8 @@ class NodeGraph(Gtk.DrawingArea):
             cr.stroke()
 
             # Draw request info text on the line
-            request_url = node_b["data"].get("request_url")
-            request_host = node_b["data"].get("request_host")
+            request_url = node_b["data"].request_url
+            request_host = node_b["data"].request_host
 
             if request_url:
                 # Calculate midpoint of Bezier curve (t=0.5)
@@ -142,7 +329,7 @@ class NodeGraph(Gtk.DrawingArea):
                 font_desc = Pango.FontDescription("Sans 12")
                 layout.set_font_description(font_desc)
 
-                method = node_b["data"].get("request_method", "GET")
+                method = node_b["data"].request_method
                 text = f"{method} {request_url}"
                 if request_host:
                     text += f"\nwith Host: {request_host}"
@@ -217,7 +404,7 @@ class NodeGraph(Gtk.DrawingArea):
 
         # --- 2. Draw Node Body and Border ---
         body_rgba = Gdk.RGBA()
-        body_color_str = node['data'].get('body_color')
+        body_color_str = node['data'].body_color
         if body_color_str and body_rgba.parse(body_color_str) and body_rgba.alpha > 0:
             cr.set_source_rgba(body_rgba.red, body_rgba.green, body_rgba.blue, body_rgba.alpha)
         elif is_dark:
@@ -235,7 +422,7 @@ class NodeGraph(Gtk.DrawingArea):
 
         # --- 3. Draw Header and Border ---
         header_rgba = Gdk.RGBA()
-        header_color_str = node['data'].get('header_color')
+        header_color_str = node['data'].header_color
         if header_color_str and header_rgba.parse(header_color_str) and header_rgba.alpha > 0:
             cr.set_source_rgba(header_rgba.red, header_rgba.green, header_rgba.blue, header_rgba.alpha)
         elif is_dark:
@@ -258,7 +445,7 @@ class NodeGraph(Gtk.DrawingArea):
         cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
         cr.set_font_size(16)
         cr.move_to(x + PADDING, y + 25)
-        cr.show_text(node["data"]["name"])
+        cr.show_text(node["data"].name)
 
         font_desc_str = self.settings.get_string('node-font')
         if not font_desc_str:
@@ -273,10 +460,10 @@ class NodeGraph(Gtk.DrawingArea):
         text_rgba = Gdk.RGBA()
         diff_rgba = Gdk.RGBA()
 
-        text_color_str = node['data'].get('text_color')
-        diff_color_str = node['data'].get('diff_text_color')
+        text_color_str = node['data'].text_color
+        diff_color_str = node['data'].diff_text_color
 
-        for header, value, is_diff, _ in node["data"]["headers"]:
+        for header, value, is_diff, _ in node["data"].headers:
             if is_diff:
                 if diff_color_str and diff_rgba.parse(diff_color_str) and diff_rgba.alpha > 0:
                     cr.set_source_rgba(diff_rgba.red, diff_rgba.green, diff_rgba.blue, diff_rgba.alpha)
@@ -334,6 +521,10 @@ class NodeGraph(Gtk.DrawingArea):
         self.dragging_node = None
         self.resizing_node = None
 
+        # Convert to world coordinates
+        wx = (start_x - self.offset_x) / self.scale
+        wy = (start_y - self.offset_y) / self.scale
+
         for node in reversed(self.nodes):
             node_x, node_y, node_w, node_h = node["x"], node["y"], node["width"], node["height"]
 
@@ -341,23 +532,24 @@ class NodeGraph(Gtk.DrawingArea):
             handle_y = node_y + node_h - RESIZE_HANDLE_SIZE
 
             # Check resize handle collision (Strictly bounded)
-            if (handle_x <= start_x <= node_x + node_w and
-                    handle_y <= start_y <= node_y + node_h):
+            if (handle_x <= wx <= node_x + node_w and
+                    handle_y <= wy <= node_y + node_h):
                 self.resizing_node = node
                 self.selected_node_index = node["id"]
                 self.queue_draw()
-                log.debug(f"Resizing node '{node['data']['name']}'.")
+                log.debug(f"Resizing node '{node['data'].name}'.")
                 gesture.set_state(Gtk.EventSequenceState.CLAIMED)
                 return
 
             # Check node body collision
-            if node_x <= start_x <= node_x + node_w and node_y <= start_y <= node_y + node_h:
+            if node_x <= wx <= node_x + node_w and node_y <= wy <= node_y + node_h:
                 self.dragging_node = node
                 self.selected_node_index = node["id"]
                 self.queue_draw()
-                self.drag_offset_x = start_x - node["x"]
-                self.drag_offset_y = start_y - node["y"]
-                log.debug(f"Dragging node '{node['data']['name']}'.")
+                # Store offset from node origin in world coords
+                self.drag_offset_x = wx - node["x"]
+                self.drag_offset_y = wy - node["y"]
+                log.debug(f"Dragging node '{node['data'].name}'.")
                 gesture.set_state(Gtk.EventSequenceState.CLAIMED)
                 return
 
@@ -374,13 +566,26 @@ class NodeGraph(Gtk.DrawingArea):
         if not ok:
             return
 
+        # Current screen pos
+        screen_x = start_x + offset_x
+        screen_y = start_y + offset_y
+
+        # Current world pos
+        wx = (screen_x - self.offset_x) / self.scale
+        wy = (screen_y - self.offset_y) / self.scale
+
         if self.dragging_node:
-            self.dragging_node["x"] = start_x + offset_x - self.drag_offset_x
-            self.dragging_node["y"] = start_y + offset_y - self.drag_offset_y
+            target_x = wx - self.drag_offset_x
+            target_y = wy - self.drag_offset_y
+
+            # Snap to grid (20px)
+            self.dragging_node["x"] = round(target_x / 20) * 20
+            self.dragging_node["y"] = round(target_y / 20) * 20
+
         elif self.resizing_node:
             min_w = self.resizing_node.get("min_width", 150)
-            self.resizing_node["width"] = max(min_w, start_x + offset_x - self.resizing_node["x"])
-            self.resizing_node["height"] = max(100, start_y + offset_y - self.resizing_node["y"])
+            self.resizing_node["width"] = max(min_w, wx - self.resizing_node["x"])
+            self.resizing_node["height"] = max(100, wy - self.resizing_node["y"])
 
         self.queue_draw()
 
@@ -397,12 +602,15 @@ class NodeGraph(Gtk.DrawingArea):
     def on_click(self, gesture, n_press, x, y):
         """Handles click events."""
 
+        wx = (x - self.offset_x) / self.scale
+        wy = (y - self.offset_y) / self.scale
+
         # Handle selection on single click (or first click of double)
         if n_press == 1:
             hit_node = False
             for node in reversed(self.nodes):
-                if (node["x"] <= x <= node["x"] + node["width"] and
-                        node["y"] <= y <= node["y"] + node["height"]):
+                if (node["x"] <= wx <= node["x"] + node["width"] and
+                        node["y"] <= wy <= node["y"] + node["height"]):
                     self.selected_node_index = node["id"]
                     self.queue_draw()
                     hit_node = True
@@ -416,14 +624,8 @@ class NodeGraph(Gtk.DrawingArea):
             return
 
         for node in reversed(self.nodes):
-            if x >= node["x"] and x <= node["x"] + node["width"] and \
-               y >= node["y"] and y <= node["y"] + node["height"]:
-                log.debug(f"Double-click on node '{node['data']['name']}', emitting signal.")
-                # The node object passed to the signal should have a get_property method
-                # The handler in window.py expects an object with a 'headers' property.
-                # The 'data' dictionary in our node structure contains this.
-                class NodeData:
-                    def get_property(self, name):
-                        return node['data'].get(name)
-                self.emit('node-double-clicked', NodeData())
+            if wx >= node["x"] and wx <= node["x"] + node["width"] and \
+               wy >= node["y"] and wy <= node["y"] + node["height"]:
+                log.debug(f"Double-click on node '{node['data'].name}', emitting signal.")
+                self.emit('node-double-clicked', node['data'])
                 return

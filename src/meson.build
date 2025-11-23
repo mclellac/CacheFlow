@@ -13,6 +13,7 @@ python_sources = [
   'preferences.py',
   'header_dialog.py',
   'dns_adapter.py',
+  'node_data.py',
 ]
 
 py_installation.install_sources(python_sources, subdir: 'cacheflow')
