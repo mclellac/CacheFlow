@@ -24,7 +24,7 @@
     ],
     "modules" : [
         {
-            "name" : "cacheflow",
+            "name" : "CacheFlow",
             "builddir" : true,
             "buildsystem" : "meson",
             "sources" : [

@@ -3,7 +3,7 @@ import cairo
 import logging
 
 gi.require_version('PangoCairo', '1.0')
-from gi.repository import Gtk, Gdk, Adw, Pango, PangoCairo, Gio, GLib
+from gi.repository import Gtk, Gdk, Adw, Pango, PangoCairo, Gio, GLib, GObject
 
 log = logging.getLogger(__name__)
 
@@ -18,6 +18,9 @@ class NodeGraph(Gtk.DrawingArea):
     """A widget for drawing and interacting with a node-based graph."""
 
     __gtype_name__ = 'NodeGraph'
+    __gsignals__ = {
+        'node-double-clicked': (GObject.SignalFlags.RUN_FIRST, None, (GObject.TYPE_PYOBJECT,)),
+    }
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -306,63 +309,12 @@ class NodeGraph(Gtk.DrawingArea):
         for node in reversed(self.nodes):
             if x >= node["x"] and x <= node["x"] + node["width"] and \
                y >= node["y"] and y <= node["y"] + node["height"]:
-                log.debug(f"Double-click on node '{node['data']['name']}', showing details.")
-                self.show_details_window(node)
+                log.debug(f"Double-click on node '{node['data']['name']}', emitting signal.")
+                # The node object passed to the signal should have a get_property method
+                # The handler in window.py expects an object with a 'headers' property.
+                # The 'data' dictionary in our node structure contains this.
+                class NodeData:
+                    def get_property(self, name):
+                        return node['data'].get(name)
+                self.emit('node-double-clicked', NodeData())
                 return
-
-    def show_details_window(self, node):
-        """Creates and shows a window with the full header details for a node."""
-        parent_window = self.get_root()
-
-        scrolled_window = Gtk.ScrolledWindow()
-        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
-        scrolled_window.set_min_content_height(400)
-        scrolled_window.set_vexpand(True)
-
-        # Create the model
-        store = Gtk.ListStore(str, str, bool)
-        for header, value, is_diff in node["data"]["headers"]:
-            store.append([header, value, is_diff])
-
-        # Create the view
-        treeview = Gtk.TreeView(model=store)
-        treeview.set_hexpand(True)
-
-        # Create columns
-        renderer_key = Gtk.CellRendererText(wrap_width=280, wrap_mode=Pango.WrapMode.WORD_CHAR)
-        column_key = Gtk.TreeViewColumn("Header", renderer_key)
-        
-        renderer_value = Gtk.CellRendererText(wrap_width=280, wrap_mode=Pango.WrapMode.WORD_CHAR)
-        column_value = Gtk.TreeViewColumn("Value", renderer_value, text=1)
-
-        def style_header(column, cell, model, iter, data):
-            key = model.get_value(iter, 0)
-            escaped_key = GLib.markup_escape_text(key)
-            markup = f"<b>{escaped_key}</b>"
-            cell.set_property("markup", markup)
-
-        def style_value(column, cell, model, iter, data):
-            is_diff = model.get_value(iter, 2)
-            if is_diff:
-                cell.set_property("weight", Pango.Weight.BOLD)
-            else:
-                cell.set_property("weight", Pango.Weight.NORMAL)
-
-        column_key.set_cell_data_func(renderer_key, style_header)
-        column_value.set_cell_data_func(renderer_value, style_value)
-
-        treeview.append_column(column_key)
-        treeview.append_column(column_value)
-
-        scrolled_window.set_child(treeview)
-
-        dialog = Adw.MessageDialog(
-            transient_for=parent_window,
-            heading=f"Headers for {node['data']['name']}",
-            extra_child=scrolled_window,
-            default_width=600
-        )
-
-        dialog.add_response("close", "Close")
-        dialog.connect("response", lambda d, r: d.close())
-        dialog.present()

@@ -49,5 +49,13 @@
       <default>-1</default>
       <summary>The height of the main window</summary>
     </key>
+    <key name="header-dialog-width" type="i">
+      <default>600</default>
+      <summary>The width of the header dialog</summary>
+    </key>
+    <key name="header-dialog-height" type="i">
+      <default>400</default>
+      <summary>The height of the header dialog</summary>
+    </key>
   </schema>
 </schemalist>

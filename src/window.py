@@ -3,11 +3,147 @@ import requests
 import logging
 import threading
 
-from gi.repository import Gtk, Adw, Gio, GObject, GLib
+from gi.repository import Gtk, Adw, Gio, GObject, GLib, Pango, Gdk
 from .node_graph import NodeGraph
-from .engine import CacheFlowEngine
 
 log = logging.getLogger(__name__)
+
+
+class HeaderDialog(Adw.MessageDialog):
+    """A dialog to display key-value headers from a node."""
+
+    def __init__(self, headers, **kwargs):
+        super().__init__(**kwargs)
+        self._clipboard_provider = None # To hold a reference
+
+        heading = self.get_heading()
+        self.set_heading(f"Headers for {heading}")
+
+        scrolled_window = Gtk.ScrolledWindow()
+        scrolled_window.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        scrolled_window.set_min_content_height(400)
+        scrolled_window.set_vexpand(True)
+
+        # Create the model (key, value, is_diff)
+        store = Gtk.ListStore(str, str, bool)
+        headers_to_split = ['x-akamai-session-info', 'content-security-policy']
+
+        for header, value, is_diff in headers:
+            # Check if the header is one of the long ones we want to split
+            if header.lower() in headers_to_split and ';' in value:
+                parts = [p.strip() for p in value.split(';') if p.strip()]
+                if not parts:
+                    store.append([header, '', is_diff])
+                    continue
+                # Add the first part with the header key
+                store.append([header, parts[0] + ';', is_diff])
+                # Add subsequent parts without the header key for alignment
+                for part in parts[1:]:
+                    store.append(['', part + (';' if not part == parts[-1] else ''), is_diff])
+            else:
+                store.append([header, value, is_diff])
+
+        # Create the view
+        treeview = Gtk.TreeView(model=store)
+        treeview.set_hexpand(True)
+        treeview.set_can_focus(True)
+        treeview.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
+        self.treeview = treeview # Store for later use
+
+        # Create columns
+        renderer_key = Gtk.CellRendererText(ellipsize=Pango.EllipsizeMode.END)
+        column_key = Gtk.TreeViewColumn("Header", renderer_key)
+        column_key.set_sizing(Gtk.TreeViewColumnSizing.AUTOSIZE)
+        column_key.set_min_width(150)
+        column_key.set_resizable(True)
+
+        renderer_value = Gtk.CellRendererText(ellipsize=Pango.EllipsizeMode.END)
+        column_value = Gtk.TreeViewColumn("Value", renderer_value, text=1)
+        column_value.set_expand(True)
+        column_value.set_resizable(True)
+
+        # Make text selectable for copying
+        renderer_key.set_property('editable', True)
+        renderer_value.set_property('editable', True)
+
+        def style_header_cell(column, cell, model, iter, data):
+            key = model.get_value(iter, 0)
+            escaped_key = GLib.markup_escape_text(key)
+            markup = f"<b>{escaped_key}</b>"
+            cell.set_property("markup", markup)
+
+        def style_value_cell(column, cell, model, iter, data):
+            is_diff = model.get_value(iter, 2)
+            if is_diff:
+                # Using a bold weight to indicate a difference.
+                cell.set_property("weight", Pango.Weight.BOLD)
+            else:
+                cell.set_property("weight", Pango.Weight.NORMAL)
+
+        column_key.set_cell_data_func(renderer_key, style_header_cell)
+        column_value.set_cell_data_func(renderer_value, style_value_cell)
+
+        treeview.append_column(column_key)
+        treeview.append_column(column_value)
+
+        scrolled_window.set_child(treeview)
+
+        self.set_extra_child(scrolled_window)
+        self.add_response("close", "Close")
+        self.set_default_response("close")
+        self.set_close_response("close")
+
+        # Setup context menu for copying
+        self._setup_context_menu()
+
+    def _setup_context_menu(self):
+        """Creates and attaches the right-click context menu."""
+        copy_action = Gio.SimpleAction.new("copy_selection", None)
+        copy_action.connect("activate", self._on_copy_activated)
+
+        action_group = Gio.SimpleActionGroup()
+        action_group.add_action(copy_action)
+        self.insert_action_group("dialog", action_group)
+        menu_model = Gio.Menu()
+        menu_model.append("Copy", "dialog.copy_selection")
+
+        self.popover = Gtk.PopoverMenu.new_from_model(menu_model)
+        self.popover.set_parent(self.treeview)
+
+        click_controller = Gtk.GestureClick.new()
+        click_controller.set_button(Gdk.BUTTON_SECONDARY)
+        click_controller.connect("pressed", self._on_right_click)
+        self.treeview.add_controller(click_controller)
+
+    def _on_right_click(self, gesture, n_press, x, y):
+        """Shows the popover menu on right-click."""
+        self.popover.set_pointing_to(Gdk.Rectangle(x, y, 1, 1))
+        self.popover.popup()
+
+    def _on_copy_activated(self, action, param):
+        """Copies the selected rows to the clipboard."""
+        log.debug("Copy action activated.")
+        selection = self.treeview.get_selection()
+        model, paths = selection.get_selected_rows()
+        if not paths:
+            log.debug("No rows selected, nothing to copy.")
+            return
+
+        log.debug(f"Found {len(paths)} rows selected for copying.")
+        clipboard_text = []
+        for path in paths:
+            it = model.get_iter(path)
+            key = model.get_value(it, 0)
+            value = model.get_value(it, 1)
+            if key: # Don't copy lines that are just continuations of a value
+                clipboard_text.append(f"{key}: {value}")
+
+        text_to_copy = "\n".join(clipboard_text)
+        log.debug(f"Attempting to copy text to clipboard: '{text_to_copy}'")
+        self._clipboard_provider = Gdk.ContentProvider.new_for_value(text_to_copy)
+        clipboard = self.get_clipboard()
+        clipboard.set_content(self._clipboard_provider)
+        log.debug("Clipboard content set.")
 
 
 @Gtk.Template(filename='src/ui/main.ui')
@@ -34,6 +170,7 @@ class Window(Adw.ApplicationWindow):
         self.path_entry.set_text(self.settings.get_string('test-path'))
 
         self.connect("close-request", self.on_close_request)
+        self.node_graph.connect('node-double-clicked', self._on_node_double_clicked)
 
     def setup_window_size(self):
         width = self.settings.get_int('window-width')
@@ -48,6 +185,24 @@ class Window(Adw.ApplicationWindow):
         self.settings.set_int('window-width', width)
         self.settings.set_int('window-height', height)
         return False
+
+    def _on_header_dialog_close(self, dialog):
+        width = dialog.get_width()
+        height = dialog.get_height()
+        self.settings.set_int('header-dialog-width', width)
+        self.settings.set_int('header-dialog-height', height)
+
+    def _on_node_double_clicked(self, _, node):
+        dialog = HeaderDialog(
+            headers=node.get_property('headers'),
+            heading=node.get_property('name'),
+            transient_for=self,
+            modal=True
+        )
+        dialog.set_default_size(self.settings.get_int('header-dialog-width'), self.settings.get_int('header-dialog-height'))
+        dialog.set_resizable(True)
+        dialog.connect('close-request', self._on_header_dialog_close)
+        dialog.present()
 
     def setup_actions(self):
         """Setup application-wide actions."""
@@ -115,6 +270,7 @@ class Window(Adw.ApplicationWindow):
         This function runs in a background thread and performs the blocking
         network requests.
         """
+        from .engine import CacheFlowEngine
         log.debug("Starting inspection in background thread.")
         try:
             config = {
