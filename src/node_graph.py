@@ -3,12 +3,14 @@
 import gi
 import cairo
 
-from gi.repository import Gtk, Gdk, Adw, Pango, Gio
+gi.require_version('PangoCairo', '1.0')
+from gi.repository import Gtk, Gdk, Adw, Pango, PangoCairo, Gio
 
 NODE_WIDTH = 300
 NODE_HEADER_HEIGHT = 40
 LINE_HEIGHT = 18
 PADDING = 10
+RESIZE_HANDLE_SIZE = 15
 
 class NodeGraph(Gtk.DrawingArea):
     """A widget for drawing and interacting with a node-based graph."""
@@ -19,6 +21,7 @@ class NodeGraph(Gtk.DrawingArea):
         super().__init__(**kwargs)
         self.nodes = []
         self.dragging_node = None
+        self.resizing_node = None
         self.drag_offset_x = 0
         self.drag_offset_y = 0
 
@@ -81,6 +84,10 @@ class NodeGraph(Gtk.DrawingArea):
         # Draw nodes
         for node in self.nodes:
             self.draw_node(cr, node)
+
+        # Draw resize handles on top of nodes
+        for node in self.nodes:
+            self.draw_resize_handle(cr, node)
 
     def draw_connections(self, cr):
         """Draws lines connecting the nodes."""
@@ -156,9 +163,14 @@ class NodeGraph(Gtk.DrawingArea):
         if not font_desc_str:
             font_desc_str = "Monospace 14"
         font_desc = Pango.FontDescription.from_string(font_desc_str)
-        cr.select_font_face(font_desc.get_family(), cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
-        cr.set_font_size(font_desc.get_size() / Pango.SCALE)
         text_y = y + NODE_HEADER_HEIGHT + PADDING
+
+        # Create a Pango layout for robust text rendering and truncation
+        layout = PangoCairo.create_layout(cr)
+        layout.set_font_description(font_desc)
+        layout.set_width((w - 2 * PADDING) * Pango.SCALE) # Set max width for text
+        layout.set_ellipsize(Pango.EllipsizeMode.END)
+
         for header, value, is_diff in node["data"]["headers"]:
             if is_diff:
                 cr.set_source_rgba(0.5, 1.0, 0.5, 1)  # Highlight diffs in green
@@ -167,14 +179,22 @@ class NodeGraph(Gtk.DrawingArea):
             else:
                 cr.set_source_rgba(0.1, 0.1, 0.1, 1)
 
-            # Truncate long headers for display
-            header_text = f"{header}: {value}"
-            if len(header_text) > 45:
-                header_text = header_text[:42] + "..."
-
+            layout.set_text(f"{header}: {value}", -1)
             cr.move_to(x + PADDING, text_y)
-            cr.show_text(header_text)
+            PangoCairo.show_layout(cr, layout)
             text_y += LINE_HEIGHT
+
+    def draw_resize_handle(self, cr, node):
+        """Draws a resize handle in the bottom-right corner of a node."""
+        x = node["x"] + node["width"] - RESIZE_HANDLE_SIZE
+        y = node["y"] + node["height"] - RESIZE_HANDLE_SIZE
+
+        cr.set_source_rgba(0.5, 0.5, 0.5, 0.7)
+        cr.move_to(x, y + RESIZE_HANDLE_SIZE)
+        cr.line_to(x + RESIZE_HANDLE_SIZE, y)
+        cr.line_to(x + RESIZE_HANDLE_SIZE, y + RESIZE_HANDLE_SIZE)
+        cr.close_path()
+        cr.fill()
 
     def rounded_rectangle(self, cr, x, y, w, h, r, corners=None):
         """Helper to draw a rectangle with rounded corners."""
@@ -193,31 +213,54 @@ class NodeGraph(Gtk.DrawingArea):
 
     def on_drag_begin(self, gesture, start_x, start_y):
         """Handles the beginning of a drag operation."""
+        self.dragging_node = None
+        self.resizing_node = None
+
         for node in reversed(self.nodes): # Check from top-most node
-            if start_x >= node["x"] and start_x <= node["x"] + node["width"] and \
-               start_y >= node["y"] and start_y <= node["y"] + node["height"]:
+            node_x, node_y, node_w, node_h = node["x"], node["y"], node["width"], node["height"]
+
+            # Check if drag is on the resize handle
+            handle_x = node_x + node_w - RESIZE_HANDLE_SIZE
+            handle_y = node_y + node_h - RESIZE_HANDLE_SIZE
+            if start_x >= handle_x and start_y >= handle_y:
+                self.resizing_node = node
+                gesture.set_state(Gtk.EventSequenceState.CLAIMED)
+                return
+
+            # Check if drag is on the node body
+            if start_x >= node_x and start_x <= node_x + node_w and \
+               start_y >= node_y and start_y <= node_y + node_h:
                 self.dragging_node = node
                 self.drag_offset_x = start_x - node["x"]
                 self.drag_offset_y = start_y - node["y"]
                 gesture.set_state(Gtk.EventSequenceState.CLAIMED)
                 return
+
         gesture.set_state(Gtk.EventSequenceState.DENIED)
 
     def on_drag_update(self, gesture, offset_x, offset_y):
         """Handles the update during a drag operation."""
+        ok, start_x, start_y = gesture.get_start_point()
+        if not ok:
+            return
+
         if self.dragging_node:
-            ok, start_x, start_y = gesture.get_start_point()
-            if not ok:
-                return
             self.dragging_node["x"] = start_x + offset_x - self.drag_offset_x
             self.dragging_node["y"] = start_y + offset_y - self.drag_offset_y
-            self.queue_draw()
+        elif self.resizing_node:
+            self.resizing_node["width"] = max(150, start_x + offset_x - self.resizing_node["x"])
+            self.resizing_node["height"] = max(100, start_y + offset_y - self.resizing_node["y"])
+
+        self.queue_draw()
 
     def on_drag_end(self, gesture, offset_x, offset_y):
         """Handles the end of a drag operation."""
         if self.dragging_node:
             self.on_drag_update(gesture, offset_x, offset_y) # Final update
             self.dragging_node = None
+        elif self.resizing_node:
+            self.on_drag_update(gesture, offset_x, offset_y) # Final update
+            self.resizing_node = None
 
     def on_click(self, gesture, n_press, x, y):
         """Handles click events, specifically double-clicks."""
@@ -260,7 +303,8 @@ class NodeGraph(Gtk.DrawingArea):
         dialog = Adw.MessageDialog(
             transient_for=parent_window,
             heading=f"Headers for {node['data']['name']}",
-            extra_child=scrolled_window
+            extra_child=scrolled_window,
+            default_width=600
         )
 
         dialog.add_response("close", "Close")
