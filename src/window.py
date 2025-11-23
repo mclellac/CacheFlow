@@ -220,24 +220,25 @@ class Window(Adw.ApplicationWindow):
             self.show_error_dialog("Configuration Error", f"No layers configured for '{active_env}' environment.")
             self.set_inspection_in_progress(False)
             return
+
+        config = {
+            'layers': layers_config,
+            'user_agent': self.settings.get_string('user-agent'),
+            'dns_servers': self.settings.get_string('dns-servers'),
+            'verify_ssl': self.settings.get_boolean('verify-ssl')
+        }
         
-        thread = threading.Thread(target=self.do_inspection_thread, args=(layers_config, path))
+        thread = threading.Thread(target=self.do_inspection_thread, args=(config, path))
         thread.daemon = True
         thread.start()
 
-    def do_inspection_thread(self, layers, path):
+    def do_inspection_thread(self, config, path):
         from .engine import CacheFlowEngine
         log.debug("Starting inspection in background thread.")
         try:
-            config = {
-                'layers': layers,
-                'user_agent': self.settings.get_string('user-agent'),
-                'dns_servers': self.settings.get_string('dns-servers'),
-                'verify_ssl': self.settings.get_boolean('verify-ssl')
-            }
             engine = CacheFlowEngine(config)
             results = engine.run_inspection(test_path=path)
-            GLib.idle_add(self.on_inspection_succeeded, results, layers)
+            GLib.idle_add(self.on_inspection_succeeded, results, config['layers'])
         except Exception as e:
             log.error(f"Exception in inspection thread: {e}", exc_info=True)
             GLib.idle_add(self.on_inspection_failed, e)
