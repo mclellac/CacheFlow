@@ -1,65 +1,71 @@
+# SPDX-License-Identifier: MIT
+
 import sys
 import gi
-import os
 
 gi.require_version('Gtk', '4.0')
 gi.require_version('Adw', '1')
-from gi.repository import Adw, Gio, Gtk
 
-# Ensure local schema is found if not installed
-# Schema is in the project root (one level up from src)
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir)
-schema_dir = project_root
+from gi.repository import Gtk, Gio, Adw
+from .window import Window
+from .preferences import PreferencesWindow
 
-if 'GSETTINGS_SCHEMA_DIR' not in os.environ:
-    os.environ['GSETTINGS_SCHEMA_DIR'] = schema_dir
+class CacheFlowApplication(Adw.Application):
+    """The main application."""
 
-try:
-    from .window import Window
-    from .preferences import PreferencesWindow
-except ImportError:
-    from window import Window
-    from preferences import PreferencesWindow
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.create_action('preferences', self.on_preferences_action)
+        self.create_action('about', self.on_about_action)
+        self.connect('activate', self.on_activate)
 
-class HeaderInspectorApp(Adw.Application):
-    def __init__(self):
-        super().__init__(application_id='com.github.mclellac.CacheFlow',
-                         flags=Gio.ApplicationFlags.FLAGS_NONE)
+        # Load and apply the theme at startup
+        self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
+        self.load_theme()
 
-    def do_activate(self):
-        win = self.props.active_window
-        if not win:
-            win = Window(application=self)
-        win.present()
+    def on_activate(self, app):
+        self.win = Window(application=app)
+        self.win.present()
 
-    def do_startup(self):
-        Adw.Application.do_startup(self)
-
-        # Register Preferences Action
-        action = Gio.SimpleAction.new('preferences', None)
-        action.connect('activate', self.on_preferences_action)
-        self.add_action(action)
-
-        # Setup accelerators
-        self.set_accels_for_action('app.quit', ['<Ctrl>q'])
-        self.set_accels_for_action('app.preferences', ['<Ctrl>comma'])
+    def load_theme(self):
+        """Reads theme from settings and applies it."""
+        theme = self.settings.get_string('theme')
+        style_manager = Adw.StyleManager.get_default()
+        if theme == 'light':
+            style_manager.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
+        elif theme == 'dark':
+            style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
+        else: # 'system' or default
+            style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
 
     def on_preferences_action(self, action, param):
-        # Check if existing preferences window is open
-        for win in self.get_windows():
-            if isinstance(win, PreferencesWindow):
-                win.present()
-                return
+        """Callback for the app.preferences action."""
+        # There is only one preferences window, so we can create it once and show it
+        if not hasattr(self, 'prefs_window'):
+            self.prefs_window = PreferencesWindow(transient_for=self.get_active_window(), modal=True)
 
-        # Create and show preferences
-        # IMPORTANT: Pass application=self to prevent GC and register window
-        prefs = PreferencesWindow(application=self, transient_for=self.props.active_window)
-        prefs.present()
+        self.prefs_window.present()
 
-def main(version=None):
-    app = HeaderInspectorApp()
-    return app.run(sys.argv)
+    def on_about_action(self, action, param):
+        """Callback for the app.about action."""
+        about = Adw.AboutWindow(
+            application_name="CacheFlow",
+            application_icon="com.github.mclellac.CacheFlow",
+            developer_name="M.V.V. McClellan",
+            version="0.1.0",
+            website="https://github.com/mclellac/CacheFlow",
+            transient_for=self.get_active_window()
+        )
+        about.present()
 
-if __name__ == '__main__':
-    sys.exit(main())
+    def create_action(self, name, callback):
+        """Helper to create a simple action and add it to the app."""
+        action = Gio.SimpleAction.new(name, None)
+        action.connect('activate', callback)
+        self.add_action(action)
+
+def main(version):
+    """Application entry point."""
+    app = CacheFlowApplication(application_id='com.github.mclellac.CacheFlow',
+                               flags=Gio.ApplicationFlags.FLAGS_NONE)
+    app.run(sys.argv)

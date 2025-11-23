@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <gresources>
   <gresource prefix="/com/github/mclellac/CacheFlow">
-    <file preprocess="xml-stripblanks" alias="ui/window.ui">ui/window.ui</file>
+    <file preprocess="xml-stripblanks" alias="ui/main.ui">ui/main.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/preferences.ui">ui/preferences.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/layer_row.ui">ui/layer_row.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/header_row.ui">ui/header_row.ui</file>

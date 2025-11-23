@@ -119,19 +119,27 @@ class PreferencesWindow(Adw.PreferencesWindow):
         layers = val.unpack() # Returns native python types (list of dicts)
 
         if not layers:
-             layers = DEFAULT_CONFIG
-             # We might want to save this default to the settings to ensure consistency
-             # But for now, we just use it to populate.
+            layers = DEFAULT_CONFIG
+            # If no config exists, populate with default and save it immediately.
+            self.create_and_save_default_config(group, key, layers)
+        else:
+            # Populate layers from existing settings
+            for layer_data in layers:
+                self.create_layer_row(group, key, layer_data)
 
-        # Populate layers
+    def create_and_save_default_config(self, group, key, layers):
+        """Creates UI rows from default data and saves it to GSettings."""
         for layer_data in layers:
-            self.create_layer_row(group, key, layer_data)
+            self.create_layer_row(group, key, layer_data, save_on_change=False)
+        self.save_config(group, key)
 
-    def create_layer_row(self, group, key, data):
+    def create_layer_row(self, group, key, data, save_on_change=True):
+        on_change_callback = (lambda: self.save_config(group, key)) if save_on_change else None
+
         row = LayerRow(
             layer_data=data,
             on_delete=lambda r: self.remove_layer(group, key, r),
-            on_change=lambda: self.save_config(group, key)
+            on_change=on_change_callback
         )
 
         # Add to registry
@@ -206,4 +214,3 @@ class PreferencesWindow(Adw.PreferencesWindow):
             self.settings.set_value(key, v)
         except Exception as e:
             print(f"Error saving config: {e}")
-

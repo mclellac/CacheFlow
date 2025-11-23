@@ -8,6 +8,15 @@ i18n = import('i18n')
 gnome = import('gnome')
 python = import('python')
 
+libadwaita_dep = dependency('libadwaita-1', version: '>= 1.2')
+
+deps = [
+  dependency('gio-2.0', version: '>= 2.62'),
+  dependency('gtk4', version: '>= 4.8'),
+  libadwaita_dep
+]
+libadwaita_typelib_dir = libadwaita_dep.get_pkgconfig_variable('typelibdir')
+
 py_installation = python.find_installation('python3')
 
 subdir('data')

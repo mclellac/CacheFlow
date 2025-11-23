@@ -1,136 +1,138 @@
+# SPDX-License-Identifier: MIT
+
 import gi
-import threading
-import os
-import pathlib
-from gi.repository import Gtk, Adw, Gio, GObject
+import requests
 
-try:
-    from .inspector import HeaderInspector
-    from .preferences import DEFAULT_CONFIG
-except ImportError:
-    from inspector import HeaderInspector
-    from preferences import DEFAULT_CONFIG
+gi.require_version('Gtk', '4.0')
+gi.require_version('Adw', '1')
 
-@Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/window.ui')
+from gi.repository import Gtk, Adw, Gio, GObject, GLib
+from .node_graph import NodeGraph
+from .engine import CacheFlowEngine
+
+@Gtk.Template(filename='src/ui/main.ui')
 class Window(Adw.ApplicationWindow):
-    __gtype_name__ = 'HeaderInspectorWindow'
+    __gtype_name__ = 'Window'
 
-    env_dropdown = Gtk.Template.Child()
-    path_row = Gtk.Template.Child()
-    ua_row = Gtk.Template.Child()
-    run_btn = Gtk.Template.Child()
-    spinner = Gtk.Template.Child()
-    result_view = Gtk.Template.Child()
+    path_entry = Gtk.Template.Child()
+    inspect_button = Gtk.Template.Child()
+    node_graph = Gtk.Template.Child()
+    env_switcher = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-        # Initialize Settings
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
+        self.environments = ["production", "staging", "qa", "dev"]
 
-        # Bind Settings
-        self.settings.bind('test-path', self.path_row, 'text', Gio.SettingsBindFlags.DEFAULT)
-        self.settings.bind('user-agent', self.ua_row, 'text', Gio.SettingsBindFlags.DEFAULT)
+        self.setup_actions()
+        self.setup_env_switcher()
 
-        # Load Active Environment
+        self.inspect_button.connect('clicked', self.on_inspect_clicked)
+        self.path_entry.set_text(self.settings.get_string('test-path'))
+
+    def setup_actions(self):
+        """Setup application-wide actions."""
+        action_group = Gio.SimpleActionGroup()
+        self.insert_action_group("win", action_group)
+
+        def add_action(name, callback):
+            action = Gio.SimpleAction.new(name, None)
+            action.connect("activate", callback)
+            action_group.add_action(action)
+
+        add_action("inspect", self.on_inspect_clicked)
+
+        active_env_action = Gio.SimpleAction.new_stateful(
+            "active_environment",
+            GLib.VariantType.new("s"),
+            GLib.Variant("s", self.settings.get_string('active-environment'))
+        )
+        active_env_action.connect("change-state", self.on_env_change)
+        action_group.add_action(active_env_action)
+
+    def setup_env_switcher(self):
+        """Sets up the environment selection menu button."""
+        menu = Gio.Menu.new()
+
+        for env in self.environments:
+            menu.append(env.capitalize(), f"win.active_environment::{env}")
+
+        self.env_switcher.set_menu_model(menu)
+        # Bind the button's state to the action
+        self.env_switcher.bind_property("active-action", self.lookup_action("win.active_environment"), "state", GObject.BindingFlags.DEFAULT)
+
+    def on_env_change(self, action, value):
+        """Handles state change for the active environment."""
+        new_env = value.get_string()
+        action.set_state(value)
+        self.settings.set_string('active-environment', new_env)
+        print(f"Switched to {new_env} environment")
+        # Optionally, clear the graph or re-inspect
+        self.node_graph.set_data([])
+
+    def on_inspect_clicked(self, _):
+        """Handler for the 'Inspect' button click."""
+        path = self.path_entry.get_text()
+        if not path or not path.startswith('/'):
+            print("Invalid path") # Replace with a dialog later
+            return
+
+        self.settings.set_string('test-path', path)
+
         active_env = self.settings.get_string('active-environment')
-        env_map = {'production': 0, 'staging': 1, 'qa': 2, 'dev': 3}
-        self.env_dropdown.set_selected(env_map.get(active_env, 0))
-        self.env_dropdown.connect('notify::selected-item', self.on_env_changed)
+        print(f"[DEBUG] Window.on_inspect_clicked: Reading active environment: '{active_env}'")
+        config_key = f'config-{active_env}'
+        layers_config = self.settings.get_value(config_key).unpack()
 
-        # Connect Run
-        self.run_btn.connect('clicked', self.on_run_clicked)
+        if not layers_config:
+            print(f"No layers configured for '{active_env}' environment.")
+            return
 
-        # Apply Theme immediately
-        self.apply_theme()
+        self.run_inspection(layers_config, path)
 
-        # Listen for theme changes from preferences
-        self.settings.connect('changed::theme', lambda s, k: self.apply_theme())
-
-    def apply_theme(self):
-        theme = self.settings.get_string('theme')
-        style_manager = Adw.StyleManager.get_default()
-        if theme == 'light':
-            style_manager.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
-        elif theme == 'dark':
-            style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
-        else:
-            style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
-
-    def on_env_changed(self, dropdown, param):
-        selected = dropdown.get_selected()
-        envs = ['production', 'staging', 'qa', 'dev']
-        if 0 <= selected < len(envs):
-            self.settings.set_string('active-environment', envs[selected])
-
-    def get_active_config(self):
-        selected = self.env_dropdown.get_selected()
-        envs = ['production', 'staging', 'qa', 'dev']
-        if 0 <= selected < len(envs):
-            env_key = f'config-{envs[selected]}'
-        else:
-            env_key = 'config-production'
-
-        val = self.settings.get_value(env_key)
-        layers = val.unpack()
-
-        if not layers:
-            return DEFAULT_CONFIG
-        return layers
-
-    def on_run_clicked(self, button):
-        layers = self.get_active_config()
-
-        # Construct the config object for Inspector
-        # Inspector expects { 'layers': [...], ... }
-        config_data = {
+    def run_inspection(self, layers, path):
+        """Performs HTTP requests and updates the node graph."""
+        config = {
             'layers': layers,
-            'user_agent': self.ua_row.get_text(),
-            'test_path': self.path_row.get_text(),
+            'user_agent': self.settings.get_string('user-agent'),
             'dns_servers': self.settings.get_string('dns-servers')
         }
+        engine = CacheFlowEngine(config)
+        results = engine.run_inspection(test_path=path)
 
-        self.result_view.get_buffer().set_text("")
-        self.run_btn.set_sensitive(False)
-        self.spinner.start()
+        self.process_and_display_results(results)
 
-        thread = threading.Thread(target=self.run_inspection_thread, args=(config_data,))
-        thread.start()
+    def process_and_display_results(self, results):
+        """Compares headers and prepares data for the node graph."""
+        print("[DEBUG] Window.process_and_display_results: Processing results for display.")
+        processed_nodes = []
 
-    def run_inspection_thread(self, config_data):
-        try:
-            inspector = HeaderInspector(config_data)
-            results = inspector.run_inspection(config_data.get('test_path'))
+        if not results:
+            print("[DEBUG] Window.process_and_display_results: No results to process.")
+            self.node_graph.set_data([])
+            return
 
-            output = ""
-            for res in results:
-                output += f"=== Layer: {res['name']} ===\n"
-                if 'description' in res and res['description']:
-                    output += f"Description: {res['description']}\n"
-                output += f"URL: {res['url']}\n"
-                if res.get('sent_host_header'):
-                    output += f"Host Override: {res['sent_host_header']}\n"
+        # The last layer is the origin, our source of truth.
+        origin_headers = results[-1].get('headers', {})
 
-                if 'error' in res:
-                    output += f"ERROR: {res['error']}\n"
-                else:
-                    output += f"Status: {res['status_code']}\n"
-                    output += "Headers:\n"
-                    for k, v in res['headers'].items():
-                        output += f"  {k}: {v}\n"
-                output += "\n" + "-"*40 + "\n\n"
+        for i, result in enumerate(results):
+            headers_list = []
+            # If there's an error, there are no headers to process.
+            if 'error' in result:
+                headers_list.append(('Error', result['error'], True))
+            elif i == len(results) - 1: # This is the origin layer
+                for key, value in result.get('headers', {}).items():
+                    headers_list.append((key, value, False)) # Nothing to compare against
+            else:
+                for key, value in result.get('headers', {}).items():
+                    # Compare against the origin
+                    is_diff = key not in origin_headers or origin_headers[key] != value
+                    headers_list.append((key, value, is_diff))
 
-            GObject.idle_add(self.update_ui_success, output)
+            processed_nodes.append({
+                "name": result['name'],
+                "headers": headers_list
+            })
+        print(f"[DEBUG] Window.process_and_display_results: Processed nodes data: {processed_nodes}")
 
-        except Exception as e:
-            GObject.idle_add(self.show_error, str(e))
-
-    def update_ui_success(self, output):
-        self.result_view.get_buffer().set_text(output)
-        self.run_btn.set_sensitive(True)
-        self.spinner.stop()
-
-    def show_error(self, error_msg):
-        self.result_view.get_buffer().set_text(f"An error occurred:\n{error_msg}")
-        self.run_btn.set_sensitive(True)
-        self.spinner.stop()
+        self.node_graph.set_data(processed_nodes)
