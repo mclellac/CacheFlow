@@ -37,6 +37,7 @@ class NodeGraph(Gtk.DrawingArea):
         self.pan_start_y = 0
         self.pan_start_offset_x = 0
         self.pan_start_offset_y = 0
+        self.is_panning = False
 
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
         log.debug("NodeGraph initialized.")
@@ -61,7 +62,7 @@ class NodeGraph(Gtk.DrawingArea):
         gesture_right_click.connect("pressed", self.on_right_click)
         self.add_controller(gesture_right_click)
 
-        # Pan (Middle click)
+        # Pan (Middle click) - Keeping this as alternative
         gesture_pan = Gtk.GestureDrag.new()
         gesture_pan.set_button(2)
         gesture_pan.connect("drag-begin", self.on_pan_begin)
@@ -114,7 +115,16 @@ class NodeGraph(Gtk.DrawingArea):
         self.queue_draw()
 
     def on_scroll(self, controller, dx, dy):
-        # Zoom centered on mouse pointer not implemented for simplicity, just zoom in/out
+        # Zoom towards mouse pointer
+        event = controller.get_current_event()
+        if not event:
+             return False
+
+        x, y = event.get_position()
+
+        # Calculate world coordinate under mouse before zoom
+        wx = (x - self.offset_x) / self.scale
+        wy = (y - self.offset_y) / self.scale
 
         zoom_factor = 1.1 if dy < 0 else 0.9
         new_scale = self.scale * zoom_factor
@@ -122,19 +132,10 @@ class NodeGraph(Gtk.DrawingArea):
         # Clamp scale
         new_scale = max(0.1, min(new_scale, 5.0))
 
-        # Adjust offset to zoom towards center
-        width = self.get_width()
-        height = self.get_height()
-
-        # center world before
-        cx = (width / 2 - self.offset_x) / self.scale
-        cy = (height / 2 - self.offset_y) / self.scale
-
+        # Calculate new offset to keep (wx, wy) at (x, y)
+        self.offset_x = x - wx * new_scale
+        self.offset_y = y - wy * new_scale
         self.scale = new_scale
-
-        # new offset
-        self.offset_x = width / 2 - cx * self.scale
-        self.offset_y = height / 2 - cy * self.scale
 
         self.queue_draw()
         return True
@@ -558,7 +559,13 @@ class NodeGraph(Gtk.DrawingArea):
             self.selected_node_index = None
             self.queue_draw()
 
-        gesture.set_state(Gtk.EventSequenceState.DENIED)
+        # Start panning
+        self.is_panning = True
+        self.pan_start_x = start_x
+        self.pan_start_y = start_y
+        self.pan_start_offset_x = self.offset_x
+        self.pan_start_offset_y = self.offset_y
+        gesture.set_state(Gtk.EventSequenceState.CLAIMED)
 
     def on_drag_update(self, gesture, offset_x, offset_y):
         """Handles the update during a drag operation."""
@@ -586,6 +593,9 @@ class NodeGraph(Gtk.DrawingArea):
             min_w = self.resizing_node.get("min_width", 150)
             self.resizing_node["width"] = max(min_w, wx - self.resizing_node["x"])
             self.resizing_node["height"] = max(100, wy - self.resizing_node["y"])
+        elif self.is_panning:
+            self.offset_x = self.pan_start_offset_x + offset_x
+            self.offset_y = self.pan_start_offset_y + offset_y
 
         self.queue_draw()
 
@@ -598,6 +608,9 @@ class NodeGraph(Gtk.DrawingArea):
         elif self.resizing_node:
             self.on_drag_update(gesture, offset_x, offset_y)
             self.resizing_node = None
+        elif self.is_panning:
+            self.on_drag_update(gesture, offset_x, offset_y)
+            self.is_panning = False
 
     def on_click(self, gesture, n_press, x, y):
         """Handles click events."""
