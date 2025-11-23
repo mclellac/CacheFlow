@@ -1,6 +1,7 @@
 import gi
 import requests
 import logging
+import threading
 
 from gi.repository import Gtk, Adw, Gio, GObject, GLib
 from .node_graph import NodeGraph
@@ -16,6 +17,7 @@ class Window(Adw.ApplicationWindow):
     path_entry = Gtk.Template.Child()
     inspect_button = Gtk.Template.Child()
     node_graph = Gtk.Template.Child()
+    spinner = Gtk.Template.Child()
     env_switcher = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
@@ -72,31 +74,63 @@ class Window(Adw.ApplicationWindow):
         """Handler for the 'Inspect' button click."""
         log.info("Inspect button clicked.")
         path = self.path_entry.get_text()
+        self.set_inspection_in_progress(True)
         if not path or not path.startswith('/'):
-            log.error(f"Invalid path for inspection: '{path}'")
-            
+            error_msg = f"Invalid path for inspection: '{path}'"
+            log.error(error_msg)
+            self.show_error_dialog("Invalid Input", "Path must not be empty and must start with '/'.")
+            self.set_inspection_in_progress(False)
+            return
+
         self.settings.set_string('test-path', path)
 
         active_env = self.settings.get_string('active-environment')
         config_key = f'config-{active_env}'
         layers_config = self.settings.get_value(config_key).unpack()
         if not layers_config:
-            log.error(f"No layers configured for '{active_env}' environment.")
-            return
-        self.run_inspection(layers_config, path)
-        self.last_run_layers = layers_config
+            self.show_error_dialog("Configuration Error", f"No layers configured for '{active_env}' environment.")
+            self.set_inspection_in_progress(False)
+            return # Stop execution if no layers are configured
+        
+        # Run the inspection in a separate thread to keep the UI responsive.
+        thread = threading.Thread(target=self.do_inspection_thread, args=(layers_config, path))
+        thread.daemon = True
+        thread.start()
 
-    def run_inspection(self, layers, path):
-        """Performs HTTP requests and updates the node graph."""
-        config = {
-            'layers': layers,
-            'user_agent': self.settings.get_string('user-agent'),
-            'dns_servers': self.settings.get_string('dns-servers')
-        }
-        engine = CacheFlowEngine(config)
-        results = engine.run_inspection(test_path=path)
+    def do_inspection_thread(self, layers, path):
+        """
+        This function runs in a background thread and performs the blocking
+        network requests.
+        """
+        log.debug("Starting inspection in background thread.")
+        try:
+            config = {
+                'layers': layers,
+                'user_agent': self.settings.get_string('user-agent'),
+                'dns_servers': self.settings.get_string('dns-servers')
+            }
+            engine = CacheFlowEngine(config)
+            results = engine.run_inspection(test_path=path)
+            # Schedule the success callback on the main GTK thread.
+            GLib.idle_add(self.on_inspection_succeeded, results, layers)
+        except Exception as e:
+            log.error(f"Exception in inspection thread: {e}", exc_info=True)
+            # Schedule the failure callback on the main GTK thread.
+            GLib.idle_add(self.on_inspection_failed, e)
 
-        self.process_and_display_results(results, layers)
+    def on_inspection_succeeded(self, results, layer_config):
+        """Handles successful inspection results in the main thread."""
+        log.debug("Inspection succeeded, processing results.")
+        self.process_and_display_results(results, layer_config)
+        self.set_inspection_in_progress(False)
+        return GLib.SOURCE_REMOVE
+
+    def on_inspection_failed(self, exception):
+        """Handles failed inspection in the main thread."""
+        log.error(f"Inspection task failed: {exception}")
+        self.show_error_dialog("Inspection Failed", str(exception))
+        self.set_inspection_in_progress(False)
+        return GLib.SOURCE_REMOVE
 
     def process_and_display_results(self, results, layer_config):
         """Compares headers and prepares data for the node graph."""
@@ -107,7 +141,9 @@ class Window(Adw.ApplicationWindow):
             self.node_graph.set_data([])
             return
 
-        origin_headers = results[-1].get('headers', {})
+        # Safely get the headers from the last layer (origin) for comparison.
+        origin_result = results[-1]
+        origin_headers = origin_result.get('headers', {})
 
         for i, result in enumerate(results):
             original_layer = next((layer for layer in layer_config if layer.get('name') == result.get('name')), {})
@@ -117,13 +153,18 @@ class Window(Adw.ApplicationWindow):
             diff_text_color = original_layer.get('diff_text_color', '')
             headers_list = []
             if 'error' in result:
-                headers_list.append(('Error', result['error'], True))
+                error_type = result.get('error_type', 'unknown').capitalize()
+                error_message = result['error']
+                # Use a tuple to display the error type and message clearly
+                headers_list.append((f"Error ({error_type})", error_message, True))
+                log.warning(f"Layer '{result.get('name')}' resulted in an error: {result['error']}")
             elif i == len(results) - 1:
                 for key, value in result.get('headers', {}).items():
                     headers_list.append((key, value, False))
             else:
                 for key, value in result.get('headers', {}).items():
                     is_diff = key not in origin_headers or origin_headers[key] != value
+                    log.debug(f"Comparing header '{key}': value='{value}', origin='{origin_headers.get(key)}', is_diff={is_diff}")
                     headers_list.append((key, value, is_diff))
 
             processed_nodes.append({
@@ -136,3 +177,17 @@ class Window(Adw.ApplicationWindow):
             })
 
         self.node_graph.set_data(processed_nodes)
+
+    def set_inspection_in_progress(self, in_progress):
+        """Updates the UI to show that an inspection is running."""
+        self.inspect_button.set_sensitive(not in_progress)
+        self.spinner.set_spinning(in_progress)
+        self.spinner.set_visible(in_progress)
+
+    def show_error_dialog(self, primary_text, secondary_text):
+        """Displays an error dialog to the user."""
+        dialog = Adw.MessageDialog.new(self, primary_text, secondary_text)
+        dialog.add_response("ok", "OK")
+        dialog.set_default_response("ok")
+        dialog.set_close_response("ok")
+        dialog.present()

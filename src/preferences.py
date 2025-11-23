@@ -5,6 +5,37 @@ from gi.repository import Gtk, Adw, Gio, GObject, GLib, Gdk
 from .layer_widgets import LayerRow
 
 log = logging.getLogger(__name__)
+
+
+def setting_to_rgba(variant, _user_data=None):
+    """Maps a GSettings GVariant(string) to a GObject.Value(Gdk.RGBA)."""
+    rgba = Gdk.RGBA()
+    if variant:
+        # The binding system passes a GVariant here. We must unpack it.
+        rgba_string = variant.get_string()
+        # Ensure the string is not empty before parsing.
+        if rgba_string and rgba.parse(rgba_string):
+            log.debug(f"Mapping GSettings string '{rgba_string}' to Gdk.RGBA.")
+            return GObject.Value(Gdk.RGBA, rgba)
+
+    log.warning(f"Failed to parse GSettings color string '{variant.get_string() if variant else 'None'}'. Using default.")
+    rgba.parse('rgba(0,0,0,0)')
+    return GObject.Value(Gdk.RGBA, rgba)
+
+
+def rgba_to_setting(gdk_rgba, _user_data=None):
+    """
+    Maps a Gdk.RGBA from the widget to a GVariant(string).
+    Returning None tells the binding to NOT update the setting.
+    """
+    if gdk_rgba:
+        log.debug(f"Mapping Gdk.RGBA '{gdk_rgba.to_string()}' to GSettings string.")
+        return GLib.Variant('s', gdk_rgba.to_string())
+    # If the widget's color is None (e.g., on init), do not save anything.
+    log.debug("Widget provided a None RGBA. No setting will be saved.")
+    return None
+
+
 DEFAULT_CONFIG = [
     {
         "name": "CDN_Edge",
@@ -74,8 +105,6 @@ class ConfigManager:
                 'host_url': GLib.Variant('s', l_data.get('host_url', '')),
                 'header_color': GLib.Variant('s', l_data.get('header_color', '')),
                 'body_color': GLib.Variant('s', l_data.get('body_color', '')),
-                'text_color': GLib.Variant('s', l_data.get('text_color', '')),
-                'diff_text_color': GLib.Variant('s', l_data.get('diff_text_color', '')),
                 'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
                 'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
                 'path_match_only': GLib.Variant('as', l_data.get('path_match_only', []))
@@ -103,8 +132,6 @@ class ConfigManager:
                     'host_url': GLib.Variant('s', l_data.get('host_url', '')),
                     'header_color': GLib.Variant('s', l_data.get('header_color', '')),
                     'body_color': GLib.Variant('s', l_data.get('body_color', '')),
-                    'text_color': GLib.Variant('s', l_data.get('text_color', '')),
-                    'diff_text_color': GLib.Variant('s', l_data.get('diff_text_color', '')),
                     'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
                     'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
                     'path_match_only': GLib.Variant('as', l_data.get('path_match_only', []))

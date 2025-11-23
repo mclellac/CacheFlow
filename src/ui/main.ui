@@ -51,6 +51,11 @@
                 <property name="css-classes">suggested-action</property>
               </object>
             </child>
+            <child>
+              <object class="GtkSpinner" id="spinner">
+                <property name="visible">False</property>
+              </object>
+            </child>
           </object>
         </child>
         <child>

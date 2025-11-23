@@ -1,6 +1,7 @@
 import requests
 import fnmatch
 import dns.resolver
+import dns.exception
 import warnings
 import logging
 from urllib.parse import urlparse, urlunparse
@@ -36,10 +37,11 @@ class CacheFlowEngine:
             if answers:
                 ip = str(answers[0])
                 log.debug(f"Resolved '{hostname}' to '{ip}'")
-                return ip
-        except Exception as e:
+                return ip, None
+            raise dns.resolver.NoAnswer(f"No A records found for {hostname}")
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.Timeout) as e:
             log.error(f"Custom DNS resolution failed for {hostname}: {e}")
-        return hostname
+            return hostname, e
 
     def run_inspection(self, test_path=None):
         log.info("Starting inspection run.")
@@ -81,8 +83,17 @@ class CacheFlowEngine:
             final_host_header = host_header_override or hostname
 
             target_ip = hostname
+            dns_error = None
             if self.dns_servers:
-                target_ip = self.resolve_host(hostname)
+                target_ip, dns_error = self.resolve_host(hostname)
+            
+            if dns_error:
+                results.append({
+                    'name': layer['name'],
+                    'error': f"DNS Error: {dns_error}",
+                    'error_type': 'dns'
+                })
+                continue
 
             if target_ip != hostname:
                 netloc = target_ip
@@ -104,28 +115,44 @@ class CacheFlowEngine:
             log.debug(f"Request URL: {url}")
             log.debug(f"Request Headers: {headers}")
             try:
-                response = requests.get(url, headers=headers, timeout=10, stream=True, allow_redirects=False, verify=False)
+                response = requests.get(url, headers=headers, timeout=5, stream=True, allow_redirects=False, verify=False)
                 response.close()
 
                 layer_result = {
                     'name': layer['name'],
                     'description': layer.get('description', ''),
                     'status_code': response.status_code,
-                    'headers': dict(response.headers),
-                    'url': url,
-                    'original_url': base_url + test_path,
-                    'sent_host_header': headers.get('Host')
+                    'headers': dict(response.headers)
                 }
                 log.debug(f"Request successful. Status: {response.status_code}")
+            except requests.exceptions.SSLError as e:
+                error_message = "SSL Error. The certificate may be invalid."
+                log.error(f"Request failed for {url}: {error_message} - {e}")
+                layer_result = {'name': layer['name'], 'error': error_message, 'error_type': 'ssl'}
+            except requests.exceptions.ConnectTimeout as e:
+                error_message = f"Connection timed out to {target_ip}."
+                log.error(f"Request failed for {url}: {error_message} - {e}")
+                layer_result = {'name': layer['name'], 'error': error_message, 'error_type': 'timeout'}
+            except requests.exceptions.ConnectionError as e:
+                error_message = f"Connection refused by {target_ip}."
+                log.error(f"Request failed for {url}: {error_message} - {e}")
+                layer_result = {'name': layer['name'], 'error': error_message, 'error_type': 'connection'}
             except Exception as e:
+                error_message = str(e)
+                log.error(f"An unexpected error occurred for {url}: {e}")
                 layer_result = {
                     'name': layer['name'],
-                    'description': layer.get('description', ''),
-                    'error': str(e),
-                    'url': url,
-                    'sent_host_header': headers.get('Host')
+                    'error': error_message,
+                    'error_type': 'unknown'
                 }
-                log.error(f"Request failed: {e}")
+            
+            # Add common details to the result
+            layer_result.update({
+                'description': layer.get('description', ''),
+                'url': url,
+                'original_url': base_url + test_path,
+                'sent_host_header': headers.get('Host')
+            })
 
             results.append(layer_result)
 
