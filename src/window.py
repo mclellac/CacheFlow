@@ -173,7 +173,7 @@ class Window(Adw.ApplicationWindow):
         if 'error' in result:
             error_type = result.get('error_type', 'unknown').capitalize()
             error_message = result['error']
-            headers_list.append((f"Error ({error_type})", error_message, True))
+            headers_list.append((f"Error ({error_type})", error_message, True, ""))
             log.warning(f"Layer '{result.get('name')}' resulted in an error: {result['error']}")
         else:
             headers_list = self._compare_headers(result, index, all_results)
@@ -193,21 +193,31 @@ class Window(Adw.ApplicationWindow):
     def _compare_headers(self, result, index, all_results):
         headers_list = []
         upstream_headers = None
+        upstream_name = ""
 
         if index < len(all_results) - 1:
             upstream_result = all_results[index+1]
+            upstream_name = upstream_result.get('name', 'Unknown')
             if 'headers' in upstream_result:
-                    upstream_headers = {k.lower(): v for k, v in upstream_result.get('headers', {}).items()}
+                upstream_headers = {k.lower(): v for k, v in upstream_result.get('headers', {}).items()}
 
         for key, value in result.get('headers', {}).items():
             lower_key = key.lower()
             is_diff = False
-            if upstream_headers is not None:
-                if lower_key not in upstream_headers or upstream_headers[lower_key] != value:
-                    is_diff = True
+            note = ""
 
-            # log.debug(f"Comparing header '{key}': ...")
-            headers_list.append((key, value, is_diff))
+            if upstream_headers is not None:
+                if lower_key not in upstream_headers:
+                    is_diff = True
+                    note = f"New header set by {result.get('name')}"
+                elif upstream_headers[lower_key] != value:
+                    is_diff = True
+                    prev_val = upstream_headers[lower_key]
+                    if len(prev_val) > 20:
+                        prev_val = prev_val[:20] + "..."
+                    note = f"Changed from '{prev_val}' ({upstream_name})"
+
+            headers_list.append((key, value, is_diff, note))
 
         return headers_list
 

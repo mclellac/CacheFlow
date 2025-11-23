@@ -30,6 +30,13 @@
                 <property name="expand">True</property>
               </object>
             </child>
+            <child>
+              <object class="GtkColumnViewColumn" id="column_note">
+                <property name="title">Notes</property>
+                <property name="resizable">True</property>
+                <property name="expand">True</property>
+              </object>
+            </child>
           </object>
         </child>
       </object>

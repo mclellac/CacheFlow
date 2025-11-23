@@ -276,7 +276,7 @@ class NodeGraph(Gtk.DrawingArea):
         text_color_str = node['data'].get('text_color')
         diff_color_str = node['data'].get('diff_text_color')
 
-        for header, value, is_diff in node["data"]["headers"]:
+        for header, value, is_diff, _ in node["data"]["headers"]:
             if is_diff:
                 if diff_color_str and diff_rgba.parse(diff_color_str) and diff_rgba.alpha > 0:
                     cr.set_source_rgba(diff_rgba.red, diff_rgba.green, diff_rgba.blue, diff_rgba.alpha)
