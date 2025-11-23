@@ -58,7 +58,7 @@ class Window(Adw.ApplicationWindow):
             menu.append(env.capitalize(), f"win.active_environment::{env}")
 
         self.env_switcher.set_menu_model(menu)
-        self.env_switcher.set_action_name("win.active_environment")
+        self.env_switcher.action_name = "win.active_environment"
 
     def on_env_change(self, action, value):
         """Handles state change for the active environment."""
