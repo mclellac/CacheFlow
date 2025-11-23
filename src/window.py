@@ -6,6 +6,7 @@ from gi.repository import Gtk, Adw, Gio, GLib
 
 from .node_graph import NodeGraph
 from .header_dialog import HeaderDialog
+from .node_data import NodeData
 
 log = logging.getLogger(__name__)
 
@@ -178,17 +179,17 @@ class Window(Adw.ApplicationWindow):
         else:
             headers_list = self._compare_headers(result, index, all_results)
 
-        return {
-            "name": result['name'],
-            "headers": headers_list,
-            "body_color": original_layer.get('body_color', ''),
-            "header_color": original_layer.get('header_color', ''),
-            "text_color": original_layer.get('text_color', ''),
-            "diff_text_color": original_layer.get('diff_text_color', ''),
-            "request_url": result.get('url'),
-            "request_host": result.get('sent_host_header'),
-            "request_method": result.get('method', 'GET')
-        }
+        return NodeData(
+            name=result['name'],
+            headers=headers_list,
+            body_color=original_layer.get('body_color', ''),
+            header_color=original_layer.get('header_color', ''),
+            text_color=original_layer.get('text_color', ''),
+            diff_text_color=original_layer.get('diff_text_color', ''),
+            request_url=result.get('url'),
+            request_host=result.get('sent_host_header'),
+            request_method=result.get('method', 'GET')
+        )
 
     def _compare_headers(self, result, index, all_results):
         headers_list = []

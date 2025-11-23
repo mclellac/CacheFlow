@@ -22,6 +22,7 @@ class HeaderDialog(Adw.MessageDialog):
     column_key = Gtk.Template.Child()
     column_value = Gtk.Template.Child()
     column_note = Gtk.Template.Child()
+    search_entry = Gtk.Template.Child()
 
     def __init__(self, headers, **kwargs):
         super().__init__(**kwargs)
@@ -46,11 +47,26 @@ class HeaderDialog(Adw.MessageDialog):
             else:
                 self.model.append(HeaderItem(header, value, is_diff, note))
 
-        self.selection_model = Gtk.MultiSelection(model=self.model)
+        self.filter = Gtk.CustomFilter.new(self._filter_func)
+        self.filter_model = Gtk.FilterListModel(model=self.model, filter=self.filter)
+        self.selection_model = Gtk.MultiSelection(model=self.filter_model)
         self.column_view.set_model(self.selection_model)
 
         self._setup_factories()
         self._setup_context_menu()
+
+        self.search_entry.connect('search-changed', self._on_search_changed)
+
+    def _filter_func(self, item, _user_data=None):
+        query = self.search_entry.get_text().lower()
+        if not query:
+            return True
+        return (query in item.key.lower() or
+                query in item.value.lower() or
+                query in item.note.lower())
+
+    def _on_search_changed(self, entry):
+        self.filter.changed(Gtk.FilterChange.DIFFERENT)
 
     def _setup_factories(self):
         factory_key = Gtk.SignalListItemFactory()
@@ -90,6 +106,21 @@ class HeaderDialog(Adw.MessageDialog):
         attrs = Pango.AttrList()
         if header_item.is_diff:
             attrs.insert(Pango.attr_weight_new(Pango.Weight.BOLD))
+
+            # Use accent color for differences
+            style_manager = Adw.StyleManager.get_default()
+            accent_rgba = None
+            if hasattr(style_manager, "get_accent_color_rgba"):
+                accent_rgba = style_manager.get_accent_color_rgba()
+
+            if accent_rgba:
+                r = int(accent_rgba.red * 65535)
+                g = int(accent_rgba.green * 65535)
+                b = int(accent_rgba.blue * 65535)
+                attrs.insert(Pango.attr_foreground_new(r, g, b))
+            else:
+                # Fallback to a generic blue if accent color not available
+                attrs.insert(Pango.attr_foreground_new(13000, 30000, 65535))
         else:
             attrs.insert(Pango.attr_weight_new(Pango.Weight.NORMAL))
         label.set_attributes(attrs)
