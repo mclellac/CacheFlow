@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <object class="GtkShortcutsWindow" id="shortcuts_window">
+    <property name="modal">True</property>
+    <child>
+      <object class="GtkShortcutsSection">
+        <property name="title">General</property>
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title">Application</property>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title">Preferences</property>
+                <property name="accelerator">&lt;Ctrl&gt;comma</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title">About</property>
+                <property name="accelerator">&lt;Ctrl&gt;question</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title">Quit</property>
+                <property name="accelerator">&lt;Ctrl&gt;Q</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkShortcutsGroup">
+            <property name="title">Node Graph</property>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title">Inspect Node Headers</property>
+                <property name="shortcut-type">other</property>
+                <property name="subtitle">Double Click Node</property>
+              </object>
+            </child>
+             <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title">Move Node</property>
+                <property name="shortcut-type">gesture</property>
+                <property name="subtitle">Drag Node Body</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title">Resize Node</property>
+                <property name="shortcut-type">gesture</property>
+                <property name="subtitle">Drag Bottom-Right Corner</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkShortcutsShortcut">
+                <property name="title">Select Node</property>
+                <property name="shortcut-type">gesture</property>
+                <property name="subtitle">Click Node</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
