@@ -105,6 +105,7 @@ class ConfigManager:
 
         variant_data = []
         for l_data in layers_data:
+            log.debug(f"ConfigManager saving layer: name='{l_data.get('name')}', text_color='{l_data.get('text_color')}'")
             layer_dict = {
                 'name': GLib.Variant('s', l_data.get('name', '')),
                 'description': GLib.Variant('s', l_data.get('description', '')),
