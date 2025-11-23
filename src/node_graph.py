@@ -7,10 +7,10 @@ from gi.repository import Gtk, Gdk, Adw, Pango, PangoCairo, Gio, GLib, GObject
 
 log = logging.getLogger(__name__)
 
-NODE_WIDTH = 400
-NODE_HEADER_HEIGHT = 40
-LINE_HEIGHT = 18
-PADDING = 10
+NODE_WIDTH = 450
+NODE_HEADER_HEIGHT = 45
+LINE_HEIGHT = 22
+PADDING = 15
 RESIZE_HANDLE_SIZE = 15
 
 
@@ -296,13 +296,21 @@ class NodeGraph(Gtk.DrawingArea):
 
         cr.restore()
 
+    def _get_accent_color(self):
+        """Helper to get the current system accent color."""
+        style_manager = Adw.StyleManager.get_default()
+        accent = None
+        if hasattr(style_manager, "get_accent_color_rgba"):
+            accent = style_manager.get_accent_color_rgba()
+
+        if accent:
+            return accent.red, accent.green, accent.blue
+        return 0.2, 0.5, 0.9  # Default fallback blue
+
     def draw_connections(self, cr):
         """Draws lines connecting the nodes."""
-        style_manager = Adw.StyleManager.get_default()
-        if style_manager.get_dark():
-            cr.set_source_rgba(0.7, 0.7, 0.7, 0.8)
-        else:
-            cr.set_source_rgba(0.3, 0.3, 0.3, 0.8)
+        r, g, b = self._get_accent_color()
+        cr.set_source_rgba(r, g, b, 0.8)
         cr.set_line_width(3)
         for i in range(len(self.nodes) - 1):
             node_a = self.nodes[i]
@@ -385,20 +393,11 @@ class NodeGraph(Gtk.DrawingArea):
 
         # --- 0. Draw Selection Indicator (Glow/Border) ---
         if self.selected_node_index == node["id"]:
-            accent = None
-            # Try to get the actual RGBA color (Libadwaita 1.6+)
-            if hasattr(style_manager, "get_accent_color_rgba"):
-                accent = style_manager.get_accent_color_rgba()
-
-            if accent:
-                r, g, b = accent.red, accent.green, accent.blue
-            else:
-                # Fallback to a default blue
-                r, g, b = 0.2, 0.5, 0.9
+            r, g, b = self._get_accent_color()
 
             # Draw glow
-            cr.set_source_rgba(r, g, b, 0.3)
-            self.rounded_rectangle(cr, x - 5, y - 5, w + 10, h + 10, 15)
+            cr.set_source_rgba(r, g, b, 0.4)
+            self.rounded_rectangle(cr, x - 8, y - 8, w + 16, h + 16, 18)
             cr.fill()
             # Draw wider border
             cr.set_source_rgba(r, g, b, 1.0)
