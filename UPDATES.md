@@ -36,4 +36,4 @@
 - `DeletableEntryRow` violated architecture rules.
 - `PreferencesWindow` was not correctly associated with the application instance in `main.py`.
 - **Header Dialog Values**: Fixed an issue where header values were not visible in the dialog. Explicitly bound the cell renderer text property.
-- **Layer Text Colors**: Fixed an issue where text and diff text colors were not saved to GSettings, causing them to not persist or apply to the node graph.
+- **Layer Text Colors**: Fixed an issue where text and diff text colors were not saved to GSettings, causing them to not persist or apply to the node graph. Added extensive logging to verify data flow.

@@ -1,4 +1,7 @@
+import logging
 from gi.repository import Gtk, Adw, GObject, Gdk
+
+log = logging.getLogger(__name__)
 
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/header_row.ui')
 class HeaderRow(Adw.PreferencesRow):
@@ -261,14 +264,19 @@ class LayerRow(Adw.ExpanderRow):
         self.on_changed()
 
     def get_data(self):
+        text_color = self.text_color_button.get_rgba().to_string()
+        diff_text_color = self.diff_text_color_button.get_rgba().to_string()
+
+        log.debug(f"LayerRow get_data: name='{self.name_row.get_text()}', text_color='{text_color}', diff_text_color='{diff_text_color}'")
+
         data = {
             'name': self.name_row.get_text(),
             'description': self.desc_row.get_text(),
             'host_url': self.url_row.get_text(),
             'header_color': self.header_color_button.get_rgba().to_string(),
             'body_color': self.body_color_button.get_rgba().to_string(),
-            'text_color': self.text_color_button.get_rgba().to_string(),
-            'diff_text_color': self.diff_text_color_button.get_rgba().to_string(),
+            'text_color': text_color,
+            'diff_text_color': diff_text_color,
             'custom_headers': {},
             'host_overrides': [],
             'path_match_only': []
