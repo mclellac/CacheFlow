@@ -105,6 +105,8 @@ class ConfigManager:
                 'host_url': GLib.Variant('s', l_data.get('host_url', '')),
                 'header_color': GLib.Variant('s', l_data.get('header_color', '')),
                 'body_color': GLib.Variant('s', l_data.get('body_color', '')),
+                'text_color': GLib.Variant('s', l_data.get('text_color', '')),
+                'diff_text_color': GLib.Variant('s', l_data.get('diff_text_color', '')),
                 'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
                 'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
                 'path_match_only': GLib.Variant('as', l_data.get('path_match_only', []))
@@ -132,6 +134,8 @@ class ConfigManager:
                     'host_url': GLib.Variant('s', l_data.get('host_url', '')),
                     'header_color': GLib.Variant('s', l_data.get('header_color', '')),
                     'body_color': GLib.Variant('s', l_data.get('body_color', '')),
+                    'text_color': GLib.Variant('s', l_data.get('text_color', '')),
+                    'diff_text_color': GLib.Variant('s', l_data.get('diff_text_color', '')),
                     'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
                     'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
                     'path_match_only': GLib.Variant('as', l_data.get('path_match_only', []))
