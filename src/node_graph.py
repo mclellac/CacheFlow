@@ -263,9 +263,9 @@ class NodeGraph(Gtk.DrawingArea):
 
     def on_draw(self, area, cr, width, height):
         """The main drawing method."""
-        self.draw_graph_content(cr, width, height)
+        self.draw_graph_content(cr, width, height, self.scale, self.offset_x, self.offset_y)
 
-    def draw_graph_content(self, cr, width, height):
+    def draw_graph_content(self, cr, width, height, scale=1.0, offset_x=0, offset_y=0):
         style_manager = Adw.StyleManager.get_default()
         is_dark = style_manager.get_dark()
 
@@ -277,8 +277,8 @@ class NodeGraph(Gtk.DrawingArea):
         cr.fill()
 
         cr.save()
-        cr.translate(self.offset_x, self.offset_y)
-        cr.scale(self.scale, self.scale)
+        cr.translate(offset_x, offset_y)
+        cr.scale(scale, scale)
 
         self.draw_connections(cr)
 
