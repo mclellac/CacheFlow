@@ -35,6 +35,10 @@ class CacheFlowApplication(Adw.Application):
         self._update_color_scheme()
         self.set_accels_for_action("app.preferences", ["<Primary>comma"])
         self.set_accels_for_action("app.about", ["<Primary>question"])
+        self.set_accels_for_action("app.quit", ["<Primary>q"])
+        self.set_accels_for_action("win.inspect", ["<Primary>Return"])
+        self.set_accels_for_action("win.export-graph", ["<Primary>e"])
+        self.set_accels_for_action("win.reset-layout", ["<Primary>r"])
         if not self.get_active_window():
             self.win = Window(application=app)
             self.win.present()

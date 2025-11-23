@@ -22,11 +22,16 @@
               </object>
             </child>
             <child type="end">
-              <object class="GtkMenuButton" id="graph_menu_button">
-                <property name="icon-name">view-more-symbolic</property>
-                <property name="tooltip-text">Graph Options</property>
+              <object class="GtkMenuButton">
+                <property name="icon-name">open-menu-symbolic</property>
                 <property name="menu-model">
                   <menu>
+                    <section>
+                      <item>
+                        <attribute name="label" translatable="yes">Inspect Path</attribute>
+                        <attribute name="action">win.inspect</attribute>
+                      </item>
+                    </section>
                     <section>
                       <item>
                         <attribute name="label" translatable="yes">Export Graph...</attribute>
@@ -37,15 +42,6 @@
                         <attribute name="action">win.reset-layout</attribute>
                       </item>
                     </section>
-                  </menu>
-                </property>
-              </object>
-            </child>
-            <child type="end">
-              <object class="GtkMenuButton">
-                <property name="icon-name">open-menu-symbolic</property>
-                <property name="menu-model">
-                  <menu>
                     <section>
                       <item>
                         <attribute name="label" translatable="yes">Preferences</attribute>
