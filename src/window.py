@@ -57,6 +57,9 @@ class HeaderDialog(Adw.MessageDialog):
         cell.set_property("markup", markup)
 
     def style_value_cell(self, column, cell, model, iter, data):
+        value = model.get_value(iter, 1)
+        cell.set_property("text", value)
+
         is_diff = model.get_value(iter, 2)
         if is_diff:
             cell.set_property("weight", Pango.Weight.BOLD)

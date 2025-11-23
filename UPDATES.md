@@ -32,6 +32,8 @@
 - **Async Inspection**: While the current inspection runs in a thread, `requests` is synchronous. Migrating to `aiohttp` or `httpx` could allow parallel layer inspection (though sequential is often required for flow verification) or better non-blocking behavior.
 - **SNI Support**: When inspecting specific IPs (DNS override), `requests` does not send the correct SNI if the URL is modified to use the IP. This can be improved by using a custom transport adapter that forces the IP connection while keeping the hostname in the URL.
 
-## Bugs Found
+## Bugs Fixed
 - `DeletableEntryRow` violated architecture rules.
 - `PreferencesWindow` was not correctly associated with the application instance in `main.py`.
+- **Header Dialog Values**: Fixed an issue where header values were not visible in the dialog. Explicitly bound the cell renderer text property.
+- **Layer Text Colors**: Fixed an issue where text and diff text colors were not saved to GSettings, causing them to not persist or apply to the node graph.
