@@ -7,7 +7,7 @@ from gi.repository import Gtk, Gdk, Adw, Pango, PangoCairo, Gio, GLib
 
 log = logging.getLogger(__name__)
 
-NODE_WIDTH = 300
+NODE_WIDTH = 400
 NODE_HEADER_HEIGHT = 40
 LINE_HEIGHT = 18
 PADDING = 10

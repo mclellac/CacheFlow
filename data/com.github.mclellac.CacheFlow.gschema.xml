@@ -41,5 +41,13 @@
       <default>[]</default>
       <summary>Configuration for the Dev environment</summary>
     </key>
+    <key name="window-width" type="i">
+      <default>-1</default>
+      <summary>The width of the main window</summary>
+    </key>
+    <key name="window-height" type="i">
+      <default>-1</default>
+      <summary>The height of the main window</summary>
+    </key>
   </schema>
 </schemalist>

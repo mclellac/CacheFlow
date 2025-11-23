@@ -28,9 +28,26 @@ class Window(Adw.ApplicationWindow):
 
         self.setup_actions()
         self.setup_env_switcher()
+        self.setup_window_size()
 
         self.inspect_button.connect('clicked', self.on_inspect_clicked)
         self.path_entry.set_text(self.settings.get_string('test-path'))
+
+        self.connect("close-request", self.on_close_request)
+
+    def setup_window_size(self):
+        width = self.settings.get_int('window-width')
+        height = self.settings.get_int('window-height')
+
+        if width > 0 and height > 0:
+            self.set_default_size(width, height)
+
+    def on_close_request(self, window):
+        width = self.get_width()
+        height = self.get_height()
+        self.settings.set_int('window-width', width)
+        self.settings.set_int('window-height', height)
+        return False
 
     def setup_actions(self):
         """Setup application-wide actions."""
