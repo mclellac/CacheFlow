@@ -86,19 +86,33 @@ class CacheFlowApplication(Adw.Application):
 
     def on_about_action(self, _action, _param):
         """Callback for the app.about action."""
-        about = Adw.AboutWindow(
-            application_name="CacheFlow",
-            application_icon="com.github.mclellac.CacheFlow",
-            developer_name="Carey McLelland",
-            version=self.version,
-            website="https://github.com/mclellac/CacheFlow",
-            issue_url="https://github.com/mclellac/CacheFlow/issues",
-            comments="An HTTP inspection tool for infrastructure layers.",
-            copyright="© 2025 csm",
-            license_type=Gtk.License.MIT_X11,
-            transient_for=self.get_active_window(),
-        )
-        about.present()
+        if hasattr(Adw, "AboutDialog"):
+            about = Adw.AboutDialog(
+                application_name="CacheFlow",
+                application_icon="com.github.mclellac.CacheFlow",
+                developer_name="Carey McLelland",
+                version=self.version,
+                website="https://github.com/mclellac/CacheFlow",
+                issue_url="https://github.com/mclellac/CacheFlow/issues",
+                comments="An HTTP inspection tool for infrastructure layers.",
+                copyright="© 2025 csm",
+                license_type=Gtk.License.MIT_X11,
+            )
+            about.present(self.get_active_window())
+        else:
+            about = Adw.AboutWindow(
+                application_name="CacheFlow",
+                application_icon="com.github.mclellac.CacheFlow",
+                developer_name="Carey McLelland",
+                version=self.version,
+                website="https://github.com/mclellac/CacheFlow",
+                issue_url="https://github.com/mclellac/CacheFlow/issues",
+                comments="An HTTP inspection tool for infrastructure layers.",
+                copyright="© 2025 csm",
+                license_type=Gtk.License.MIT_X11,
+                transient_for=self.get_active_window(),
+            )
+            about.present()
 
     def on_shortcuts_action(self, _action, _param):
         """Callback for the app.shortcuts action."""

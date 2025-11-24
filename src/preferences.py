@@ -328,7 +328,11 @@ class PreferencesWindow(Adw.PreferencesWindow):
     def do_export_config(self, key):
         """Exports the configuration for the given key."""
         layers = self.config_manager.get_layers(key)
-        self.exporter.export_config(layers)
+        self.exporter.export_config(layers, on_success=self.on_export_success)
+
+    def on_export_success(self, filepath):
+        """Callback when configuration is exported."""
+        self.add_toast(Adw.Toast.new(f"Exported to {filepath}"))
 
     def do_import_config(self, group, key):
         """Imports the configuration for the given key."""
@@ -345,3 +349,4 @@ class PreferencesWindow(Adw.PreferencesWindow):
             group.remove(row)
 
         self.setup_env_config(group, key)
+        self.add_toast(Adw.Toast.new("Configuration imported"))

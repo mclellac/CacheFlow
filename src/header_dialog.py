@@ -28,7 +28,7 @@ class HeaderItem(GObject.Object):
 
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/header_dialog.ui')
 # pylint: disable=too-few-public-methods
-class HeaderDialog(Adw.MessageDialog):
+class HeaderDialog(Adw.Dialog):
     """
     A dialog to display key-value headers from a node.
     Allows filtering and copying of header data.
@@ -40,14 +40,15 @@ class HeaderDialog(Adw.MessageDialog):
     column_value = Gtk.Template.Child()
     column_note = Gtk.Template.Child()
     search_entry = Gtk.Template.Child()
+    window_title = Gtk.Template.Child()
+    stack = Gtk.Template.Child()
 
-    def __init__(self, headers, **kwargs):
+    def __init__(self, headers, heading=None, **kwargs):
         super().__init__(**kwargs)
         self._clipboard_provider = None
 
-        heading = self.get_heading()
         if heading and heading != "Headers":
-            self.set_heading(f"Headers for {heading}")
+            self.window_title.set_title(f"Headers for {heading}")
 
         self.model = Gio.ListStore(item_type=HeaderItem)
         headers_to_split = ['x-akamai-session-info', 'content-security-policy']
@@ -67,6 +68,7 @@ class HeaderDialog(Adw.MessageDialog):
 
         self.filter = Gtk.CustomFilter.new(self._filter_func)
         self.filter_model = Gtk.FilterListModel(model=self.model, filter=self.filter)
+        self.filter_model.connect("items-changed", self._on_items_changed)
         self.selection_model = Gtk.MultiSelection(model=self.filter_model)
         self.column_view.set_model(self.selection_model)
 
@@ -74,6 +76,12 @@ class HeaderDialog(Adw.MessageDialog):
         self._setup_context_menu()
 
         self.search_entry.connect('search-changed', self._on_search_changed)
+
+    def _on_items_changed(self, _model, _position, _removed, _added):
+        if self.filter_model.get_n_items() == 0:
+            self.stack.set_visible_child_name("empty")
+        else:
+            self.stack.set_visible_child_name("list")
 
     def _filter_func(self, item, _user_data=None):
         query = self.search_entry.get_text().lower()
