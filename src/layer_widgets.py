@@ -113,6 +113,45 @@ class PathMatchRow(Adw.PreferencesRow):
         return [self.pat_entry.get_text()]
 
 
+@Gtk.Template(filename='src/ui/routing_rule_row.ui')
+class RoutingRuleRow(Adw.PreferencesRow):
+    """Row for editing a routing rule."""
+    __gtype_name__ = 'RoutingRuleRow'
+
+    match_entry = Gtk.Template.Child()
+    host_entry = Gtk.Template.Child()
+    rewrite_entry = Gtk.Template.Child()
+    delete_btn = Gtk.Template.Child()
+
+    def __init__(self, match='', host='', rewrite='', on_change=None, on_delete=None, **kwargs):
+        super().__init__(**kwargs)
+        self.on_change = on_change
+        self.on_delete = on_delete
+
+        self.match_entry.set_text(match)
+        self.host_entry.set_text(host)
+        self.rewrite_entry.set_text(rewrite)
+
+        self.match_entry.connect('changed', self.notify_change)
+        self.host_entry.connect('changed', self.notify_change)
+        self.rewrite_entry.connect('changed', self.notify_change)
+        self.delete_btn.connect('clicked', self.on_delete_clicked)
+
+    def notify_change(self, *_args):
+        """Notifies when data changes."""
+        if self.on_change:
+            self.on_change()
+
+    def on_delete_clicked(self, _btn):
+        """Callback for delete button."""
+        if self.on_delete:
+            self.on_delete(self)
+
+    def get_texts(self):
+        """Returns [match, host, rewrite] list."""
+        return [self.match_entry.get_text(), self.host_entry.get_text(), self.rewrite_entry.get_text()]
+
+
 @Gtk.Template(filename='src/ui/layer_row.ui')
 class LayerRow(Adw.ExpanderRow):
     """
@@ -142,6 +181,9 @@ class LayerRow(Adw.ExpanderRow):
     path_match_group = Gtk.Template.Child()
     add_path_match_btn = Gtk.Template.Child()
 
+    routing_rules_group = Gtk.Template.Child()
+    add_routing_rule_btn = Gtk.Template.Child()
+
     delete_btn = Gtk.Template.Child()
 
     def __init__(self, layer_data=None, on_delete=None, on_change=None):
@@ -154,6 +196,7 @@ class LayerRow(Adw.ExpanderRow):
         self.header_rows = []
         self.override_rows = []
         self.path_match_rows = []
+        self.routing_rule_rows = []
 
         # Setup Models for Type and Provider
         self.type_model = Gtk.StringList()
@@ -183,6 +226,7 @@ class LayerRow(Adw.ExpanderRow):
         self.add_header_btn.connect('clicked', self.on_add_header)
         self.add_override_btn.connect('clicked', self.on_add_override)
         self.add_path_match_btn.connect('clicked', self.on_add_path_match)
+        self.add_routing_rule_btn.connect('clicked', self.on_add_routing_rule)
 
         if layer_data:
             self.load_data(layer_data)
@@ -205,6 +249,12 @@ class LayerRow(Adw.ExpanderRow):
             return
 
         selected_type = self.types_list[selected_idx]
+
+        # Show/Hide Routing Rules based on type
+        if selected_type == ProviderType.CACHE_PROXY:
+            self.routing_rules_group.set_visible(True)
+        else:
+            self.routing_rules_group.set_visible(False)
 
         # Clear provider model (Gtk.StringList doesn't have clear, so we create new or splice)
         # Splicing is cleaner
@@ -319,6 +369,15 @@ class LayerRow(Adw.ExpanderRow):
             for pattern in path_matches:
                 self.add_path_match_row(pattern)
 
+        routing_rules = data.get('routing_rules', [])
+        if routing_rules:
+            for rule in routing_rules:
+                self.add_routing_rule_row(
+                    rule.get('path_match', ''),
+                    rule.get('backend_host', ''),
+                    rule.get('path_rewrite', '')
+                )
+
     def on_changed(self, *_args):
         """Callback when any data in the layer row changes."""
         if self._loading:
@@ -394,6 +453,27 @@ class LayerRow(Adw.ExpanderRow):
         self.path_match_rows.remove(row)
         self.on_changed()
 
+    def on_add_routing_rule(self, _btn):
+        """Callback to add a new routing rule row."""
+        self.add_routing_rule_row()
+        self.on_changed()
+
+    def add_routing_rule_row(self, match='', host='', rewrite=''):
+        """Adds a routing rule entry row."""
+        row = RoutingRuleRow(
+            match=match, host=host, rewrite=rewrite,
+            on_change=self.on_changed,
+            on_delete=self.remove_routing_rule_row
+        )
+        self.routing_rules_group.add_row(row)
+        self.routing_rule_rows.append(row)
+
+    def remove_routing_rule_row(self, row):
+        """Removes a routing rule entry row."""
+        self.routing_rules_group.remove(row)
+        self.routing_rule_rows.remove(row)
+        self.on_changed()
+
     def get_data(self):
         """Collects and returns the layer configuration data."""
 
@@ -423,7 +503,8 @@ class LayerRow(Adw.ExpanderRow):
             'diff_text_color': self.diff_text_color_button.get_rgba().to_string(),
             'custom_headers': {},
             'host_overrides': [],
-            'path_match_only': []
+            'path_match_only': [],
+            'routing_rules': []
         }
 
         for row in self.header_rows:
@@ -440,5 +521,14 @@ class LayerRow(Adw.ExpanderRow):
             p, = row.get_texts()
             if p:
                 data['path_match_only'].append(p)
+
+        for row in self.routing_rule_rows:
+            m, h, r = row.get_texts()
+            if m and h:
+                data['routing_rules'].append({
+                    'path_match': m,
+                    'backend_host': h,
+                    'path_rewrite': r
+                })
 
         return data

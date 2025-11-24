@@ -5,6 +5,7 @@ HTTP requests across the configured infrastructure layers.
 
 import logging
 import fnmatch
+import re
 import warnings
 from typing import List, Dict, Optional, Tuple, Any, NamedTuple
 from urllib.parse import urlparse
@@ -97,19 +98,101 @@ class CacheFlowEngine:
 
         results = []
         user_agent = self.config.get('user_agent', 'CacheFlow/0.1.0')
-        layers_to_inspect = self.config.get('layers', [])
+        # Create a copy of layers to allow modification (dynamic routing)
+        layers_to_inspect = list(self.config.get('layers', []))
 
-        for i, layer in enumerate(layers_to_inspect):
-            log.info("Processing layer: %s", layer.get('name'))
+        # Queue of (layer, path) tuples to process
+        # Initial path is the test_path for all static layers unless modified
+        inspection_queue = [(l, test_path) for l in layers_to_inspect]
 
-            if not self._should_process_layer(layer, test_path,
-                                              i < len(layers_to_inspect) - 1):
+        processed_count = 0
+        while processed_count < len(inspection_queue):
+            layer, current_path = inspection_queue[processed_count]
+            log.info("Processing layer: %s with path %s", layer.get('name'), current_path)
+
+            # Check if we should process this layer (legacy path matching)
+            # We only check against subsequent static layers, dynamic ones are explicit
+            is_last = processed_count == len(inspection_queue) - 1
+            if not self._should_process_layer(layer, current_path, not is_last):
                 log.debug("Path '%s' did not match any patterns. Skipping layer.",
-                          test_path)
+                          current_path)
+                processed_count += 1
                 continue
 
-            result = self._process_layer(layer, test_path, user_agent)
+            result = self._process_layer(layer, current_path, user_agent)
             results.append(result)
+
+            # Check for Dynamic Routing Rules
+            routing_rules = layer.get('routing_rules', [])
+            if routing_rules:
+                for rule in routing_rules:
+                    path_match = rule.get('path_match')
+                    # Simple fnmatch or regex? Let's assume fnmatch for consistency with existing features,
+                    # or maybe regex if the user wants power. The requirement mentioned regsub.
+                    # Let's try regex match if fnmatch fails or just use regex.
+                    # The existing path_match_only uses fnmatch.
+                    # But regsub implies regex. Let's use regex for matching too for flexibility.
+
+                    try:
+                        match = re.search(path_match, current_path) if path_match else None
+                    except re.error as e:
+                        log.error("Invalid regex in routing rule '%s': %s", path_match, e)
+                        continue
+
+                    if match:
+                        log.info("Routing rule matched: %s", path_match)
+                        backend_host = rule.get('backend_host')
+                        path_rewrite = rule.get('path_rewrite')
+
+                        new_path = current_path
+                        if path_rewrite:
+                             # Parse rewrite rule: s|pattern|repl|flags
+                             # Or just standard regex sub if the user provides pattern and replacement separately?
+                             # The user example was: "regsub paths ... /path1 could be regsubbed to /"
+                             # The UI has a single 'rewrite' field.
+                             # Let's support a simple syntax or just assume the 'path_match' is the pattern to replace?
+                             # But 'path_match' might be just for matching.
+                             # Let's assume 'path_rewrite' contains "s/pattern/replacement/" or similar syntax,
+                             # OR simpler: the user enters the replacement string and we use 'path_match' as the regex?
+                             # No, Varnish regsub(req.url, regex, replacement).
+                             # So we need both regex and replacement.
+                             # In our UI we have 'Rewrite' entry.
+                             # Let's assume the 'Rewrite' entry expects "s/find/replace/" format for flexibility.
+
+                             if path_rewrite.startswith('s'):
+                                 try:
+                                     # format: s/find/replace/flags
+                                     parts = path_rewrite.split(path_rewrite[1])
+                                     if len(parts) >= 3:
+                                         pattern = parts[1]
+                                         repl = parts[2]
+                                         new_path = re.sub(pattern, repl, current_path)
+                                         log.debug("Rewrote path '%s' to '%s'", current_path, new_path)
+                                 except Exception as e: # pylint: disable=broad-exception-caught
+                                     log.error("Failed to parse rewrite rule '%s': %s", path_rewrite, e)
+
+                        # Create Dynamic Backend Layer
+                        backend_layer = {
+                            'name': f"Backend ({backend_host})",
+                            'description': 'Dynamically routed backend',
+                            'layer_type': 'Application Backend',
+                            'provider': 'Unknown',
+                            'host_url': f"https://{backend_host}", # Default to HTTPS
+                            'custom_headers': {},
+                            'host_overrides': [],
+                            'path_match_only': []
+                        }
+
+                        # Add to queue
+                        # We append this new layer to be processed next.
+                        # IMPORTANT: Do we want to stop processing subsequent STATIC layers?
+                        # If we are routing, we probably want to diverge.
+                        # So we truncate the queue after the current layer and append the new one.
+                        inspection_queue = inspection_queue[:processed_count+1]
+                        inspection_queue.append((backend_layer, new_path))
+                        break # Follow the first matching rule
+
+            processed_count += 1
 
         return results
 
