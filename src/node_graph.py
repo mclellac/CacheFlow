@@ -14,6 +14,7 @@ gi.require_version('PangoCairo', '1.0')
 from gi.repository import Gtk, Gdk, Adw, Pango, PangoCairo, Gio, GLib, GObject
 
 from .utils import get_accent_color
+from .exporters import GraphExporter
 
 log = logging.getLogger(__name__)
 
@@ -65,6 +66,7 @@ class NodeGraph(Gtk.DrawingArea):
         self.mouse_x = 0
         self.mouse_y = 0
         self.popover_menu: Optional[Gtk.PopoverMenu] = None
+        self.exporter: Optional[GraphExporter] = None
 
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
         log.debug("NodeGraph initialized.")
@@ -196,36 +198,9 @@ class NodeGraph(Gtk.DrawingArea):
 
     def show_export_dialog(self) -> None:
         """Shows the file chooser dialog for exporting."""
-        dialog = Gtk.FileChooserNative(title="Export Graph",
-                                       action=Gtk.FileChooserAction.SAVE,
-                                       transient_for=self.get_root())
-
-        filter_png = Gtk.FileFilter()
-        filter_png.set_name("PNG Image")
-        filter_png.add_pattern("*.png")
-        dialog.add_filter(filter_png)
-
-        filter_svg = Gtk.FileFilter()
-        filter_svg.set_name("SVG Image")
-        filter_svg.add_pattern("*.svg")
-        dialog.add_filter(filter_svg)
-
-        filter_txt = Gtk.FileFilter()
-        filter_txt.set_name("Text File")
-        filter_txt.add_pattern("*.txt")
-        dialog.add_filter(filter_txt)
-
-        dialog.connect("response", self._on_export_response)
-        dialog.show()
-
-    def _on_export_response(self, dialog: Gtk.FileChooserNative, response_id: int) -> None:
-        """Handles the export dialog response."""
-        if response_id == Gtk.ResponseType.ACCEPT:
-            file = dialog.get_file()
-            filepath = file.get_path()
-            if filepath:
-                self.export_graph(filepath)
-        dialog.destroy()
+        if not self.exporter:
+            self.exporter = GraphExporter(self.get_root(), self.export_graph)
+        self.exporter.export_graph()
 
     def export_graph(self, filepath: str) -> None:
         """Exports the graph to the specified file."""
