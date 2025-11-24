@@ -4,24 +4,16 @@ detailed analysis of HTTP headers.
 """
 
 import logging
-from gi.repository import Gtk, Adw, Gio, GObject, Pango
+from gi.repository import Gtk, Adw, Gio, Pango
 
-from .analyzer import HeaderAnalyzer, AnalysisItem
+from .analyzer import HeaderAnalyzer
+from .models import AnalysisWrapper
 
 log = logging.getLogger(__name__)
 
-class AnalysisWrapper(GObject.Object):
-    """
-    Wrapper for AnalysisItem to be used in GListStore.
-    """
-    __gtype_name__ = 'AnalysisWrapper'
-
-    def __init__(self, item: AnalysisItem):
-        super().__init__()
-        self.item = item
 
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/analysis_dialog.ui')
-class HeaderAnalysisDialog(Adw.Dialog):
+class HeaderAnalysisDialog(Adw.Window):
     """
     Dialog to display header analysis.
     """
@@ -36,6 +28,10 @@ class HeaderAnalysisDialog(Adw.Dialog):
 
         self.analyzer = HeaderAnalyzer()
         self.model = Gio.ListStore(item_type=AnalysisWrapper)
+        self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
+
+        self._restore_size()
+        self.connect('close-request', self._on_close_request)
 
         # Run analysis
         report = self.analyzer.analyze_layer(current_layer, upstream_layer)
@@ -52,6 +48,19 @@ class HeaderAnalysisDialog(Adw.Dialog):
         self.list_view.set_model(self.selection_model)
 
         self._setup_factory()
+
+    def _restore_size(self):
+        w = self.settings.get_int('analyzer-width')
+        h = self.settings.get_int('analyzer-height')
+        if w > 0 and h > 0:
+            self.set_default_size(w, h)
+
+    def _on_close_request(self, _win):
+        w = self.get_width()
+        h = self.get_height()
+        self.settings.set_int('analyzer-width', w)
+        self.settings.set_int('analyzer-height', h)
+        return False
 
     def _setup_factory(self):
         factory = Gtk.SignalListItemFactory()
@@ -135,6 +144,9 @@ class HeaderAnalysisDialog(Adw.Dialog):
         elif analysis_item.change_type == "MODIFIED":
             icon_name = "document-edit-symbolic"
             css_class = "warning"
+        elif analysis_item.change_type == "MISSING":
+            icon_name = "security-high-symbolic"
+            css_class = "error"
 
         icon.set_from_icon_name(icon_name)
 

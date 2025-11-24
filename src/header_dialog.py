@@ -7,22 +7,9 @@ import logging
 from gi.repository import Gtk, Adw, Gio, GObject, GLib, Pango, Gdk
 
 from .utils import get_accent_color
+from .models import HeaderItem
 
 log = logging.getLogger(__name__)
-
-
-class HeaderItem(GObject.Object):
-    """
-    A GObject wrapper for a single header item to be used in a GListStore.
-    """
-    __gtype_name__ = 'HeaderItem'
-
-    def __init__(self, key, value, is_diff, note=""):
-        super().__init__()
-        self.key = key
-        self.value = value
-        self.is_diff = is_diff
-        self.note = note
 
 
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/header_dialog.ui')

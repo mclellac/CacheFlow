@@ -12,6 +12,7 @@ from gi.repository import Gtk, Adw, Gio, GLib
 from .node_graph import NodeGraph  # pylint: disable=unused-import
 from .header_dialog import HeaderDialog
 from .node_data import NodeData
+from .analyzer import HeaderAnalyzer
 
 log = logging.getLogger(__name__)
 
@@ -37,6 +38,7 @@ class Window(Adw.ApplicationWindow):
         self.environments = ["production", "staging", "qa", "dev"]
         self.win_action_group = None
         self.env_model = None
+        self.analyzer = HeaderAnalyzer()
 
         self.setup_actions()
         self.setup_env_switcher()
@@ -288,35 +290,31 @@ class Window(Adw.ApplicationWindow):
 
     def _compare_headers(self, result: Dict[str, Any], index: int,
                          all_results: List[Dict[str, Any]]) -> List[Tuple[str, str, bool, str]]:
-        headers_list = []
-        upstream_headers = None
-        upstream_name = ""
+        current_layer = {'name': result['name'], 'headers': result['headers']}
+        upstream_layer = None
 
         if index < len(all_results) - 1:
             upstream_result = all_results[index+1]
-            upstream_name = upstream_result.get('name', 'Unknown')
             if 'headers' in upstream_result:
-                upstream_headers = {
-                    k.lower(): v for k, v in upstream_result.get('headers', {}).items()
+                upstream_layer = {
+                    'name': upstream_result['name'],
+                    'headers': upstream_result['headers']
                 }
 
-        for key, value in result.get('headers', {}).items():
-            lower_key = key.lower()
-            is_diff = False
-            note = ""
+        report = self.analyzer.analyze_layer(current_layer, upstream_layer)
 
-            if upstream_headers is not None:
-                if lower_key not in upstream_headers:
-                    is_diff = True
-                    note = f"New header set by {result.get('name')}"
-                elif upstream_headers[lower_key] != value:
-                    is_diff = True
-                    prev_val = upstream_headers[lower_key]
-                    if len(prev_val) > 20:
-                        prev_val = prev_val[:20] + "..."
-                    note = f"Changed from '{prev_val}' ({upstream_name})"
+        headers_list = []
+        for item in report.items:
+            # Skip Removed and Missing for the node view
+            if item.change_type in ("REMOVED", "MISSING"):
+                continue
 
-            headers_list.append((key, value, is_diff, note))
+            is_diff = item.change_type in ("ADDED", "MODIFIED")
+            note = item.description
+            if item.warning:
+                note = f"Warning: {item.warning} | {note}"
+
+            headers_list.append((item.key, item.value, is_diff, note))
 
         return headers_list
 

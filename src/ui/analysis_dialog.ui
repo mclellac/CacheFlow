@@ -2,11 +2,11 @@
 <interface>
   <requires lib="gtk" version="4.0"/>
   <requires lib="libadwaita" version="1.0"/>
-  <template class="HeaderAnalysisDialog" parent="AdwDialog">
+  <template class="HeaderAnalysisDialog" parent="AdwWindow">
     <property name="title">Header Analysis</property>
-    <property name="content-width">800</property>
-    <property name="content-height">600</property>
-    <child>
+    <property name="default-width">800</property>
+    <property name="default-height">600</property>
+    <property name="content">
       <object class="AdwToolbarView">
         <child type="top">
           <object class="AdwHeaderBar">
@@ -50,6 +50,6 @@
           </object>
         </property>
       </object>
-    </child>
+    </property>
   </template>
 </interface>
