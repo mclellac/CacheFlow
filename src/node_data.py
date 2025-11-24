@@ -8,9 +8,6 @@ from typing import List, Tuple, Any
 class NodeData:
     """Data class representing a node in the graph."""
 
-    # pylint: disable=too-many-instance-attributes
-    # pylint: disable=too-few-public-methods
-
     def __init__(self, name: str, headers: List[Tuple[str, str, bool, str]], **kwargs: Any):
         """
         Initialize the NodeData object.

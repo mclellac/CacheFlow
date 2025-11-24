@@ -37,7 +37,6 @@ class ConnectionPoints(NamedTuple):
     end_y: float
 
 
-# pylint: disable=too-many-instance-attributes
 class NodeGraph(Gtk.DrawingArea):
     """A widget for drawing and interacting with a node-based graph."""
 
@@ -294,8 +293,6 @@ class NodeGraph(Gtk.DrawingArea):
                             scale: float = 1.0, offset_x: float = 0,
                             offset_y: float = 0) -> None:
         """Draws the entire graph content."""
-        # pylint: disable=too-many-arguments
-        # pylint: disable=too-many-positional-arguments
         style_manager = Adw.StyleManager.get_default()
         is_dark = style_manager.get_dark()
 
@@ -322,7 +319,6 @@ class NodeGraph(Gtk.DrawingArea):
 
     def _draw_connections(self, cr: cairo.Context) -> None:
         """Draws lines connecting the nodes."""
-        # pylint: disable=too-many-locals
         r, g, b, _ = get_accent_color()
         cr.set_source_rgba(r, g, b, 0.8)
         cr.set_line_width(3)
@@ -350,7 +346,6 @@ class NodeGraph(Gtk.DrawingArea):
     def _draw_connection_label(self, cr: cairo.Context, node_b: Dict[str, Any],
                                points: ConnectionPoints) -> None:
         """Draws the label on the connection line."""
-        # pylint: disable=too-many-locals
         request_url = node_b["data"].request_url
         request_host = node_b["data"].request_host
 
@@ -414,7 +409,6 @@ class NodeGraph(Gtk.DrawingArea):
 
     def _draw_node(self, cr: cairo.Context, node: Dict[str, Any]) -> None:
         """Draws a single node."""
-        # pylint: disable=too-many-locals
         x, y, w, h = node["x"], node["y"], node["width"], node["height"]
         style_manager = Adw.StyleManager.get_default()
         is_dark = style_manager.get_dark()
@@ -471,9 +465,6 @@ class NodeGraph(Gtk.DrawingArea):
     def _draw_node_text(self, cr: cairo.Context, node: Dict[str, Any],
                         x: float, y: float, w: float, is_dark: bool) -> None:
         """Draws the text content of the node."""
-        # pylint: disable=too-many-arguments
-        # pylint: disable=too-many-positional-arguments
-        # pylint: disable=too-many-locals
         font_desc_str = self.settings.get_string('node-font')
         if not font_desc_str:
             font_desc_str = "Monospace 14"
@@ -518,8 +509,6 @@ class NodeGraph(Gtk.DrawingArea):
     def _rounded_rectangle(self, cr: cairo.Context, x: float, y: float, w: float, h: float,
                            r: float, corners: Optional[Dict[str, bool]] = None) -> None:
         """Helper to draw a rectangle with rounded corners."""
-        # pylint: disable=too-many-arguments
-        # pylint: disable=too-many-positional-arguments
         if corners is None:
             corners = {'tl': True, 'tr': True, 'bl': True, 'br': True}
         cr.new_path()

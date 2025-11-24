@@ -1,0 +1,16 @@
+[MESSAGES CONTROL]
+disable=
+    import-error,
+    no-member,
+    no-value-for-parameter,
+    wrong-import-position,
+    arguments-differ,
+    broad-exception-caught,
+    too-few-public-methods,
+    duplicate-code,
+    too-many-positional-arguments,
+    too-many-instance-attributes
+
+[DESIGN]
+max-locals=25
+max-args=10
