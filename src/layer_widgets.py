@@ -4,6 +4,8 @@ including the LayerRow for editing layer details.
 """
 
 from gi.repository import Gtk, Adw, Gdk
+from .providers.base import ProviderType
+from .providers import get_providers_by_type
 
 
 @Gtk.Template(filename='src/ui/header_row.ui')
@@ -119,6 +121,8 @@ class LayerRow(Adw.ExpanderRow):
     """
     __gtype_name__ = 'LayerRow'
 
+    type_row = Gtk.Template.Child()
+    provider_row = Gtk.Template.Child()
     name_row = Gtk.Template.Child()
     desc_row = Gtk.Template.Child()
     url_row = Gtk.Template.Child()
@@ -151,6 +155,21 @@ class LayerRow(Adw.ExpanderRow):
         self.override_rows = []
         self.path_match_rows = []
 
+        # Setup Models for Type and Provider
+        self.type_model = Gtk.StringList()
+        self.provider_model = Gtk.StringList()
+
+        # Populate Type Model
+        self.types_list = list(ProviderType)
+        for t in self.types_list:
+            self.type_model.append(t.value)
+
+        self.type_row.set_model(self.type_model)
+        self.provider_row.set_model(self.provider_model)
+
+        self.type_row.connect('notify::selected', self.on_type_changed)
+        self.provider_row.connect('notify::selected', self.on_provider_changed)
+
         self.delete_btn.connect('clicked', self.on_delete_clicked)
 
         self.name_row.connect('notify::text', self.on_changed)
@@ -168,12 +187,66 @@ class LayerRow(Adw.ExpanderRow):
         if layer_data:
             self.load_data(layer_data)
 
+        # Force update provider list if empty (e.g. new layer)
+        if self.provider_model.get_n_items() == 0:
+            self.on_type_changed(None, None)
+
         for button in [self.header_color_button, self.body_color_button,
                        self.text_color_button, self.diff_text_color_button]:
             if not button.get_rgba():
                 button.set_rgba(Gdk.RGBA(0, 0, 0, 0))
 
         self._loading = False
+
+    def on_type_changed(self, _row, _param):
+        """Updates the provider list based on the selected type."""
+        selected_idx = self.type_row.get_selected()
+        if selected_idx < 0 or selected_idx >= len(self.types_list):
+            return
+
+        selected_type = self.types_list[selected_idx]
+
+        # Clear provider model (Gtk.StringList doesn't have clear, so we create new or splice)
+        # Splicing is cleaner
+        n_items = self.provider_model.get_n_items()
+        if n_items > 0:
+            self.provider_model.splice(0, n_items, [])
+
+        self.current_providers = get_providers_by_type(selected_type)
+
+        # If no providers for this type (shouldn't happen with our setup), add a dummy
+        # or handle gracefully. But we defined providers for all types.
+
+        for prov in self.current_providers:
+            self.provider_model.append(prov.name)
+
+        # Select first by default if not loading
+        if not self._loading and self.current_providers:
+            self.provider_row.set_selected(0)
+            # Trigger provider change to potentially update headers?
+            # For now, we only update headers on user explicit action, but here we just update state.
+            self.on_changed()
+
+    def on_provider_changed(self, _row, _param):
+        """Callback when provider changes."""
+        # Update custom headers with debug headers for this provider if empty
+        if self._loading:
+            return
+
+        prov_idx = self.provider_row.get_selected()
+        if 0 <= prov_idx < len(self.current_providers):
+            selected_provider_cls = self.current_providers[prov_idx]
+            # Instantiate provider to get debug headers
+            provider = selected_provider_cls()
+            debug_headers = provider.get_debug_headers()
+
+            # If headers are empty, populate them.
+            # We don't want to overwrite existing configuration blindly.
+            if not self.header_rows and debug_headers:
+                for key, value in debug_headers.items():
+                    self.add_header_row(key, value)
+
+        self.on_changed()
 
     def load_data(self, data):
         """Loads layer data into the UI widgets."""
@@ -183,6 +256,31 @@ class LayerRow(Adw.ExpanderRow):
         self.set_title(data.get('name', 'New Layer'))
         self.name_row.connect('notify::text',
                               lambda *args: self.set_title(self.name_row.get_text()))
+
+        # Load Type
+        layer_type_str = data.get('layer_type', ProviderType.CDN.value)
+        # Find index
+        type_idx = 0
+        for i, t in enumerate(self.types_list):
+            if t.value == layer_type_str:
+                type_idx = i
+                break
+        self.type_row.set_selected(type_idx)
+
+        # Force provider update immediately to populate the second dropdown
+        self.on_type_changed(None, None)
+
+        # Load Provider
+        provider_str = data.get('provider', '')
+        if provider_str:
+            # Find index in current_providers
+            prov_idx = 0
+            for i, prov in enumerate(self.current_providers):
+                if prov.name == provider_str:
+                    prov_idx = i
+                    break
+            self.provider_row.set_selected(prov_idx)
+
 
         header_color = Gdk.RGBA()
         if not (data.get('header_color') and header_color.parse(data['header_color'])):
@@ -298,7 +396,24 @@ class LayerRow(Adw.ExpanderRow):
 
     def get_data(self):
         """Collects and returns the layer configuration data."""
+
+        # Get selected Type
+        type_idx = self.type_row.get_selected()
+        if 0 <= type_idx < len(self.types_list):
+            selected_type = self.types_list[type_idx].value
+        else:
+            selected_type = ProviderType.CDN.value
+
+        # Get selected Provider
+        prov_idx = self.provider_row.get_selected()
+        if 0 <= prov_idx < len(self.current_providers):
+            selected_provider = self.current_providers[prov_idx].name
+        else:
+            selected_provider = "Unknown"
+
         data = {
+            'layer_type': selected_type,
+            'provider': selected_provider,
             'name': self.name_row.get_text(),
             'description': self.desc_row.get_text(),
             'host_url': self.url_row.get_text(),

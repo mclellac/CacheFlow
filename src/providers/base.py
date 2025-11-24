@@ -2,7 +2,8 @@
 Base definitions for header providers.
 """
 
-from typing import NamedTuple
+from typing import NamedTuple, Dict
+from enum import Enum
 
 class HeaderDefinition(NamedTuple):
     """
@@ -11,6 +12,34 @@ class HeaderDefinition(NamedTuple):
     description: str
     category: str
     expected_values: str
+
+class ProviderType(Enum):
+    """
+    Enum for the types of layers in the infrastructure.
+    """
+    CDN = "CDN"
+    LOAD_BALANCER = "Load Balancer"
+    CACHE_PROXY = "Cache Proxy"
+    APP_BACKEND = "Application Backend"
+
+class BaseProvider:
+    """
+    Base class for all providers.
+    """
+    name: str = "Unknown"
+    provider_type: ProviderType = ProviderType.APP_BACKEND
+
+    def get_debug_headers(self) -> Dict[str, str]:
+        """
+        Returns a dictionary of headers to enable debugging features for this provider.
+        """
+        return {}
+
+    def get_known_headers(self) -> Dict[str, HeaderDefinition]:
+        """
+        Returns a dictionary of known headers for this provider.
+        """
+        return {}
 
 # Categories
 CAT_CDN = "CDN"

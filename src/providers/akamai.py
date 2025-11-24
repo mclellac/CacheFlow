@@ -1,9 +1,9 @@
 """
-Akamai CDN headers.
+Akamai CDN implementation.
 """
 
 from typing import Dict
-from .base import HeaderDefinition, CAT_CDN
+from .base import HeaderDefinition, BaseProvider, ProviderType, CAT_CDN
 
 AKAMAI_HEADERS: Dict[str, HeaderDefinition] = {
     "server-timing": HeaderDefinition(
@@ -57,3 +57,22 @@ AKAMAI_HEADERS: Dict[str, HeaderDefinition] = {
         "Hex string"
     ),
 }
+
+class Akamai(BaseProvider):
+    """
+    Akamai CDN Provider.
+    """
+    name = "Akamai"
+    provider_type = ProviderType.CDN
+
+    def get_debug_headers(self) -> Dict[str, str]:
+        return {
+            "Pragma": (
+                "akamai-x-get-request-id, akamai-x-cache-on, akamai-x-cache-key, "
+                "akamai-x-check-cacheable, akamai-x-get-cache-key, "
+                "akamai-x-get-true-cache-key"
+            )
+        }
+
+    def get_known_headers(self) -> Dict[str, HeaderDefinition]:
+        return AKAMAI_HEADERS

@@ -28,6 +28,8 @@ providers_sources = [
   'providers/standard.py',
   'providers/akamai.py',
   'providers/varnish.py',
+  'providers/netscalar.py',
+  'providers/openshift.py',
   'providers/security.py',
   'providers/kubernetes.py',
 ]

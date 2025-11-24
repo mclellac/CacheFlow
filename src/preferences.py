@@ -43,6 +43,8 @@ DEFAULT_CONFIG = [
     {
         "name": "CDN_Edge",
         "description": "Akamai (External View)",
+        "layer_type": "CDN",
+        "provider": "Akamai",
         "host_url": "https://www.example.com",
         "custom_headers": {
             "Pragma": "akamai-x-get-request-id, akamai-x-cache-on, akamai-x-cache-key"
@@ -53,6 +55,8 @@ DEFAULT_CONFIG = [
     {
         "name": "Infra_Cache",
         "description": "Varnish (Internal Cache Layer)",
+        "layer_type": "Cache Proxy",
+        "provider": "Varnish",
         "host_url": "http://cache.examplefarm.com",
         "custom_headers": {
             "X-Varnish-Debug": "true",
@@ -69,6 +73,8 @@ DEFAULT_CONFIG = [
     {
         "name": "Application_Backend_A",
         "description": "Openshift App Backend (mybackend.openshift.app.com)",
+        "layer_type": "Application Backend",
+        "provider": "OpenShift",
         "host_url": "https://mybackend.openshift.app.com",
         "custom_headers": {},
         "path_match_only": [
@@ -108,6 +114,8 @@ class ConfigManager:
             layer_dict = {
                 'name': GLib.Variant('s', l_data.get('name', '')),
                 'description': GLib.Variant('s', l_data.get('description', '')),
+                'layer_type': GLib.Variant('s', l_data.get('layer_type', 'CDN')),
+                'provider': GLib.Variant('s', l_data.get('provider', 'Akamai')),
                 'host_url': GLib.Variant('s', l_data.get('host_url', '')),
                 'header_color': GLib.Variant('s', l_data.get('header_color', '')),
                 'body_color': GLib.Variant('s', l_data.get('body_color', '')),
@@ -137,6 +145,8 @@ class ConfigManager:
                 layer_dict = {
                     'name': GLib.Variant('s', l_data.get('name', '')),
                     'description': GLib.Variant('s', l_data.get('description', '')),
+                    'layer_type': GLib.Variant('s', l_data.get('layer_type', 'CDN')),
+                    'provider': GLib.Variant('s', l_data.get('provider', 'Akamai')),
                     'host_url': GLib.Variant('s', l_data.get('host_url', '')),
                     'header_color': GLib.Variant('s', l_data.get('header_color', '')),
                     'body_color': GLib.Variant('s', l_data.get('body_color', '')),
@@ -308,6 +318,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
         new_data = {
             'name': 'New Layer',
             'description': '',
+            'layer_type': 'CDN',
+            'provider': 'Akamai',
             'host_url': 'http://localhost',
             'custom_headers': {},
             'host_overrides': [],
