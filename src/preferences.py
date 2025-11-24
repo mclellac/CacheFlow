@@ -123,7 +123,8 @@ class ConfigManager:
                 'diff_text_color': GLib.Variant('s', l_data.get('diff_text_color', '')),
                 'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
                 'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
-                'path_match_only': GLib.Variant('as', l_data.get('path_match_only', []))
+                'path_match_only': GLib.Variant('as', l_data.get('path_match_only', [])),
+                'routing_rules': GLib.Variant('aa{ss}', l_data.get('routing_rules', []))
             }
             variant_data.append(layer_dict)
 
@@ -154,7 +155,8 @@ class ConfigManager:
                     'diff_text_color': GLib.Variant('s', l_data.get('diff_text_color', '')),
                     'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
                     'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
-                    'path_match_only': GLib.Variant('as', l_data.get('path_match_only', []))
+                    'path_match_only': GLib.Variant('as', l_data.get('path_match_only', [])),
+                    'routing_rules': GLib.Variant('aa{ss}', l_data.get('routing_rules', []))
                 }
                 variant_data.append(layer_dict)
             try:
@@ -323,7 +325,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
             'host_url': 'http://localhost',
             'custom_headers': {},
             'host_overrides': [],
-            'path_match_only': []
+            'path_match_only': [],
+            'routing_rules': []
         }
         self.create_layer_row(group, key, new_data)
         self.config_manager.save_layers(key, self._layer_rows[group])
