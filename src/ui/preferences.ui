@@ -69,6 +69,7 @@
         </child>
       </object>
     </child>
+
     <!-- Production Environment -->
     <child>
       <object class="AdwPreferencesPage">
@@ -86,6 +87,33 @@
                    <child type="prefix">
                         <object class="GtkImage">
                             <property name="icon-name">list-add-symbolic</property>
+                        </object>
+                   </child>
+               </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="AdwPreferencesGroup">
+            <property name="title">Configuration</property>
+            <child>
+               <object class="AdwActionRow" id="prod_export_row">
+                   <property name="title">Export to YAML</property>
+                   <property name="activatable">True</property>
+                   <child type="prefix">
+                        <object class="GtkImage">
+                            <property name="icon-name">document-save-symbolic</property>
+                        </object>
+                   </child>
+               </object>
+            </child>
+            <child>
+               <object class="AdwActionRow" id="prod_import_row">
+                   <property name="title">Import from YAML</property>
+                   <property name="activatable">True</property>
+                   <child type="prefix">
+                        <object class="GtkImage">
+                            <property name="icon-name">document-open-symbolic</property>
                         </object>
                    </child>
                </object>
@@ -117,6 +145,33 @@
             </child>
           </object>
         </child>
+        <child>
+          <object class="AdwPreferencesGroup">
+            <property name="title">Configuration</property>
+            <child>
+               <object class="AdwActionRow" id="staging_export_row">
+                   <property name="title">Export to YAML</property>
+                   <property name="activatable">True</property>
+                   <child type="prefix">
+                        <object class="GtkImage">
+                            <property name="icon-name">document-save-symbolic</property>
+                        </object>
+                   </child>
+               </object>
+            </child>
+            <child>
+               <object class="AdwActionRow" id="staging_import_row">
+                   <property name="title">Import from YAML</property>
+                   <property name="activatable">True</property>
+                   <child type="prefix">
+                        <object class="GtkImage">
+                            <property name="icon-name">document-open-symbolic</property>
+                        </object>
+                   </child>
+               </object>
+            </child>
+          </object>
+        </child>
       </object>
     </child>
 
@@ -142,6 +197,33 @@
             </child>
           </object>
         </child>
+        <child>
+          <object class="AdwPreferencesGroup">
+            <property name="title">Configuration</property>
+            <child>
+               <object class="AdwActionRow" id="qa_export_row">
+                   <property name="title">Export to YAML</property>
+                   <property name="activatable">True</property>
+                   <child type="prefix">
+                        <object class="GtkImage">
+                            <property name="icon-name">document-save-symbolic</property>
+                        </object>
+                   </child>
+               </object>
+            </child>
+            <child>
+               <object class="AdwActionRow" id="qa_import_row">
+                   <property name="title">Import from YAML</property>
+                   <property name="activatable">True</property>
+                   <child type="prefix">
+                        <object class="GtkImage">
+                            <property name="icon-name">document-open-symbolic</property>
+                        </object>
+                   </child>
+               </object>
+            </child>
+          </object>
+        </child>
       </object>
     </child>
 
@@ -161,6 +243,33 @@
                    <child type="prefix">
                         <object class="GtkImage">
                             <property name="icon-name">list-add-symbolic</property>
+                        </object>
+                   </child>
+               </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="AdwPreferencesGroup">
+            <property name="title">Configuration</property>
+            <child>
+               <object class="AdwActionRow" id="dev_export_row">
+                   <property name="title">Export to YAML</property>
+                   <property name="activatable">True</property>
+                   <child type="prefix">
+                        <object class="GtkImage">
+                            <property name="icon-name">document-save-symbolic</property>
+                        </object>
+                   </child>
+               </object>
+            </child>
+            <child>
+               <object class="AdwActionRow" id="dev_import_row">
+                   <property name="title">Import from YAML</property>
+                   <property name="activatable">True</property>
+                   <child type="prefix">
+                        <object class="GtkImage">
+                            <property name="icon-name">document-open-symbolic</property>
                         </object>
                    </child>
                </object>
