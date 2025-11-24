@@ -80,7 +80,7 @@ class Window(Adw.ApplicationWindow):
         if width > 0 and height > 0:
             dialog.set_content_width(width)
             dialog.set_content_height(height)
-        dialog.connect('close-request', self._on_header_dialog_close)
+        dialog.connect('closed', self._on_header_dialog_close)
         dialog.present(self)
 
     def setup_actions(self):
