@@ -6,6 +6,7 @@ HTTP requests across the configured infrastructure layers.
 import logging
 import fnmatch
 import warnings
+from typing import List, Dict, Optional, Tuple, Any
 from urllib.parse import urlparse
 
 import requests
@@ -30,7 +31,7 @@ class CacheFlowEngine:
     for each layer in the configuration.
     """
 
-    def __init__(self, config):
+    def __init__(self, config: Dict[str, Any]):
         """
         Initialize with a configuration dictionary.
         Config includes 'layers', 'user_agent', 'test_path',
@@ -52,7 +53,7 @@ class CacheFlowEngine:
         self.session.mount('https://', adapter)
         self.session.mount('http://', adapter)
 
-    def resolve_host(self, hostname):
+    def resolve_host(self, hostname: str) -> Tuple[str, Optional[Any]]:
         """
         Resolves a hostname to an IP address using custom DNS servers if configured.
         """
@@ -73,7 +74,7 @@ class CacheFlowEngine:
             log.error("Custom DNS resolution failed for %s: %s", hostname, e)
             return hostname, e
 
-    def run_inspection(self, test_path=None):
+    def run_inspection(self, test_path: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         Executes the inspection run against all configured layers.
         """
@@ -103,7 +104,8 @@ class CacheFlowEngine:
 
         return results
 
-    def _should_process_layer(self, layer, test_path, check_match):
+    def _should_process_layer(self, layer: Dict[str, Any], test_path: str,
+                              check_match: bool) -> bool:
         """Determines if a layer should be processed based on path matching."""
         if not check_match:
             return True
@@ -117,7 +119,8 @@ class CacheFlowEngine:
                 return True
         return False
 
-    def _process_layer(self, layer, test_path, user_agent):
+    def _process_layer(self, layer: Dict[str, Any], test_path: str,
+                       user_agent: str) -> Dict[str, Any]:
         """Processes a single layer."""
         # Determine overrides
         host_header_override = layer.get('host_header')
@@ -153,7 +156,7 @@ class CacheFlowEngine:
         return self._execute_request(url, headers, target_ip, layer,
                                      base_url + test_path)
 
-    def _resolve_dns_for_layer(self, hostname):
+    def _resolve_dns_for_layer(self, hostname: str) -> Tuple[str, Optional[Any]]:
         """Resolves DNS and updates the adapter map."""
         target_ip = hostname
         dns_error = None
@@ -163,7 +166,8 @@ class CacheFlowEngine:
                 self.dns_map[hostname] = target_ip
         return target_ip, dns_error
 
-    def _execute_request(self, url, headers, target_ip, layer, original_url):
+    def _execute_request(self, url: str, headers: Dict[str, str], target_ip: str,
+                         layer: Dict[str, Any], original_url: str) -> Dict[str, Any]:
         """Executes the HTTP request and handles errors."""
         # pylint: disable=too-many-arguments
         # pylint: disable=too-many-positional-arguments
@@ -205,7 +209,8 @@ class CacheFlowEngine:
 
         return layer_result
 
-    def _handle_error(self, result, message, exception, error_type):
+    def _handle_error(self, result: Dict[str, Any], message: str,
+                      exception: Exception, error_type: str) -> None:
         """Helper to update result with error info."""
         log.error("Request failed for %s: %s - %s",
                   result.get('url'), message, exception)

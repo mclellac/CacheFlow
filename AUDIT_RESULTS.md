@@ -39,18 +39,18 @@ The initial Pylint analysis revealed the following categories of issues:
 
 ## 5. Improvement Opportunities
 
-1.  **Refactor `run_inspection`**: Break down `src/engine.py:run_inspection` into smaller methods:
+1.  [x] **Refactor `run_inspection`**: Break down `src/engine.py:run_inspection` into smaller methods:
     *   `_should_process_layer(layer, test_path)`
     *   `_resolve_layer_host(hostname)`
     *   `_execute_layer_request(url, headers)`
     *   `_handle_request_error(exception)`
 
-2.  **Centralize Color Logic**: Create a helper method in `NodeGraph` or a separate `ThemeManager` to handle color resolution based on state (selected, dark mode, custom color).
+2.  [x] **Centralize Color Logic**: Create a helper method in `NodeGraph` or a separate `ThemeManager` to handle color resolution based on state (selected, dark mode, custom color).
 
-3.  **Fix Indentation**: `src/node_graph.py` has mixed indentation that needs immediate correction.
+3.  [x] **Fix Indentation**: `src/node_graph.py` has mixed indentation that needs immediate correction.
 
-4.  **Strict Comment Adherence**: Remove all inline comments and replace them with docstrings where explanation is necessary, or refactor the code to be self-documenting.
+4.  [x] **Strict Comment Adherence**: Remove all inline comments and replace them with docstrings where explanation is necessary, or refactor the code to be self-documenting.
 
-5.  **Logging Best Practices**: Switch to lazy logging (e.g., `log.info("Msg %s", arg)`) to improve performance when logging is disabled.
+5.  [x] **Logging Best Practices**: Switch to lazy logging (e.g., `log.info("Msg %s", arg)`) to improve performance when logging is disabled.
 
-6.  **Type Hinting**: While not strictly enforced by Pylint by default, adding type hints would improve code clarity, especially for the `NodeData` structure.
+6.  [x] **Type Hinting**: While not strictly enforced by Pylint by default, adding type hints would improve code clarity, especially for the `NodeData` structure.
