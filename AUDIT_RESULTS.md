@@ -60,3 +60,5 @@ The initial Pylint analysis revealed the following categories of issues:
 8.  [x] **Refactor Window Logic**: Add type hints and improve clarity in `src/window.py`.
 
 9.  [x] **Address Linting Issues**: Fix remaining Pylint warnings (e.g., unused imports, whitespace) and verify code quality.
+
+10. [x] **Refactor Layer Widgets**: Restore usage of `HeaderRow`, `OverrideRow`, and `PathMatchRow` templates to fix UI separation violation.
