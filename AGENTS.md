@@ -11,18 +11,21 @@ This document outlines the architectural rules and development guidelines for th
 ## Development Rules
 
 ### 1. UI Separation
+
 **ALL** UI layout and widget definition code must reside in `src/ui/` as XML templates.
+
 - **DO NOT** hardcode widget creation in Python (e.g., `Gtk.Box()`, `Gtk.Entry()`).
 - Use `@Gtk.Template` in Python classes to bind to the XML resources.
 - Subclass `Adw.Bin`, `Gtk.Box`, `Adw.PreferencesRow`, etc., in Python and link them to a template.
 
 ### 2. Configuration & Storage
+
 - The application configuration is stored in **GSettings** using the schema `com.github.mclellac.CacheFlow`.
-- **NO YAML**. Do not use YAML for configuration storage or serialization.
 - Complex configuration structures (like layers) should be stored using the `aa{sv}` (array of dictionaries) variant type in GSettings.
 - Use `GLib.Variant` to construct data for saving.
 
 ### 3. Code Style & Quality
+
 - Use `src/` for all python source files.
 - Ensure `__gtype_name__` matches the class name in Python and the template class in XML.
 - Code must be **PEP8 compliant**.
@@ -48,9 +51,11 @@ This document outlines the architectural rules and development guidelines for th
 This section documents critical bugs encountered during development and their required solutions. These patterns **must** be followed to avoid regressions.
 
 ### 1. Meson Build System: GSettings Installation
+
 - **Problem**: Settings were not persistent after installation because the `glib-compile-schemas` command failed silently or with a "No such file or directory" error.
 - **Root Cause**: The `meson.add_install_script` command was being passed a relative path. The script requires an absolute path to find the schema directory during installation.
 - **Solution**: Always construct an absolute path for the post-install script argument.
+
   ```meson
   # In data/meson.build
   schema_dir = get_option('datadir') / 'glib-2.0' / 'schemas'
@@ -61,20 +66,24 @@ This section documents critical bugs encountered during development and their re
   ```
 
 ### 2. GTK/Adwaita: Singleton Window Management
+
 - **Problem**: The `PreferencesWindow` would sometimes become unresponsive and could not be closed after being opened once.
 - **Root Cause**: `Adw.PreferencesWindow` (and many other GTK windows) only hides by default when closed, it is not destroyed. The application logic was attempting to re-show a hidden, inconsistent "zombie" window.
 - **Solution**: For singleton windows that should be recreated on demand, explicitly set them to be destroyed when closed. This ensures the `destroy` signal is emitted and cleanup logic can run.
+
   ```python
   # In PreferencesWindow.__init__
   self.set_destroy_with_parent(True)
   ```
 
 ### 3. GSettings: `bind_with_mapping` Data Types
+
 - **Problem**: Color preferences were not being loaded into the UI when the preferences window was opened.
 - **Root Cause**: A misunderstanding of the data types passed to the mapping functions.
 - **Solution**: The mapping functions must handle specific types for each direction:
   - The **`map_get`** function (setting -> widget) **receives a `GLib.Variant`** and must unpack it (e.g., with `.get_string()`).
   - The **`map_set`** function (widget -> setting) **receives a native Python type** (e.g., `Gdk.RGBA`) and **must return a `GLib.Variant`**.
+
   ```python
   # Correct mapping function signatures
   def setting_to_rgba(variant, _user_data=None):
@@ -86,7 +95,7 @@ This section documents critical bugs encountered during development and their re
   ```
 
 ## Dependencies
+
 - `requests`
 - `dnspython`
 - `PyGObject` (gtk4, libadwaita)
-- **NO PyYAML**.
