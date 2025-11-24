@@ -4,8 +4,7 @@ coordinating inspection tasks.
 """
 
 import logging
-import threading
-from typing import Dict, Any, List, Tuple
+from typing import List
 
 from gi.repository import Gtk, Adw, Gio, GLib
 
@@ -13,6 +12,7 @@ from .node_graph import NodeGraph  # pylint: disable=unused-import
 from .header_dialog import HeaderDialog
 from .node_data import NodeData
 from .analyzer import HeaderAnalyzer
+from .controller import InspectionController
 
 log = logging.getLogger(__name__)
 
@@ -39,6 +39,10 @@ class Window(Adw.ApplicationWindow):
         self.win_action_group = None
         self.env_model = None
         self.analyzer = HeaderAnalyzer()
+        self.controller = InspectionController(
+            on_success=self.on_inspection_succeeded,
+            on_error=self.on_inspection_failed
+        )
 
         self.setup_actions()
         self.setup_env_switcher()
@@ -204,32 +208,19 @@ class Window(Adw.ApplicationWindow):
             'verify_ssl': self.settings.get_boolean('verify-ssl')
         }
 
-        thread = threading.Thread(
-            target=self.do_inspection_thread, args=(config, path)
-        )
-        thread.daemon = True
-        thread.start()
+        self.controller.start_inspection(config, path)
 
-    def do_inspection_thread(self, config: Dict[str, Any], path: str) -> None:
-        """Executes the inspection in a background thread."""
-        # pylint: disable=import-outside-toplevel
-        from .engine import CacheFlowEngine
-        log.debug("Starting inspection in background thread.")
-        try:
-            engine = CacheFlowEngine(config)
-            results = engine.run_inspection(test_path=path)
-            GLib.idle_add(
-                self.on_inspection_succeeded, results, config['layers']
-            )
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            log.error("Exception in inspection thread: %s", e, exc_info=True)
-            GLib.idle_add(self.on_inspection_failed, e)
-
-    def on_inspection_succeeded(self, results: List[Dict[str, Any]],
-                                layer_config: List[Dict[str, Any]]) -> bool:
+    def on_inspection_succeeded(self, processed_nodes: List[NodeData]) -> bool:
         """Callback when inspection succeeds."""
-        log.debug("Inspection succeeded, processing results.")
-        self.process_and_display_results(results, layer_config)
+        log.debug("Inspection succeeded, displaying results.")
+
+        if not processed_nodes:
+            self.node_graph.set_data([])
+            self.content_stack.set_visible_child_name("empty")
+        else:
+            self.node_graph.set_data(processed_nodes)
+            self.content_stack.set_visible_child_name("graph")
+
         self.set_inspection_in_progress(False)
         return GLib.SOURCE_REMOVE
 
@@ -239,84 +230,6 @@ class Window(Adw.ApplicationWindow):
         self.show_error_dialog("Inspection Failed", str(exception))
         self.set_inspection_in_progress(False)
         return GLib.SOURCE_REMOVE
-
-    def process_and_display_results(self, results: List[Dict[str, Any]],
-                                    layer_config: List[Dict[str, Any]]) -> None:
-        """Processes inspection results and updates the node graph."""
-        log.debug("Processing inspection results for display.")
-        processed_nodes = []
-
-        if not results:
-            self.node_graph.set_data([])
-            self.content_stack.set_visible_child_name("empty")
-            return
-
-        for i, result in enumerate(results):
-            node_data = self._create_node_data(result, i, results, layer_config)
-            processed_nodes.append(node_data)
-
-        self.node_graph.set_data(processed_nodes)
-        self.content_stack.set_visible_child_name("graph")
-
-    def _create_node_data(self, result: Dict[str, Any], index: int,
-                          all_results: List[Dict[str, Any]],
-                          layer_config: List[Dict[str, Any]]) -> NodeData:
-        original_layer = next(
-            (layer for layer in layer_config if layer.get('name') == result.get('name')),
-            {}
-        )
-
-        headers_list = []
-        if 'error' in result:
-            error_type = result.get('error_type', 'unknown').capitalize()
-            error_message = result['error']
-            headers_list.append((f"Error ({error_type})", error_message, True, ""))
-            log.warning("Layer '%s' resulted in an error: %s",
-                        result.get('name'), result['error'])
-        else:
-            headers_list = self._compare_headers(result, index, all_results)
-
-        return NodeData(
-            name=result['name'],
-            headers=headers_list,
-            body_color=original_layer.get('body_color', ''),
-            header_color=original_layer.get('header_color', ''),
-            text_color=original_layer.get('text_color', ''),
-            diff_text_color=original_layer.get('diff_text_color', ''),
-            request_url=result.get('url'),
-            request_host=result.get('sent_host_header'),
-            request_method=result.get('method', 'GET')
-        )
-
-    def _compare_headers(self, result: Dict[str, Any], index: int,
-                         all_results: List[Dict[str, Any]]) -> List[Tuple[str, str, bool, str]]:
-        current_layer = {'name': result['name'], 'headers': result['headers']}
-        upstream_layer = None
-
-        if index < len(all_results) - 1:
-            upstream_result = all_results[index+1]
-            if 'headers' in upstream_result:
-                upstream_layer = {
-                    'name': upstream_result['name'],
-                    'headers': upstream_result['headers']
-                }
-
-        report = self.analyzer.analyze_layer(current_layer, upstream_layer)
-
-        headers_list = []
-        for item in report.items:
-            # Skip Removed and Missing for the node view
-            if item.change_type in ("REMOVED", "MISSING"):
-                continue
-
-            is_diff = item.change_type in ("ADDED", "MODIFIED")
-            note = item.description
-            if item.warning:
-                note = f"Warning: {item.warning} | {note}"
-
-            headers_list.append((item.key, item.value, is_diff, note))
-
-        return headers_list
 
     def set_inspection_in_progress(self, in_progress):
         """Toggles UI state during inspection."""
