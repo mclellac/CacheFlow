@@ -1,13 +1,20 @@
-import requests
-import fnmatch
-import dns.resolver
-import dns.exception
-import warnings
+"""
+This module contains the CacheFlowEngine, which is responsible for executing
+HTTP requests across the configured infrastructure layers.
+"""
+
 import logging
+import fnmatch
+import warnings
 from urllib.parse import urlparse
 
+import requests
+import dns.resolver
+import dns.exception
 from urllib3.exceptions import InsecureRequestWarning
+
 from .dns_adapter import DNSAdapter
+
 warnings.simplefilter('ignore', InsecureRequestWarning)
 
 log = logging.getLogger(__name__)
@@ -16,11 +23,18 @@ ERR_SSL = "SSL Error. The certificate may be invalid."
 ERR_TIMEOUT = "Connection timed out to {}."
 ERR_CONNECTION = "Connection refused by {}."
 
+
 class CacheFlowEngine:
+    """
+    The core engine for CacheFlow. Handles DNS resolution and HTTP requests
+    for each layer in the configuration.
+    """
+
     def __init__(self, config):
         """
         Initialize with a configuration dictionary.
-        Config includes 'layers', 'user_agent', 'test_path', optional 'dns_servers' and 'verify_ssl'.
+        Config includes 'layers', 'user_agent', 'test_path',
+        optional 'dns_servers' and 'verify_ssl'.
         """
         self.config = config
         self.dns_servers = []
@@ -30,7 +44,7 @@ class CacheFlowEngine:
         dns_config = self.config.get('dns_servers', '')
         if dns_config:
             self.dns_servers = [s.strip() for s in dns_config.split(',') if s.strip()]
-            log.debug(f"Using custom DNS servers: {self.dns_servers}")
+            log.debug("Using custom DNS servers: %s", self.dns_servers)
 
         self.session = requests.Session()
         self.dns_map = {}
@@ -39,8 +53,11 @@ class CacheFlowEngine:
         self.session.mount('http://', adapter)
 
     def resolve_host(self, hostname):
+        """
+        Resolves a hostname to an IP address using custom DNS servers if configured.
+        """
         if not self.dns_servers:
-            return hostname
+            return hostname, None
 
         try:
             resolver = dns.resolver.Resolver()
@@ -48,120 +65,149 @@ class CacheFlowEngine:
             answers = resolver.resolve(hostname, 'A')
             if answers:
                 ip = str(answers[0])
-                log.debug(f"Resolved '{hostname}' to '{ip}'")
+                log.debug("Resolved '%s' to '%s'", hostname, ip)
                 return ip, None
             raise dns.resolver.NoAnswer(f"No A records found for {hostname}")
-        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer, dns.resolver.Timeout) as e:
-            log.error(f"Custom DNS resolution failed for {hostname}: {e}")
+        except (dns.resolver.NXDOMAIN, dns.resolver.NoAnswer,
+                dns.resolver.Timeout) as e:
+            log.error("Custom DNS resolution failed for %s: %s", hostname, e)
             return hostname, e
 
     def run_inspection(self, test_path=None):
+        """
+        Executes the inspection run against all configured layers.
+        """
         log.info("Starting inspection run.")
         if test_path is None:
             test_path = self.config.get('test_path', '/')
 
         if not test_path.startswith('/'):
             test_path = '/' + test_path
-        log.debug(f"Using test path: '{test_path}'")
+        log.debug("Using test path: '%s'", test_path)
 
         results = []
         user_agent = self.config.get('user_agent', 'CacheFlow/0.1.0')
-
         layers_to_inspect = self.config.get('layers', [])
+
         for i, layer in enumerate(layers_to_inspect):
-            log.info(f"Processing layer: {layer.get('name')}")
-            path_match_patterns = layer.get('path_match_only', []) if i < len(layers_to_inspect) - 1 else []
-            if path_match_patterns:
-                for pattern in path_match_patterns:
-                    if fnmatch.fnmatch(test_path, pattern):
-                        break
-                else:
-                    log.debug(f"Path '{test_path}' did not match any patterns. Skipping layer.")
-                    continue
+            log.info("Processing layer: %s", layer.get('name'))
 
-            host_header_override = layer.get('host_header')
-            if 'host_overrides' in layer:
-                for override in layer['host_overrides']:
-                    if fnmatch.fnmatch(test_path, override['path_pattern']):
-                        host_header_override = override['host_header']
-                        break
-            log.debug(f"Host header override is: '{host_header_override}'")
-
-            base_url = layer['host_url'].rstrip('/')
-            parsed_url = urlparse(base_url)
-            hostname = parsed_url.hostname
-
-            final_host_header = host_header_override or hostname
-
-            # Resolve DNS if needed and update the adapter map
-            target_ip = hostname
-            dns_error = None
-            if self.dns_servers:
-                target_ip, dns_error = self.resolve_host(hostname)
-                if not dns_error and target_ip != hostname:
-                    self.dns_map[hostname] = target_ip
-            
-            if dns_error:
-                results.append({
-                    'name': layer['name'],
-                    'error': f"DNS Error: {dns_error}",
-                    'error_type': 'dns'
-                })
+            if not self._should_process_layer(layer, test_path,
+                                              i < len(layers_to_inspect) - 1):
+                log.debug("Path '%s' did not match any patterns. Skipping layer.",
+                          test_path)
                 continue
 
-            # Keep the original URL to preserve SNI and SSL verification
-            url = base_url + test_path
-
-            headers = layer.get('custom_headers', {}).copy()
-            headers['User-Agent'] = user_agent
-
-            # Set Host header if overridden
-            if host_header_override:
-                headers['Host'] = final_host_header
-
-            log.debug(f"Request URL: {url}")
-            log.debug(f"Request Headers: {headers}")
-            try:
-                response = self.session.get(url, headers=headers, timeout=10, stream=True, allow_redirects=False, verify=self.verify_ssl)
-                response.close()
-
-                layer_result = {
-                    'name': layer['name'],
-                    'description': layer.get('description', ''),
-                    'status_code': response.status_code,
-                    'headers': dict(response.headers)
-                }
-                log.debug(f"Request successful. Status: {response.status_code}")
-            except requests.exceptions.SSLError as e:
-                error_message = ERR_SSL
-                log.error(f"Request failed for {url}: {error_message} - {e}")
-                layer_result = {'name': layer['name'], 'error': error_message, 'error_type': 'ssl'}
-            except requests.exceptions.ConnectTimeout as e:
-                error_message = ERR_TIMEOUT.format(target_ip)
-                log.error(f"Request failed for {url}: {error_message} - {e}")
-                layer_result = {'name': layer['name'], 'error': error_message, 'error_type': 'timeout'}
-            except requests.exceptions.ConnectionError as e:
-                error_message = ERR_CONNECTION.format(target_ip)
-                log.error(f"Request failed for {url}: {error_message} - {e}")
-                layer_result = {'name': layer['name'], 'error': error_message, 'error_type': 'connection'}
-            except Exception as e:
-                error_message = str(e)
-                log.error(f"An unexpected error occurred for {url}: {e}")
-                layer_result = {
-                    'name': layer['name'],
-                    'error': error_message,
-                    'error_type': 'unknown'
-                }
-            
-            # Add common details to the result
-            layer_result.update({
-                'description': layer.get('description', ''),
-                'url': url,
-                'original_url': base_url + test_path,
-                'sent_host_header': headers.get('Host'),
-                'method': 'GET'
-            })
-
-            results.append(layer_result)
+            result = self._process_layer(layer, test_path, user_agent)
+            results.append(result)
 
         return results
+
+    def _should_process_layer(self, layer, test_path, check_match):
+        """Determines if a layer should be processed based on path matching."""
+        if not check_match:
+            return True
+
+        path_match_patterns = layer.get('path_match_only', [])
+        if not path_match_patterns:
+            return True
+
+        for pattern in path_match_patterns:
+            if fnmatch.fnmatch(test_path, pattern):
+                return True
+        return False
+
+    def _process_layer(self, layer, test_path, user_agent):
+        """Processes a single layer."""
+        # Determine overrides
+        host_header_override = layer.get('host_header')
+        if 'host_overrides' in layer:
+            for override in layer['host_overrides']:
+                if fnmatch.fnmatch(test_path, override['path_pattern']):
+                    host_header_override = override['host_header']
+                    break
+        log.debug("Host header override is: '%s'", host_header_override)
+
+        base_url = layer['host_url'].rstrip('/')
+        parsed_url = urlparse(base_url)
+        hostname = parsed_url.hostname
+        final_host_header = host_header_override or hostname
+
+        # Resolve DNS
+        target_ip, dns_error = self._resolve_dns_for_layer(hostname)
+        if dns_error:
+            return {
+                'name': layer['name'],
+                'error': f"DNS Error: {dns_error}",
+                'error_type': 'dns'
+            }
+
+        # Prepare Request
+        url = base_url + test_path
+        headers = layer.get('custom_headers', {}).copy()
+        headers['User-Agent'] = user_agent
+        if host_header_override:
+            headers['Host'] = final_host_header
+
+        # Execute Request
+        return self._execute_request(url, headers, target_ip, layer,
+                                     base_url + test_path)
+
+    def _resolve_dns_for_layer(self, hostname):
+        """Resolves DNS and updates the adapter map."""
+        target_ip = hostname
+        dns_error = None
+        if self.dns_servers:
+            target_ip, dns_error = self.resolve_host(hostname)
+            if not dns_error and target_ip != hostname:
+                self.dns_map[hostname] = target_ip
+        return target_ip, dns_error
+
+    def _execute_request(self, url, headers, target_ip, layer, original_url):
+        """Executes the HTTP request and handles errors."""
+        # pylint: disable=too-many-arguments
+        # pylint: disable=too-many-positional-arguments
+        log.debug("Request URL: %s", url)
+        log.debug("Request Headers: %s", headers)
+
+        layer_result = {
+            'name': layer['name'],
+            'description': layer.get('description', ''),
+            'url': url,
+            'original_url': original_url,
+            'sent_host_header': headers.get('Host'),
+            'method': 'GET'
+        }
+
+        try:
+            response = self.session.get(
+                url, headers=headers, timeout=10, stream=True,
+                allow_redirects=False, verify=self.verify_ssl
+            )
+            response.close()
+
+            layer_result.update({
+                'status_code': response.status_code,
+                'headers': dict(response.headers)
+            })
+            log.debug("Request successful. Status: %s", response.status_code)
+
+        except requests.exceptions.SSLError as e:
+            self._handle_error(layer_result, ERR_SSL, e, 'ssl')
+        except requests.exceptions.ConnectTimeout as e:
+            self._handle_error(layer_result, ERR_TIMEOUT.format(target_ip), e,
+                               'timeout')
+        except requests.exceptions.ConnectionError as e:
+            self._handle_error(layer_result, ERR_CONNECTION.format(target_ip), e,
+                               'connection')
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            self._handle_error(layer_result, str(e), e, 'unknown')
+
+        return layer_result
+
+    def _handle_error(self, result, message, exception, error_type):
+        """Helper to update result with error info."""
+        log.error("Request failed for %s: %s - %s",
+                  result.get('url'), message, exception)
+        result['error'] = message
+        result['error_type'] = error_type

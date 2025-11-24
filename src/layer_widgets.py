@@ -1,8 +1,17 @@
-from gi.repository import Gtk, Adw, GObject, Gdk
+"""
+This module defines custom widgets used in the Layer configuration UI,
+including the LayerRow for editing layer details.
+"""
+
+from gi.repository import Gtk, Adw, Gdk
 
 
 @Gtk.Template(filename='src/ui/layer_row.ui')
 class LayerRow(Adw.ExpanderRow):
+    """
+    A widget representing a single configuration layer in the settings.
+    Allows editing of layer properties like URL, headers, and colors.
+    """
     __gtype_name__ = 'LayerRow'
 
     name_row = Gtk.Template.Child()
@@ -54,18 +63,21 @@ class LayerRow(Adw.ExpanderRow):
         if layer_data:
             self.load_data(layer_data)
 
-        for button in [self.header_color_button, self.body_color_button, self.text_color_button, self.diff_text_color_button]:
+        for button in [self.header_color_button, self.body_color_button,
+                       self.text_color_button, self.diff_text_color_button]:
             if not button.get_rgba():
                 button.set_rgba(Gdk.RGBA(0, 0, 0, 0))
 
         self._loading = False
 
     def load_data(self, data):
+        """Loads layer data into the UI widgets."""
         self.name_row.set_text(data.get('name', ''))
         self.desc_row.set_text(data.get('description', ''))
         self.url_row.set_text(data.get('host_url', ''))
         self.set_title(data.get('name', 'New Layer'))
-        self.name_row.connect('notify::text', lambda *args: self.set_title(self.name_row.get_text()))
+        self.name_row.connect('notify::text',
+                              lambda *args: self.set_title(self.name_row.get_text()))
 
         header_color = Gdk.RGBA()
         if not (data.get('header_color') and header_color.parse(data['header_color'])):
@@ -83,7 +95,8 @@ class LayerRow(Adw.ExpanderRow):
         self.text_color_button.set_rgba(text_color)
 
         diff_text_color = Gdk.RGBA()
-        if not (data.get('diff_text_color') and diff_text_color.parse(data['diff_text_color'])):
+        if not (data.get('diff_text_color') and
+                diff_text_color.parse(data['diff_text_color'])):
             diff_text_color.parse('rgba(0,0,0,0)')
         self.diff_text_color_button.set_rgba(diff_text_color)
 
@@ -95,28 +108,33 @@ class LayerRow(Adw.ExpanderRow):
         overrides = data.get('host_overrides', [])
         if overrides:
             for override in overrides:
-                self.add_override_row(override.get('path_pattern', ''), override.get('host_header', ''))
+                self.add_override_row(override.get('path_pattern', ''),
+                                      override.get('host_header', ''))
 
         path_matches = data.get('path_match_only', [])
         if path_matches:
             for pattern in path_matches:
                 self.add_path_match_row(pattern)
 
-    def on_changed(self, *args):
+    def on_changed(self, *_args):
+        """Callback when any data in the layer row changes."""
         if self._loading:
             return
         if self.on_change_callback:
             self.on_change_callback()
 
-    def on_delete_clicked(self, btn):
+    def on_delete_clicked(self, _btn):
+        """Callback for the delete button."""
         if self.on_delete_callback:
             self.on_delete_callback(self)
 
-    def on_add_header(self, btn):
+    def on_add_header(self, _btn):
+        """Callback to add a new header row."""
         self.add_header_row()
         self.on_changed()
 
     def add_header_row(self, key='', value=''):
+        """Adds a header entry row."""
         row = DeletableEntryRow(
             num_entries=2,
             texts=[key, value],
@@ -128,15 +146,18 @@ class LayerRow(Adw.ExpanderRow):
         self.header_rows.append(row)
 
     def remove_header_row(self, row):
+        """Removes a header entry row."""
         self.headers_group.remove(row)
         self.header_rows.remove(row)
         self.on_changed()
 
-    def on_add_override(self, btn):
+    def on_add_override(self, _btn):
+        """Callback to add a new override row."""
         self.add_override_row()
         self.on_changed()
 
     def add_override_row(self, pattern='', host=''):
+        """Adds an override entry row."""
         row = DeletableEntryRow(
             num_entries=2,
             texts=[pattern, host],
@@ -148,15 +169,18 @@ class LayerRow(Adw.ExpanderRow):
         self.override_rows.append(row)
 
     def remove_override_row(self, row):
+        """Removes an override entry row."""
         self.overrides_group.remove(row)
         self.override_rows.remove(row)
         self.on_changed()
 
-    def on_add_path_match(self, btn):
+    def on_add_path_match(self, _btn):
+        """Callback to add a new path match row."""
         self.add_path_match_row()
         self.on_changed()
 
     def add_path_match_row(self, pattern=''):
+        """Adds a path match entry row."""
         row = DeletableEntryRow(
             num_entries=1,
             texts=[pattern],
@@ -168,11 +192,13 @@ class LayerRow(Adw.ExpanderRow):
         self.path_match_rows.append(row)
 
     def remove_path_match_row(self, row):
+        """Removes a path match entry row."""
         self.path_match_group.remove(row)
         self.path_match_rows.remove(row)
         self.on_changed()
 
     def get_data(self):
+        """Collects and returns the layer configuration data."""
         data = {
             'name': self.name_row.get_text(),
             'description': self.desc_row.get_text(),
@@ -208,7 +234,10 @@ class DeletableEntryRow(Adw.ActionRow):
     """A generic row with one or more entries and a delete button."""
     __gtype_name__ = 'DeletableEntryRow'
 
-    def __init__(self, num_entries=1, texts=None, placeholders=None, on_change=None, on_delete=None, **kwargs):
+    # pylint: disable=too-many-arguments
+    # pylint: disable=too-many-positional-arguments
+    def __init__(self, num_entries=1, texts=None, placeholders=None,
+                 on_change=None, on_delete=None, **kwargs):
         super().__init__(**kwargs)
         self.on_change = on_change
         self.on_delete = on_delete
@@ -230,14 +259,18 @@ class DeletableEntryRow(Adw.ActionRow):
 
         self.set_child(box)
 
-        delete_btn = Gtk.Button(icon_name='user-trash-symbolic', valign=Gtk.Align.CENTER, has_frame=False)
+        delete_btn = Gtk.Button(icon_name='user-trash-symbolic',
+                                valign=Gtk.Align.CENTER, has_frame=False)
         delete_btn.add_css_class('destructive-action')
-        delete_btn.connect('clicked', lambda b: self.on_delete(self) if self.on_delete else None)
+        delete_btn.connect('clicked',
+                           lambda b: self.on_delete(self) if self.on_delete else None)
         self.add_suffix(delete_btn)
 
-    def notify_change(self, *args):
+    def notify_change(self, *_args):
+        """Notifies when an entry value changes."""
         if self.on_change:
             self.on_change()
 
     def get_texts(self):
+        """Returns a list of text values from the entries."""
         return [entry.get_text() for entry in self.entries]

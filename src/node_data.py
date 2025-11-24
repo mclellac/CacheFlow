@@ -1,7 +1,24 @@
+"""
+This module defines the NodeData class, which encapsulates the data structure
+for individual nodes in the inspection graph.
+"""
+
+
 class NodeData:
     """Data class representing a node in the graph."""
 
+    # pylint: disable=too-many-instance-attributes
+    # pylint: disable=too-few-public-methods
+
     def __init__(self, name, headers, **kwargs):
+        """
+        Initialize the NodeData object.
+
+        Args:
+            name (str): The display name of the node.
+            headers (list): A list of header tuples.
+            **kwargs: Additional attributes like colors and request details.
+        """
         self.name = name
         self.headers = headers
         self.body_color = kwargs.get('body_color', '')
@@ -13,4 +30,13 @@ class NodeData:
         self.request_method = kwargs.get('request_method', 'GET')
 
     def get_property(self, name):
+        """
+        Retrieve a property by name safely.
+
+        Args:
+            name (str): The name of the property to retrieve.
+
+        Returns:
+            Any: The value of the property or None if it doesn't exist.
+        """
         return getattr(self, name, None)

@@ -1,4 +1,8 @@
-import gi
+"""
+This module handles the application preferences, including the PreferencesWindow
+and configuration management via GSettings.
+"""
+
 import logging
 from gi.repository import Gtk, Adw, Gio, GObject, GLib, Gdk
 
@@ -15,10 +19,11 @@ def setting_to_rgba(variant, _user_data=None):
         rgba_string = variant.get_string()
         # Ensure the string is not empty before parsing.
         if rgba_string and rgba.parse(rgba_string):
-            log.debug(f"Mapping GSettings string '{rgba_string}' to Gdk.RGBA.")
+            log.debug("Mapping GSettings string '%s' to Gdk.RGBA.", rgba_string)
             return GObject.Value(Gdk.RGBA, rgba)
 
-    log.warning(f"Failed to parse GSettings color string '{variant.get_string() if variant else 'None'}'. Using default.")
+    log.warning("Failed to parse GSettings color string '%s'. Using default.",
+                variant.get_string() if variant else 'None')
     rgba.parse('rgba(0,0,0,0)')
     return GObject.Value(Gdk.RGBA, rgba)
 
@@ -29,7 +34,7 @@ def rgba_to_setting(gdk_rgba, _user_data=None):
     Returning None tells the binding to NOT update the setting.
     """
     if gdk_rgba:
-        log.debug(f"Mapping Gdk.RGBA '{gdk_rgba.to_string()}' to GSettings string.")
+        log.debug("Mapping Gdk.RGBA '%s' to GSettings string.", gdk_rgba.to_string())
         return GLib.Variant('s', gdk_rgba.to_string())
     # If the widget's color is None (e.g., on init), do not save anything.
     log.debug("Widget provided a None RGBA. No setting will be saved.")
@@ -94,7 +99,7 @@ class ConfigManager:
 
     def save_layers(self, key, layer_rows):
         """Constructs a GVariant from a list of LayerRow widgets and saves it."""
-        log.info(f"Saving configuration for key '{key}'.")
+        log.info("Saving configuration for key '%s'.", key)
         layers_data = [row.get_data() for row in layer_rows]
 
         variant_data = []
@@ -116,8 +121,8 @@ class ConfigManager:
         try:
             variant = GLib.Variant('aa{sv}', variant_data)
             self.settings.set_value(key, variant)
-        except Exception as e:
-            log.error(f"Error saving config for key '{key}': {e}")
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            log.error("Error saving config for key '%s': %s", key, e)
 
     def ensure_default_config(self, key):
         """
@@ -144,13 +149,16 @@ class ConfigManager:
             try:
                 variant = GLib.Variant('aa{sv}', variant_data)
                 self.settings.set_value(key, variant)
-            except Exception as e:
-                log.error(f"Error creating default config for key '{key}': {e}")
-            log.info(f"No config found for '{key}'. Saved default configuration.")
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                log.error("Error creating default config for key '%s': %s", key, e)
+            log.info("No config found for '%s'. Saved default configuration.", key)
 
 
 @Gtk.Template(filename='src/ui/preferences.ui')
 class PreferencesWindow(Adw.PreferencesWindow):
+    """
+    A singleton window for managing application preferences and layer configurations.
+    """
     __gtype_name__ = 'PreferencesWindow'
 
     theme_row = Gtk.Template.Child()
@@ -175,7 +183,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.config_manager = ConfigManager(self.settings)
         self._layer_rows = {}
 
-        self.settings.bind('dns-servers', self.dns_row, 'text', Gio.SettingsBindFlags.DEFAULT)
+        self.settings.bind('dns-servers', self.dns_row, 'text',
+                           Gio.SettingsBindFlags.DEFAULT)
 
         self.theme_row.connect('notify::selected-item', self.on_theme_changed)
         self.load_theme()
@@ -183,16 +192,21 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.font_button.set_font(self.settings.get_string('node-font'))
         self.font_button.connect('font-set', self.on_font_set)
 
-        env_map = {'production': self.prod_group, 'staging': self.staging_group, 'qa': self.qa_group, 'dev': self.dev_group}
-        add_row_map = {'production': self.prod_add_row, 'staging': self.staging_add_row, 'qa': self.qa_add_row, 'dev': self.dev_add_row}
+        env_map = {'production': self.prod_group, 'staging': self.staging_group,
+                   'qa': self.qa_group, 'dev': self.dev_group}
+        add_row_map = {'production': self.prod_add_row, 'staging': self.staging_add_row,
+                       'qa': self.qa_add_row, 'dev': self.dev_add_row}
         for env, group in env_map.items():
             key = f'config-{env}'
-            add_row_map[env].connect('activated', lambda r, g=group, k=key: self.add_layer(g, k))
+            add_row_map[env].connect('activated',
+                                     lambda r, g=group, k=key: self.add_layer(g, k))
             self.setup_env_config(group, key)
-        
-        self.connect('close-request', lambda win: log.debug("PreferencesWindow close requested."))
+
+        self.connect('close-request',
+                     lambda win: log.debug("PreferencesWindow close requested."))
 
     def load_theme(self):
+        """Loads the current theme setting."""
         log.debug("Loading and applying theme preference.")
         theme = self.settings.get_string('theme')
         if theme == 'light':
@@ -202,8 +216,9 @@ class PreferencesWindow(Adw.PreferencesWindow):
         else:
             self.theme_row.set_selected(0)
 
-    def on_theme_changed(self, row, param):
-        log.info(f"Theme changed to index {row.get_selected()}.")
+    def on_theme_changed(self, row, _param):
+        """Callback when the theme selection changes."""
+        log.info("Theme changed to index %d.", row.get_selected())
         selected = row.get_selected()
         style_manager = Adw.StyleManager.get_default()
         if selected == 1:
@@ -217,12 +232,15 @@ class PreferencesWindow(Adw.PreferencesWindow):
             style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
 
     def on_font_set(self, button):
+        """Callback when the node font changes."""
         log.info("Node font changed.")
         font_string = button.get_font()
         self.settings.set_string('node-font', font_string)
 
     def setup_env_config(self, group, key):
-        log.debug(f"Setting up configuration for group '{group.get_title()}' with key '{key}'.")
+        """Populates the configuration group with layer rows."""
+        log.debug("Setting up configuration for group '%s' with key '%s'.",
+                  group.get_title(), key)
         self._layer_rows[group] = []
         self.config_manager.ensure_default_config(key)
         layers = self.config_manager.get_layers(key)
@@ -231,7 +249,9 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     def create_layer_row(self, group, key, data, save_on_change=True):
         """Creates a LayerRow and adds it to the UI."""
-        on_change_callback = (lambda: self.config_manager.save_layers(key, self._layer_rows[group])) if save_on_change else None
+        on_change_callback = (
+            lambda: self.config_manager.save_layers(key, self._layer_rows[group])
+        ) if save_on_change else None
 
         row = LayerRow(
             layer_data=data,
@@ -260,7 +280,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     def add_layer(self, group, key):
         """Handles adding a new, default layer to a group."""
-        log.info(f"Adding new layer to group '{group.get_title()}'.")
+        log.info("Adding new layer to group '%s'.", group.get_title())
         new_data = {
             'name': 'New Layer',
             'description': '',
@@ -274,7 +294,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     def remove_layer(self, group, key, row):
         """Handles removing a layer from a group."""
-        log.info(f"Removing layer '{row.get_title()}' from group '{group.get_title()}'.")
+        log.info("Removing layer '%s' from group '%s'.",
+                 row.get_title(), group.get_title())
         group.remove(row)
         if group in self._layer_rows and row in self._layer_rows[group]:
             self._layer_rows[group].remove(row)
