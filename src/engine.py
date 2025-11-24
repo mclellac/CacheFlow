@@ -124,6 +124,7 @@ class CacheFlowEngine:
 
             # Check for Dynamic Routing Rules
             routing_rules = layer.get('routing_rules', [])
+            rule_matched = False
             if routing_rules:
                 for rule in routing_rules:
                     path_match = rule.get('path_match')
@@ -143,6 +144,7 @@ class CacheFlowEngine:
                         log.info("Routing rule matched: %s", path_match)
                         backend_host = rule.get('backend_host')
                         path_rewrite = rule.get('path_rewrite')
+                        backend_host_header = rule.get('backend_host_header')
 
                         new_path = current_path
                         if path_rewrite:
@@ -183,6 +185,12 @@ class CacheFlowEngine:
                             'path_match_only': []
                         }
 
+                        if backend_host_header:
+                            backend_layer['host_overrides'].append({
+                                'path_pattern': '*',
+                                'host_header': backend_host_header
+                            })
+
                         # Add to queue
                         # We append this new layer to be processed next.
                         # IMPORTANT: Do we want to stop processing subsequent STATIC layers?
@@ -190,7 +198,36 @@ class CacheFlowEngine:
                         # So we truncate the queue after the current layer and append the new one.
                         inspection_queue = inspection_queue[:processed_count+1]
                         inspection_queue.append((backend_layer, new_path))
+                        rule_matched = True
                         break # Follow the first matching rule
+
+            # Check Default Backend if no rule matched
+            if not rule_matched:
+                default_backend = layer.get('default_backend_host')
+                if default_backend:
+                    log.info("No routing rule matched. Using default backend: %s", default_backend)
+                    default_host_header = layer.get('default_backend_host_header')
+
+                    backend_layer = {
+                        'name': f"Default Backend ({default_backend})",
+                        'description': 'Default backend',
+                        'layer_type': 'Application Backend',
+                        'provider': 'Unknown',
+                        'host_url': f"https://{default_backend}",
+                        'custom_headers': {},
+                        'host_overrides': [],
+                        'path_match_only': []
+                    }
+
+                    if default_host_header:
+                        backend_layer['host_overrides'].append({
+                            'path_pattern': '*',
+                            'host_header': default_host_header
+                        })
+
+                    # Replace subsequent static layers with default backend
+                    inspection_queue = inspection_queue[:processed_count+1]
+                    inspection_queue.append((backend_layer, current_path))
 
             processed_count += 1
 
