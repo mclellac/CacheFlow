@@ -27,4 +27,15 @@ SECURITY_HEADERS: Dict[str, HeaderDefinition] = {
         CAT_SECURITY,
         "DENY, SAMEORIGIN"
     ),
+    "referrer-policy": HeaderDefinition(
+        "Controls how much referrer information should be included with requests.",
+        CAT_SECURITY,
+        "no-referrer, no-referrer-when-downgrade, origin, origin-when-cross-origin, "
+        "same-origin, strict-origin, strict-origin-when-cross-origin, unsafe-url"
+    ),
+    "x-xss-protection": HeaderDefinition(
+        "Enables the Cross-site scripting (XSS) filter built into most recent web browsers.",
+        CAT_SECURITY,
+        "0, 1, 1; mode=block"
+    ),
 }

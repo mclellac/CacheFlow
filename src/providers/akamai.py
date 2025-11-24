@@ -31,4 +31,29 @@ AKAMAI_HEADERS: Dict[str, HeaderDefinition] = {
         CAT_CDN,
         "URL path + query params"
     ),
+    "x-origin-server": HeaderDefinition(
+        "Identifies the specific origin server that handled the request.",
+        CAT_CDN,
+        "Hostname"
+    ),
+    "x-cache-server": HeaderDefinition(
+        "Identifies the specific cache server that handled the request.",
+        CAT_CDN,
+        "Hostname"
+    ),
+    "x-cache-key-extended-internal-use-only": HeaderDefinition(
+        "Extended internal cache key details used by Akamai.",
+        CAT_CDN,
+        "Internal key format"
+    ),
+    "x-check-cacheable": HeaderDefinition(
+        "Indicates whether the response was deemed cacheable by the CDN.",
+        CAT_CDN,
+        "YES, NO"
+    ),
+    "x-akamai-request-id": HeaderDefinition(
+        "Unique identifier for the request assigned by Akamai.",
+        CAT_CDN,
+        "Hex string"
+    ),
 }

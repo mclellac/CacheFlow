@@ -35,4 +35,14 @@ STANDARD_HEADERS: Dict[str, HeaderDefinition] = {
         CAT_STANDARD,
         "Product/Version"
     ),
+    "content-type": HeaderDefinition(
+        "Indicates the media type of the resource.",
+        CAT_STANDARD,
+        "MIME type (e.g., text/html; charset=utf-8)"
+    ),
+    "date": HeaderDefinition(
+        "The date and time at which the message was originated.",
+        CAT_STANDARD,
+        "HTTP-date"
+    ),
 }
