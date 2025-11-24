@@ -11,7 +11,6 @@ from .utils import get_accent_color
 log = logging.getLogger(__name__)
 
 
-# pylint: disable=too-few-public-methods
 class HeaderItem(GObject.Object):
     """
     A GObject wrapper for a single header item to be used in a GListStore.
@@ -27,7 +26,6 @@ class HeaderItem(GObject.Object):
 
 
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/header_dialog.ui')
-# pylint: disable=too-few-public-methods
 class HeaderDialog(Adw.Dialog):
     """
     A dialog to display key-value headers from a node.

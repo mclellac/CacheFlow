@@ -19,7 +19,6 @@ class BaseExporter(GObject.Object):
         super().__init__()
         self.parent = parent_window
 
-    # pylint: disable=too-many-arguments,too-many-positional-arguments
     def show_dialog(self, title: str, action: Gtk.FileChooserAction,
                     filters: List[Gtk.FileFilter],
                     callback: Callable[[str], None],
