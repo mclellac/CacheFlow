@@ -19,6 +19,7 @@ python_sources = [
   'knowledge.py',
   'analyzer.py',
   'analysis_dialog.py',
+  'controller.py',
   'models.py',
 ]
 
