@@ -53,7 +53,7 @@
             <child>
               <object class="GtkShortcutsShortcut">
                 <property name="title">Inspect Node Headers</property>
-                <property name="shortcut-type">other</property>
+                <property name="shortcut-type">gesture</property>
                 <property name="subtitle">Double Click Node</property>
               </object>
             </child>

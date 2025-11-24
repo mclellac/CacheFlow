@@ -138,7 +138,7 @@ class Window(Adw.ApplicationWindow):
         else:
             self.env_label.set_text("No Host Configured")
 
-    def on_inspect_clicked(self, _):
+    def on_inspect_clicked(self, *_):
         """Callback for the inspect button."""
         log.info("Inspect button clicked.")
         path = self.path_entry.get_text()
