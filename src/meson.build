@@ -19,6 +19,12 @@ python_sources = [
   'knowledge.py',
   'analyzer.py',
   'analysis_dialog.py',
+  'providers/base.py',
+  'providers/standard.py',
+  'providers/akamai.py',
+  'providers/varnish.py',
+  'providers/security.py',
+  'providers/kubernetes.py',
 ]
 
 py_installation.install_sources(python_sources, subdir: 'cacheflow')

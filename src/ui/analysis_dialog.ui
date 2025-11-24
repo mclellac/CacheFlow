@@ -17,7 +17,7 @@
             </property>
           </object>
         </child>
-        <child type="content">
+        <property name="content">
           <object class="GtkStack" id="stack">
             <child>
               <object class="GtkStackPage">
@@ -48,7 +48,7 @@
               </object>
             </child>
           </object>
-        </child>
+        </property>
       </object>
     </child>
   </template>

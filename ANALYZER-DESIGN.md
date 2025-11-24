@@ -18,6 +18,7 @@ Crucially, the system implements a context-aware comparison engine that analyzes
   - ~~**Varnish**: `X-Varnish`, `Age`, `Via`.~~
   - ~~**Kubernetes/OpenShift**: `X-Forwarded-*`, `X-Original-Host`, ingress annotations.~~
 - ~~**Constraints**: Ensure strict PEP8 compliance and full docstring coverage.~~
+- **Refactoring**: Split into `src/providers/` (Akamai, Varnish, etc.) to improve modularity and maintainability.
 
 ### ~~2. Analyzer Engine (`src/analyzer.py`)~~
 - ~~Create a `HeaderAnalyzer` class responsible for generating analysis reports.~~
