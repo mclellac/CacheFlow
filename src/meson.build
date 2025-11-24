@@ -16,6 +16,9 @@ python_sources = [
   'node_data.py',
   'utils.py',
   'exporters.py',
+  'knowledge.py',
+  'analyzer.py',
+  'analysis_dialog.py',
 ]
 
 py_installation.install_sources(python_sources, subdir: 'cacheflow')

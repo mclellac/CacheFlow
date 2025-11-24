@@ -16,6 +16,15 @@
                 <property name="title">Headers</property>
               </object>
             </child>
+            <child type="end">
+              <object class="Gtk.Button" id="analyze_button">
+                <property name="label">Analyze</property>
+                <property name="tooltip-text">Analyze headers for issues</property>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
           </object>
         </child>
 
