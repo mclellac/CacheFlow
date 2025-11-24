@@ -19,6 +19,10 @@ python_sources = [
   'knowledge.py',
   'analyzer.py',
   'analysis_dialog.py',
+]
+
+providers_sources = [
+  'providers/__init__.py',
   'providers/base.py',
   'providers/standard.py',
   'providers/akamai.py',
@@ -28,6 +32,7 @@ python_sources = [
 ]
 
 py_installation.install_sources(python_sources, subdir: 'cacheflow')
+py_installation.install_sources(providers_sources, subdir: 'cacheflow/providers')
 
 gnome.compile_resources('cacheflow',
   'cacheflow.gresource.xml',
