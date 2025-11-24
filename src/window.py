@@ -81,6 +81,33 @@ class Window(Adw.ApplicationWindow):
             dialog.set_content_width(width)
             dialog.set_content_height(height)
         dialog.connect('closed', self._on_header_dialog_close)
+        dialog.connect('analyze-clicked', lambda d: self._on_analyze_requested(node))
+        dialog.present(self)
+
+    def _on_analyze_requested(self, node_data):
+        # Extract current layer dict
+        current_layer = {
+            'name': node_data.name,
+            'headers': {k: v for k, v, _, _ in node_data.headers}
+        }
+
+        # Find upstream layer
+        nodes = [n['data'] for n in self.node_graph.nodes]
+        upstream_layer = None
+        try:
+            idx = nodes.index(node_data)
+            if idx < len(nodes) - 1:
+                upstream_data = nodes[idx + 1]
+                upstream_layer = {
+                    'name': upstream_data.name,
+                    'headers': {k: v for k, v, _, _ in upstream_data.headers}
+                }
+        except ValueError:
+            log.warning("Node data not found in graph nodes.")
+
+        # pylint: disable=import-outside-toplevel
+        from .analysis_dialog import HeaderAnalysisDialog
+        dialog = HeaderAnalysisDialog(current_layer, upstream_layer)
         dialog.present(self)
 
     def setup_actions(self):

@@ -40,10 +40,17 @@ class HeaderDialog(Adw.Dialog):
     search_entry = Gtk.Template.Child()
     window_title = Gtk.Template.Child()
     stack = Gtk.Template.Child()
+    analyze_button = Gtk.Template.Child()
+
+    __gsignals__ = {
+        'analyze-clicked': (GObject.SignalFlags.RUN_FIRST, None, ()),
+    }
 
     def __init__(self, headers, heading=None, **kwargs):
         super().__init__(**kwargs)
         self._clipboard_provider = None
+
+        self.analyze_button.connect('clicked', self._on_analyze_clicked)
 
         if heading and heading != "Headers":
             self.window_title.set_title(f"Headers for {heading}")
@@ -182,6 +189,9 @@ class HeaderDialog(Adw.Dialog):
             self.activate_action("dialog.copy_selection", None)
             return True
         return False
+
+    def _on_analyze_clicked(self, _button):
+        self.emit('analyze-clicked')
 
     def _on_copy_activated(self, _action, _param):
         log.debug("Copy action activated.")

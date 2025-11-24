@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="libadwaita" version="1.0"/>
+  <template class="HeaderAnalysisDialog" parent="Adw.Dialog">
+    <property name="title">Header Analysis</property>
+    <property name="content-width">800</property>
+    <property name="content-height">600</property>
+    <child>
+      <object class="Adw.ToolbarView">
+        <child type="top">
+          <object class="Adw.HeaderBar">
+            <property name="title-widget">
+              <object class="Adw.WindowTitle" id="window_title">
+                <property name="title">Header Analysis</property>
+              </object>
+            </property>
+          </object>
+        </child>
+        <child type="content">
+          <object class="Gtk.Stack" id="stack">
+            <child>
+              <object class="Gtk.StackPage">
+                <property name="name">empty</property>
+                <property name="child">
+                  <object class="Adw.StatusPage">
+                    <property name="icon-name">text-x-generic-symbolic</property>
+                    <property name="title">No Analysis Available</property>
+                    <property name="description">Select a layer to analyze.</property>
+                  </object>
+                </property>
+              </object>
+            </child>
+            <child>
+              <object class="Gtk.StackPage">
+                <property name="name">list</property>
+                <property name="child">
+                  <object class="Gtk.ScrolledWindow">
+                    <property name="hscrollbar-policy">never</property>
+                    <child>
+                      <object class="Gtk.ListView" id="list_view">
+                        <property name="enable-rubberband">False</property>
+                        <property name="single-click-activate">False</property>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>
