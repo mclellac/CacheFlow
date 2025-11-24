@@ -520,7 +520,6 @@ class NodeGraph(Gtk.DrawingArea):
         """Helper to draw a rectangle with rounded corners."""
         # pylint: disable=too-many-arguments
         # pylint: disable=too-many-positional-arguments
-        # pylint: disable=too-many-locals
         if corners is None:
             corners = {'tl': True, 'tr': True, 'bl': True, 'br': True}
         cr.new_path()

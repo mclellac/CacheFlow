@@ -78,7 +78,7 @@ class HeaderDialog(Adw.Dialog):
         self.search_entry.connect('search-changed', self._on_search_changed)
 
     def _on_items_changed(self, _model, _position, _removed, _added):
-        if self.filter_model.get_n_items() == 0:
+        if not self.filter_model.get_n_items():
             self.stack.set_visible_child_name("empty")
         else:
             self.stack.set_visible_child_name("list")
