@@ -54,3 +54,9 @@ The initial Pylint analysis revealed the following categories of issues:
 5.  [x] **Logging Best Practices**: Switch to lazy logging (e.g., `log.info("Msg %s", arg)`) to improve performance when logging is disabled.
 
 6.  [x] **Type Hinting**: While not strictly enforced by Pylint by default, adding type hints would improve code clarity, especially for the `NodeData` structure.
+
+7.  [x] **Unify Error Handling**: Consolidate error handling logic in `src/engine.py` to reduce duplication.
+
+8.  [x] **Refactor Window Logic**: Add type hints and improve clarity in `src/window.py`.
+
+9.  [x] **Address Linting Issues**: Fix remaining Pylint warnings (e.g., unused imports, whitespace) and verify code quality.
