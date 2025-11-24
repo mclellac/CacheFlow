@@ -1,23 +1,15 @@
 # CacheFlow Improvement Plan
 
 ## Code Duplication
-[x] Consolidate header comparison logic. Currently, `src/window.py` (`_compare_headers`) and `src/analyzer.py` (`analyze_layer`) both implement diffing logic (Added/Removed/Modified). The `HeaderAnalyzer` class should be the single source of truth for header comparison, returning a structure that `Window` can also use for graph node generation.
+
 [] Extract repeated UI patterns. `src/analysis_dialog.py` and `src/header_dialog.py` both manually construct list rows using `Gtk.SignalListItemFactory`. Create a shared helper or widget (e.g., `HeaderRowWidget`) to handle common header display formatting (key, value, description styling).
 
 ## Code Organization
+
 [] Refactor `src/window.py` to reduce complexity. The `Window` class currently manages UI, inspection orchestration, and result processing. Extract the inspection execution and result processing logic into a dedicated `InspectionController` or expand `CacheFlowEngine` to handle the business logic of interpreting results.
-[x] Decouple UI construction from logic in Dialogs. Move the inner class `AnalysisWrapper` and `HeaderItem` to a shared models module (e.g., `src/models.py`) to keep the Dialog files focused on View logic.
 [] Standardize internal methods. Ensure all internal helper methods in `src/node_graph.py` and `src/window.py` strictly follow the `_` prefix convention and are grouped logically or moved to utility modules if generic.
 
-## Analyzer Improvements
-[x] **Make Analyzer Resizable**: Convert `HeaderAnalysisDialog` from `Adw.Dialog` to `Adw.Window` (or `Gtk.Window`). This ensures the window is fully resizable, can be minimized/maximized independently of the main window, and solves the user's request for a resizable interface.
-[x] **Persist Analyzer Size**: Add GSettings keys (`analyzer-width`, `analyzer-height`) to save and restore the dimensions of the Analyzer window, ensuring a consistent user experience.
-[x] **Intelligent Explanations - Security**: Add checks for missing or misconfigured security headers:
-    - `Strict-Transport-Security` (HSTS)
-    - `Content-Security-Policy` (CSP)
-    - `X-Content-Type-Options: nosniff`
-    - `X-Frame-Options`
-[x] **Intelligent Explanations - Caching Conflicts**: Detect conflicting directives in `Cache-Control`, such as `no-store` combined with `max-age` or `public`.
-[x] **Intelligent Explanations - Cookie Caching**: specific warning if `Set-Cookie` is present on a response that is otherwise cacheable (missing `private` or `no-cache`), which is a common security risk.
-[x] **Intelligent Explanations - Stale Content**: Compare `Age` header against `Cache-Control: max-age`. If `Age` > `max-age`, flag it as "Stale/Expired".
-[x] **Intelligent Explanations - Routing**: Analyze the `Via` header to detect potential routing loops or excessive hops.
+## Refactor Preferences and how nodes will work
+
+[] Envioronments should be configured based on Technology stacks and application backends as this tool is intended to be used by enterprises which can have complex infrastructure configurations. Layers should be configured based first on selecting the Layer technology (IE: If the user has a CDN they could add an Akamai Layer and configure any overrides or settings from there. If they then have a Load Balancer at Origin, they could select a Load Balancer and the type of load balancer ie: Netscalar, and configure what they need to there.) Layers should be categorized by type then technology/provider. So CDN is the type, Akamai is the provider. Load Balancer is the type, Netscalar is the provider. Cache Proxies is the type, Varnish is the provider, then Application Backends is the Type, OpenShift is the provider. The code for this should reside in src/providers, and for now lets stick with implementing Akamai, Netscalar, Varnish, and OpenShift for the applicaiton backends.
+[] Preferences will need to be updated to use this new Providers configurations
