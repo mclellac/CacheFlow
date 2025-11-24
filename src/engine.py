@@ -128,19 +128,13 @@ class CacheFlowEngine:
             if routing_rules:
                 for rule in routing_rules:
                     path_match = rule.get('path_match')
-                    # Simple fnmatch or regex? Let's assume fnmatch for consistency with existing features,
-                    # or maybe regex if the user wants power. The requirement mentioned regsub.
-                    # Let's try regex match if fnmatch fails or just use regex.
-                    # The existing path_match_only uses fnmatch.
-                    # But regsub implies regex. Let's use regex for matching too for flexibility.
+                    # User requested glob/wildcard support (e.g. /path vs /path/*)
+                    # We use fnmatch to support this.
+                    is_match = False
+                    if path_match:
+                        is_match = fnmatch.fnmatch(current_path, path_match)
 
-                    try:
-                        match = re.search(path_match, current_path) if path_match else None
-                    except re.error as e:
-                        log.error("Invalid regex in routing rule '%s': %s", path_match, e)
-                        continue
-
-                    if match:
+                    if is_match:
                         log.info("Routing rule matched: %s", path_match)
                         backend_host = rule.get('backend_host')
                         path_rewrite = rule.get('path_rewrite')
