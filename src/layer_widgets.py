@@ -6,6 +6,111 @@ including the LayerRow for editing layer details.
 from gi.repository import Gtk, Adw, Gdk
 
 
+@Gtk.Template(filename='src/ui/header_row.ui')
+class HeaderRow(Adw.PreferencesRow):
+    """Row for editing a single header key-value pair."""
+    __gtype_name__ = 'HeaderRow'
+
+    key_entry = Gtk.Template.Child()
+    val_entry = Gtk.Template.Child()
+    delete_btn = Gtk.Template.Child()
+
+    def __init__(self, key='', value='', on_change=None, on_delete=None, **kwargs):
+        super().__init__(**kwargs)
+        self.on_change = on_change
+        self.on_delete = on_delete
+
+        self.key_entry.set_text(key)
+        self.val_entry.set_text(value)
+
+        self.key_entry.connect('changed', self.notify_change)
+        self.val_entry.connect('changed', self.notify_change)
+        self.delete_btn.connect('clicked', self.on_delete_clicked)
+
+    def notify_change(self, *_args):
+        """Notifies when data changes."""
+        if self.on_change:
+            self.on_change()
+
+    def on_delete_clicked(self, _btn):
+        """Callback for delete button."""
+        if self.on_delete:
+            self.on_delete(self)
+
+    def get_texts(self):
+        """Returns [key, value] list."""
+        return [self.key_entry.get_text(), self.val_entry.get_text()]
+
+
+@Gtk.Template(filename='src/ui/override_row.ui')
+class OverrideRow(Adw.PreferencesRow):
+    """Row for editing a host override."""
+    __gtype_name__ = 'OverrideRow'
+
+    pat_entry = Gtk.Template.Child()
+    host_entry = Gtk.Template.Child()
+    delete_btn = Gtk.Template.Child()
+
+    def __init__(self, pattern='', host='', on_change=None, on_delete=None, **kwargs):
+        super().__init__(**kwargs)
+        self.on_change = on_change
+        self.on_delete = on_delete
+
+        self.pat_entry.set_text(pattern)
+        self.host_entry.set_text(host)
+
+        self.pat_entry.connect('changed', self.notify_change)
+        self.host_entry.connect('changed', self.notify_change)
+        self.delete_btn.connect('clicked', self.on_delete_clicked)
+
+    def notify_change(self, *_args):
+        """Notifies when data changes."""
+        if self.on_change:
+            self.on_change()
+
+    def on_delete_clicked(self, _btn):
+        """Callback for delete button."""
+        if self.on_delete:
+            self.on_delete(self)
+
+    def get_texts(self):
+        """Returns [pattern, host] list."""
+        return [self.pat_entry.get_text(), self.host_entry.get_text()]
+
+
+@Gtk.Template(filename='src/ui/path_match_row.ui')
+class PathMatchRow(Adw.PreferencesRow):
+    """Row for editing a path match pattern."""
+    __gtype_name__ = 'PathMatchRow'
+
+    pat_entry = Gtk.Template.Child()
+    delete_btn = Gtk.Template.Child()
+
+    def __init__(self, pattern='', on_change=None, on_delete=None, **kwargs):
+        super().__init__(**kwargs)
+        self.on_change = on_change
+        self.on_delete = on_delete
+
+        self.pat_entry.set_text(pattern)
+
+        self.pat_entry.connect('changed', self.notify_change)
+        self.delete_btn.connect('clicked', self.on_delete_clicked)
+
+    def notify_change(self, *_args):
+        """Notifies when data changes."""
+        if self.on_change:
+            self.on_change()
+
+    def on_delete_clicked(self, _btn):
+        """Callback for delete button."""
+        if self.on_delete:
+            self.on_delete(self)
+
+    def get_texts(self):
+        """Returns [pattern] list."""
+        return [self.pat_entry.get_text()]
+
+
 @Gtk.Template(filename='src/ui/layer_row.ui')
 class LayerRow(Adw.ExpanderRow):
     """
@@ -135,10 +240,8 @@ class LayerRow(Adw.ExpanderRow):
 
     def add_header_row(self, key='', value=''):
         """Adds a header entry row."""
-        row = DeletableEntryRow(
-            num_entries=2,
-            texts=[key, value],
-            placeholders=["Header Name", "Header Value"],
+        row = HeaderRow(
+            key=key, value=value,
             on_change=self.on_changed,
             on_delete=self.remove_header_row
         )
@@ -158,10 +261,8 @@ class LayerRow(Adw.ExpanderRow):
 
     def add_override_row(self, pattern='', host=''):
         """Adds an override entry row."""
-        row = DeletableEntryRow(
-            num_entries=2,
-            texts=[pattern, host],
-            placeholders=["Path Pattern (e.g. /news/*)", "Host Header"],
+        row = OverrideRow(
+            pattern=pattern, host=host,
             on_change=self.on_changed,
             on_delete=self.remove_override_row
         )
@@ -181,10 +282,8 @@ class LayerRow(Adw.ExpanderRow):
 
     def add_path_match_row(self, pattern=''):
         """Adds a path match entry row."""
-        row = DeletableEntryRow(
-            num_entries=1,
-            texts=[pattern],
-            placeholders=["Path Pattern (e.g. /api/*)"],
+        row = PathMatchRow(
+            pattern=pattern,
             on_change=self.on_changed,
             on_delete=self.remove_path_match_row
         )
@@ -228,49 +327,3 @@ class LayerRow(Adw.ExpanderRow):
                 data['path_match_only'].append(p)
 
         return data
-
-
-class DeletableEntryRow(Adw.ActionRow):
-    """A generic row with one or more entries and a delete button."""
-    __gtype_name__ = 'DeletableEntryRow'
-
-    # pylint: disable=too-many-arguments
-    # pylint: disable=too-many-positional-arguments
-    def __init__(self, num_entries=1, texts=None, placeholders=None,
-                 on_change=None, on_delete=None, **kwargs):
-        super().__init__(**kwargs)
-        self.on_change = on_change
-        self.on_delete = on_delete
-        self.entries = []
-
-        if texts is None:
-            texts = [''] * num_entries
-        if placeholders is None:
-            placeholders = [''] * num_entries
-
-        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        for i in range(num_entries):
-            entry = Gtk.Entry(hexpand=True)
-            entry.set_text(texts[i])
-            entry.set_placeholder_text(placeholders[i])
-            entry.connect('changed', self.notify_change)
-            box.append(entry)
-            self.entries.append(entry)
-
-        self.set_child(box)
-
-        delete_btn = Gtk.Button(icon_name='user-trash-symbolic',
-                                valign=Gtk.Align.CENTER, has_frame=False)
-        delete_btn.add_css_class('destructive-action')
-        delete_btn.connect('clicked',
-                           lambda b: self.on_delete(self) if self.on_delete else None)
-        self.add_suffix(delete_btn)
-
-    def notify_change(self, *_args):
-        """Notifies when an entry value changes."""
-        if self.on_change:
-            self.on_change()
-
-    def get_texts(self):
-        """Returns a list of text values from the entries."""
-        return [entry.get_text() for entry in self.entries]
