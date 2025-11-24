@@ -110,7 +110,7 @@ class Window(Adw.ApplicationWindow):
         # pylint: disable=import-outside-toplevel
         from .analysis_dialog import HeaderAnalysisDialog
         dialog = HeaderAnalysisDialog(current_layer, upstream_layer)
-        dialog.present(self)
+        dialog.present()
 
     def setup_actions(self):
         """Sets up window-scope actions."""
