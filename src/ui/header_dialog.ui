@@ -17,9 +17,14 @@
               </object>
             </child>
             <child type="end">
-              <object class="Gtk.Button" id="analyze_button">
-                <property name="label">Analyze</property>
+              <object class="GtkButton" id="analyze_button">
                 <property name="tooltip-text">Analyze headers for issues</property>
+                <property name="child">
+                  <object class="AdwButtonContent">
+                    <property name="icon-name">system-search-symbolic</property>
+                    <property name="label">Analyze</property>
+                  </object>
+                </property>
                 <style>
                   <class name="suggested-action"/>
                 </style>

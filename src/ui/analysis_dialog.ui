@@ -2,28 +2,28 @@
 <interface>
   <requires lib="gtk" version="4.0"/>
   <requires lib="libadwaita" version="1.0"/>
-  <template class="HeaderAnalysisDialog" parent="Adw.Dialog">
+  <template class="HeaderAnalysisDialog" parent="AdwDialog">
     <property name="title">Header Analysis</property>
     <property name="content-width">800</property>
     <property name="content-height">600</property>
     <child>
-      <object class="Adw.ToolbarView">
+      <object class="AdwToolbarView">
         <child type="top">
-          <object class="Adw.HeaderBar">
+          <object class="AdwHeaderBar">
             <property name="title-widget">
-              <object class="Adw.WindowTitle" id="window_title">
+              <object class="AdwWindowTitle" id="window_title">
                 <property name="title">Header Analysis</property>
               </object>
             </property>
           </object>
         </child>
         <child type="content">
-          <object class="Gtk.Stack" id="stack">
+          <object class="GtkStack" id="stack">
             <child>
-              <object class="Gtk.StackPage">
+              <object class="GtkStackPage">
                 <property name="name">empty</property>
                 <property name="child">
-                  <object class="Adw.StatusPage">
+                  <object class="AdwStatusPage">
                     <property name="icon-name">text-x-generic-symbolic</property>
                     <property name="title">No Analysis Available</property>
                     <property name="description">Select a layer to analyze.</property>
@@ -32,13 +32,13 @@
               </object>
             </child>
             <child>
-              <object class="Gtk.StackPage">
+              <object class="GtkStackPage">
                 <property name="name">list</property>
                 <property name="child">
-                  <object class="Gtk.ScrolledWindow">
+                  <object class="GtkScrolledWindow">
                     <property name="hscrollbar-policy">never</property>
                     <child>
-                      <object class="Gtk.ListView" id="list_view">
+                      <object class="GtkListView" id="list_view">
                         <property name="enable-rubberband">False</property>
                         <property name="single-click-activate">False</property>
                       </object>
