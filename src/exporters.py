@@ -53,7 +53,8 @@ class BaseExporter(GObject.Object):
 class ConfigExporter(BaseExporter):
     """Handles configuration export and import."""
 
-    def export_config(self, data: List[Any], default_filename: str = "config.yaml") -> None:
+    def export_config(self, data: List[Any], default_filename: str = "config.yaml",
+                      on_success: Optional[Callable[[str], None]] = None) -> None:
         """Exports configuration data to a YAML file."""
         filter_yaml = Gtk.FileFilter()
         filter_yaml.set_name("YAML files")
@@ -65,6 +66,8 @@ class ConfigExporter(BaseExporter):
                 with open(filepath, 'w', encoding='utf-8') as f:
                     yaml.dump(data, f, sort_keys=False)
                 log.info("Configuration exported to %s", filepath)
+                if on_success:
+                    on_success(filepath)
             except Exception as e:  # pylint: disable=broad-exception-caught
                 log.error("Failed to export configuration: %s", e)
 

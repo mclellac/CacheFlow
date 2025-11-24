@@ -28,6 +28,8 @@ class Window(Adw.ApplicationWindow):
     node_graph = Gtk.Template.Child()
     spinner = Gtk.Template.Child()
     env_switcher = Gtk.Template.Child()
+    content_stack = Gtk.Template.Child()
+    toast_overlay = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -64,24 +66,23 @@ class Window(Adw.ApplicationWindow):
         return False
 
     def _on_header_dialog_close(self, dialog):
-        width = dialog.get_width()
-        height = dialog.get_height()
+        width = dialog.get_content_width()
+        height = dialog.get_content_height()
         self.settings.set_int('header-dialog-width', width)
         self.settings.set_int('header-dialog-height', height)
 
     def _on_node_double_clicked(self, _, node):
         dialog = HeaderDialog(
             headers=node.get_property('headers'),
-            heading=node.get_property('name'),
-            transient_for=self,
-            modal=True
+            heading=node.get_property('name')
         )
         width = self.settings.get_int('header-dialog-width')
         height = self.settings.get_int('header-dialog-height')
-        dialog.set_default_size(width, height)
-        dialog.set_resizable(True)
+        if width > 0 and height > 0:
+            dialog.set_content_width(width)
+            dialog.set_content_height(height)
         dialog.connect('close-request', self._on_header_dialog_close)
-        dialog.present()
+        dialog.present(self)
 
     def setup_actions(self):
         """Sets up window-scope actions."""
@@ -126,6 +127,7 @@ class Window(Adw.ApplicationWindow):
         new_env = self.environments[selected_idx]
         self.settings.set_string('active-environment', new_env)
         self.node_graph.set_data([])
+        self.content_stack.set_visible_child_name("empty")
         self.update_env_label(new_env)
 
     def update_env_label(self, env_name):
@@ -218,6 +220,7 @@ class Window(Adw.ApplicationWindow):
 
         if not results:
             self.node_graph.set_data([])
+            self.content_stack.set_visible_child_name("empty")
             return
 
         for i, result in enumerate(results):
@@ -225,6 +228,7 @@ class Window(Adw.ApplicationWindow):
             processed_nodes.append(node_data)
 
         self.node_graph.set_data(processed_nodes)
+        self.content_stack.set_visible_child_name("graph")
 
     def _create_node_data(self, result: Dict[str, Any], index: int,
                           all_results: List[Dict[str, Any]],
@@ -298,8 +302,13 @@ class Window(Adw.ApplicationWindow):
 
     def show_error_dialog(self, primary_text, secondary_text):
         """Displays an error dialog."""
-        dialog = Adw.MessageDialog.new(self, primary_text, secondary_text)
+        dialog = Adw.AlertDialog.new(primary_text, secondary_text)
         dialog.add_response("ok", "OK")
         dialog.set_default_response("ok")
         dialog.set_close_response("ok")
-        dialog.present()
+        dialog.present(self)
+
+    def show_toast(self, message: str) -> None:
+        """Displays a toast notification."""
+        toast = Adw.Toast.new(message)
+        self.toast_overlay.add_toast(toast)
