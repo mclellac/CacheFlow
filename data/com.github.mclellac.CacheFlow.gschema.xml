@@ -9,9 +9,9 @@
       <default>'/'</default>
       <summary>The last used test path</summary>
     </key>
-    <key name="active-environment" type="s">
-      <default>'production'</default>
-      <summary>The currently active environment</summary>
+    <key name="active-config-id" type="s">
+      <default>''</default>
+      <summary>The currently active configuration ID</summary>
     </key>
     <key name="node-font" type="s">
       <default>'Monospace 14'</default>
@@ -29,21 +29,9 @@
       <default>false</default>
       <summary>Whether to verify SSL certificates</summary>
     </key>
-    <key name="config-production" type="aa{sv}">
+    <key name="configurations" type="aa{sv}">
       <default>[]</default>
-      <summary>Configuration for the Production environment</summary>
-    </key>
-    <key name="config-staging" type="aa{sv}">
-      <default>[]</default>
-      <summary>Configuration for the Staging environment</summary>
-    </key>
-    <key name="config-qa" type="aa{sv}">
-      <default>[]</default>
-      <summary>Configuration for the QA environment</summary>
-    </key>
-    <key name="config-dev" type="aa{sv}">
-      <default>[]</default>
-      <summary>Configuration for the Dev environment</summary>
+      <summary>List of domain configurations</summary>
     </key>
     <key name="window-width" type="i">
       <default>-1</default>
