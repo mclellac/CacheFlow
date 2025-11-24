@@ -15,6 +15,7 @@ python_sources = [
   'dns_adapter.py',
   'node_data.py',
   'utils.py',
+  'exporters.py',
 ]
 
 py_installation.install_sources(python_sources, subdir: 'cacheflow')

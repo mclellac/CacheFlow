@@ -4,10 +4,10 @@ and configuration management via GSettings.
 """
 
 import logging
-import yaml
 from gi.repository import Gtk, Adw, Gio, GObject, GLib, Gdk
 
 from .layer_widgets import LayerRow
+from .exporters import ConfigExporter
 
 log = logging.getLogger(__name__)
 
@@ -191,6 +191,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.set_destroy_with_parent(True)
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
         self.config_manager = ConfigManager(self.settings)
+        self.exporter = ConfigExporter(self)
         self._layer_rows = {}
 
         self.settings.bind('dns-servers', self.dns_row, 'text',
@@ -220,9 +221,9 @@ class PreferencesWindow(Adw.PreferencesWindow):
             add_row_map[env].connect('activated',
                                      lambda r, g=group, k=key: self.add_layer(g, k))
             export_row_map[env].connect('activated',
-                                        lambda r, k=key: self.export_config(k))
+                                        lambda r, k=key: self.do_export_config(k))
             import_row_map[env].connect('activated',
-                                        lambda r, g=group, k=key: self.import_config(g, k))
+                                        lambda r, g=group, k=key: self.do_import_config(g, k))
             self.setup_env_config(group, key)
 
         self.connect('close-request',
@@ -324,79 +325,23 @@ class PreferencesWindow(Adw.PreferencesWindow):
             self._layer_rows[group].remove(row)
         self.config_manager.save_layers(key, self._layer_rows[group])
 
-    def export_config(self, key):
-        """Opens a file chooser to export the configuration."""
-        dialog = Gtk.FileChooserNative(
-            title="Export Configuration",
-            transient_for=self,
-            action=Gtk.FileChooserAction.SAVE
-        )
-        filter_yaml = Gtk.FileFilter()
-        filter_yaml.set_name("YAML files")
-        filter_yaml.add_pattern("*.yaml")
-        filter_yaml.add_pattern("*.yml")
-        dialog.add_filter(filter_yaml)
+    def do_export_config(self, key):
+        """Exports the configuration for the given key."""
+        layers = self.config_manager.get_layers(key)
+        self.exporter.export_config(layers)
 
-        dialog.connect("response", self.on_export_response, key)
-        dialog.show()
+    def do_import_config(self, group, key):
+        """Imports the configuration for the given key."""
+        self.exporter.import_config(lambda data: self.on_config_imported(group, key, data))
 
-    def on_export_response(self, dialog, response, key):
-        """Callback for export dialog."""
-        if response == Gtk.ResponseType.ACCEPT:
-            file = dialog.get_file()
-            path = file.get_path()
-            try:
-                layers = self.config_manager.get_layers(key)
-                with open(path, 'w', encoding='utf-8') as f:
-                    yaml.dump(layers, f, sort_keys=False)
-                log.info("Configuration exported to %s", path)
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                log.error("Failed to export configuration: %s", e)
-        dialog.destroy()
+    def on_config_imported(self, group, key, layers_data):
+        """Callback when configuration is imported."""
+        # Save the new data
+        self.config_manager.save_layers_data(key, layers_data)
 
-    def import_config(self, group, key):
-        """Opens a file chooser to import the configuration."""
-        dialog = Gtk.FileChooserNative(
-            title="Import Configuration",
-            transient_for=self,
-            action=Gtk.FileChooserAction.OPEN
-        )
-        filter_yaml = Gtk.FileFilter()
-        filter_yaml.set_name("YAML files")
-        filter_yaml.add_pattern("*.yaml")
-        filter_yaml.add_pattern("*.yml")
-        dialog.add_filter(filter_yaml)
+        # Refresh the UI
+        rows_to_remove = self._layer_rows.get(group, [])[:]
+        for row in rows_to_remove:
+            group.remove(row)
 
-        dialog.connect("response", self.on_import_response, group, key)
-        dialog.show()
-
-    def on_import_response(self, dialog, response, group, key):
-        """Callback for import dialog."""
-        if response == Gtk.ResponseType.ACCEPT:
-            file = dialog.get_file()
-            path = file.get_path()
-            try:
-                with open(path, 'r', encoding='utf-8') as f:
-                    layers_data = yaml.safe_load(f)
-
-                if not isinstance(layers_data, list):
-                    raise ValueError("Imported data must be a list of layers.")
-
-                # Save the new data
-                self.config_manager.save_layers_data(key, layers_data)
-
-                # Refresh the UI
-                # Remove existing rows from the group (except the Add button row,
-                # which is not tracked in _layer_rows)
-                # But _layer_rows only tracks the LayerRows.
-                rows_to_remove = self._layer_rows.get(group, [])[:]
-                for row in rows_to_remove:
-                    group.remove(row)
-
-                # Setup again
-                self.setup_env_config(group, key)
-
-                log.info("Configuration imported from %s", path)
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                log.error("Failed to import configuration: %s", e)
-        dialog.destroy()
+        self.setup_env_config(group, key)
