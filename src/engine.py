@@ -6,7 +6,7 @@ HTTP requests across the configured infrastructure layers.
 import logging
 import fnmatch
 import warnings
-from typing import List, Dict, Optional, Tuple, Any
+from typing import List, Dict, Optional, Tuple, Any, NamedTuple
 from urllib.parse import urlparse
 
 import requests
@@ -23,6 +23,15 @@ log = logging.getLogger(__name__)
 ERR_SSL = "SSL Error. The certificate may be invalid."
 ERR_TIMEOUT = "Connection timed out to {}."
 ERR_CONNECTION = "Connection refused by {}."
+
+
+class RequestParams(NamedTuple):
+    """Encapsulates parameters for executing a layer request."""
+    url: str
+    headers: Dict[str, str]
+    target_ip: str
+    layer: Dict[str, Any]
+    original_url: str
 
 
 class CacheFlowEngine:
@@ -149,8 +158,15 @@ class CacheFlowEngine:
         if host_header_override:
             headers['Host'] = final_host_header
 
-        return self._execute_request(url, headers, target_ip, layer,
-                                     base_url + test_path)
+        params = RequestParams(
+            url=url,
+            headers=headers,
+            target_ip=target_ip,
+            layer=layer,
+            original_url=base_url + test_path
+        )
+
+        return self._execute_request(params)
 
     def _resolve_dns_for_layer(self, hostname: str) -> Tuple[str, Optional[Any]]:
         """Resolves DNS and updates the adapter map."""
@@ -162,26 +178,23 @@ class CacheFlowEngine:
                 self.dns_map[hostname] = target_ip
         return target_ip, dns_error
 
-    def _execute_request(self, url: str, headers: Dict[str, str], target_ip: str,
-                         layer: Dict[str, Any], original_url: str) -> Dict[str, Any]:
+    def _execute_request(self, params: RequestParams) -> Dict[str, Any]:
         """Executes the HTTP request and handles errors."""
-        # pylint: disable=too-many-arguments
-        # pylint: disable=too-many-positional-arguments
-        log.debug("Request URL: %s", url)
-        log.debug("Request Headers: %s", headers)
+        log.debug("Request URL: %s", params.url)
+        log.debug("Request Headers: %s", params.headers)
 
         layer_result = {
-            'name': layer['name'],
-            'description': layer.get('description', ''),
-            'url': url,
-            'original_url': original_url,
-            'sent_host_header': headers.get('Host'),
+            'name': params.layer['name'],
+            'description': params.layer.get('description', ''),
+            'url': params.url,
+            'original_url': params.original_url,
+            'sent_host_header': params.headers.get('Host'),
             'method': 'GET'
         }
 
         try:
             response = self.session.get(
-                url, headers=headers, timeout=10, stream=True,
+                params.url, headers=params.headers, timeout=10, stream=True,
                 allow_redirects=False, verify=self.verify_ssl
             )
             response.close()
@@ -195,10 +208,10 @@ class CacheFlowEngine:
         except requests.exceptions.SSLError as e:
             self._handle_error(layer_result, ERR_SSL, e, 'ssl')
         except requests.exceptions.ConnectTimeout as e:
-            self._handle_error(layer_result, ERR_TIMEOUT.format(target_ip), e,
+            self._handle_error(layer_result, ERR_TIMEOUT.format(params.target_ip), e,
                                'timeout')
         except requests.exceptions.ConnectionError as e:
-            self._handle_error(layer_result, ERR_CONNECTION.format(target_ip), e,
+            self._handle_error(layer_result, ERR_CONNECTION.format(params.target_ip), e,
                                'connection')
         except Exception as e:  # pylint: disable=broad-exception-caught
             self._handle_error(layer_result, str(e), e, 'unknown')
