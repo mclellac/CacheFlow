@@ -13,6 +13,8 @@ import gi
 gi.require_version('PangoCairo', '1.0')
 from gi.repository import Gtk, Gdk, Adw, Pango, PangoCairo, Gio, GLib, GObject
 
+from .utils import get_accent_color
+
 log = logging.getLogger(__name__)
 
 NODE_WIDTH = 450
@@ -331,21 +333,10 @@ class NodeGraph(Gtk.DrawingArea):
 
         cr.restore()
 
-    def _get_accent_color(self) -> Tuple[float, float, float]:
-        """Helper to get the current system accent color."""
-        style_manager = Adw.StyleManager.get_default()
-        accent = None
-        if hasattr(style_manager, "get_accent_color_rgba"):
-            accent = style_manager.get_accent_color_rgba()
-
-        if accent:
-            return accent.red, accent.green, accent.blue
-        return 0.2, 0.5, 0.9
-
     def _draw_connections(self, cr: cairo.Context) -> None:
         """Draws lines connecting the nodes."""
         # pylint: disable=too-many-locals
-        r, g, b = self._get_accent_color()
+        r, g, b, _ = get_accent_color()
         cr.set_source_rgba(r, g, b, 0.8)
         cr.set_line_width(3)
         for i in range(len(self.nodes) - 1):
@@ -440,7 +431,7 @@ class NodeGraph(Gtk.DrawingArea):
         is_dark = style_manager.get_dark()
 
         if self.selected_node_index == node["id"]:
-            r, g, b = self._get_accent_color()
+            r, g, b, _ = get_accent_color()
             cr.set_source_rgba(r, g, b, 0.4)
             self._rounded_rectangle(cr, x - 8, y - 8, w + 16, h + 16, 18)
             cr.fill()

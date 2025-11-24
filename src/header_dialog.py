@@ -6,6 +6,8 @@ inspecting HTTP headers in detail.
 import logging
 from gi.repository import Gtk, Adw, Gio, GObject, GLib, Pango, Gdk
 
+from .utils import get_accent_color
+
 log = logging.getLogger(__name__)
 
 
@@ -123,18 +125,11 @@ class HeaderDialog(Adw.MessageDialog):
         if header_item.is_diff:
             attrs.insert(Pango.attr_weight_new(Pango.Weight.BOLD))
 
-            style_manager = Adw.StyleManager.get_default()
-            accent_rgba = None
-            if hasattr(style_manager, "get_accent_color_rgba"):
-                accent_rgba = style_manager.get_accent_color_rgba()
-
-            if accent_rgba:
-                r_val = int(accent_rgba.red * 65535)
-                g_val = int(accent_rgba.green * 65535)
-                b_val = int(accent_rgba.blue * 65535)
-                attrs.insert(Pango.attr_foreground_new(r_val, g_val, b_val))
-            else:
-                attrs.insert(Pango.attr_foreground_new(13000, 30000, 65535))
+            r, g, b, _ = get_accent_color()
+            r_val = int(r * 65535)
+            g_val = int(g * 65535)
+            b_val = int(b * 65535)
+            attrs.insert(Pango.attr_foreground_new(r_val, g_val, b_val))
         else:
             attrs.insert(Pango.attr_weight_new(Pango.Weight.NORMAL))
         label.set_attributes(attrs)

@@ -5,6 +5,7 @@ coordinating inspection tasks.
 
 import logging
 import threading
+from typing import Dict, Any, List, Tuple
 
 # pylint: disable=unused-import
 from gi.repository import Gtk, Adw, Gio, GLib
@@ -179,7 +180,7 @@ class Window(Adw.ApplicationWindow):
         thread.daemon = True
         thread.start()
 
-    def do_inspection_thread(self, config, path):
+    def do_inspection_thread(self, config: Dict[str, Any], path: str) -> None:
         """Executes the inspection in a background thread."""
         # pylint: disable=import-outside-toplevel
         from .engine import CacheFlowEngine
@@ -194,21 +195,23 @@ class Window(Adw.ApplicationWindow):
             log.error("Exception in inspection thread: %s", e, exc_info=True)
             GLib.idle_add(self.on_inspection_failed, e)
 
-    def on_inspection_succeeded(self, results, layer_config):
+    def on_inspection_succeeded(self, results: List[Dict[str, Any]],
+                                layer_config: List[Dict[str, Any]]) -> bool:
         """Callback when inspection succeeds."""
         log.debug("Inspection succeeded, processing results.")
         self.process_and_display_results(results, layer_config)
         self.set_inspection_in_progress(False)
         return GLib.SOURCE_REMOVE
 
-    def on_inspection_failed(self, exception):
+    def on_inspection_failed(self, exception: Exception) -> bool:
         """Callback when inspection fails."""
         log.error("Inspection task failed: %s", exception)
         self.show_error_dialog("Inspection Failed", str(exception))
         self.set_inspection_in_progress(False)
         return GLib.SOURCE_REMOVE
 
-    def process_and_display_results(self, results, layer_config):
+    def process_and_display_results(self, results: List[Dict[str, Any]],
+                                    layer_config: List[Dict[str, Any]]) -> None:
         """Processes inspection results and updates the node graph."""
         log.debug("Processing inspection results for display.")
         processed_nodes = []
@@ -223,7 +226,9 @@ class Window(Adw.ApplicationWindow):
 
         self.node_graph.set_data(processed_nodes)
 
-    def _create_node_data(self, result, index, all_results, layer_config):
+    def _create_node_data(self, result: Dict[str, Any], index: int,
+                          all_results: List[Dict[str, Any]],
+                          layer_config: List[Dict[str, Any]]) -> NodeData:
         original_layer = next(
             (layer for layer in layer_config if layer.get('name') == result.get('name')),
             {}
@@ -251,7 +256,8 @@ class Window(Adw.ApplicationWindow):
             request_method=result.get('method', 'GET')
         )
 
-    def _compare_headers(self, result, index, all_results):
+    def _compare_headers(self, result: Dict[str, Any], index: int,
+                         all_results: List[Dict[str, Any]]) -> List[Tuple[str, str, bool, str]]:
         headers_list = []
         upstream_headers = None
         upstream_name = ""
