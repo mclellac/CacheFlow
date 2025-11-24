@@ -15,9 +15,7 @@ def setting_to_rgba(variant, _user_data=None):
     """Maps a GSettings GVariant(string) to a GObject.Value(Gdk.RGBA)."""
     rgba = Gdk.RGBA()
     if variant:
-        # The binding system passes a GVariant here. We must unpack it.
         rgba_string = variant.get_string()
-        # Ensure the string is not empty before parsing.
         if rgba_string and rgba.parse(rgba_string):
             log.debug("Mapping GSettings string '%s' to Gdk.RGBA.", rgba_string)
             return GObject.Value(Gdk.RGBA, rgba)
@@ -36,7 +34,6 @@ def rgba_to_setting(gdk_rgba, _user_data=None):
     if gdk_rgba:
         log.debug("Mapping Gdk.RGBA '%s' to GSettings string.", gdk_rgba.to_string())
         return GLib.Variant('s', gdk_rgba.to_string())
-    # If the widget's color is None (e.g., on init), do not save anything.
     log.debug("Widget provided a None RGBA. No setting will be saved.")
     return None
 

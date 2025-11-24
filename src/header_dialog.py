@@ -9,13 +9,13 @@ from gi.repository import Gtk, Adw, Gio, GObject, GLib, Pango, Gdk
 log = logging.getLogger(__name__)
 
 
+# pylint: disable=too-few-public-methods
 class HeaderItem(GObject.Object):
     """
     A GObject wrapper for a single header item to be used in a GListStore.
     """
     __gtype_name__ = 'HeaderItem'
 
-    # pylint: disable=too-few-public-methods
     def __init__(self, key, value, is_diff, note=""):
         super().__init__()
         self.key = key
@@ -25,14 +25,13 @@ class HeaderItem(GObject.Object):
 
 
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/header_dialog.ui')
+# pylint: disable=too-few-public-methods
 class HeaderDialog(Adw.MessageDialog):
     """
     A dialog to display key-value headers from a node.
     Allows filtering and copying of header data.
     """
     __gtype_name__ = 'HeaderDialog'
-
-    # pylint: disable=too-few-public-methods
 
     column_view = Gtk.Template.Child()
     column_key = Gtk.Template.Child()
@@ -135,7 +134,6 @@ class HeaderDialog(Adw.MessageDialog):
                 b_val = int(accent_rgba.blue * 65535)
                 attrs.insert(Pango.attr_foreground_new(r_val, g_val, b_val))
             else:
-                # Fallback to a generic blue
                 attrs.insert(Pango.attr_foreground_new(13000, 30000, 65535))
         else:
             attrs.insert(Pango.attr_weight_new(Pango.Weight.NORMAL))

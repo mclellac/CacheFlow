@@ -22,6 +22,7 @@ PADDING = 15
 RESIZE_HANDLE_SIZE = 15
 
 
+# pylint: disable=too-many-instance-attributes
 class NodeGraph(Gtk.DrawingArea):
     """A widget for drawing and interacting with a node-based graph."""
 
@@ -30,9 +31,6 @@ class NodeGraph(Gtk.DrawingArea):
         'node-double-clicked': (GObject.SignalFlags.RUN_FIRST, None,
                                 (GObject.TYPE_PYOBJECT,)),
     }
-
-    # pylint: disable=too-many-instance-attributes
-    # pylint: disable=too-many-public-methods
 
     def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
@@ -56,45 +54,45 @@ class NodeGraph(Gtk.DrawingArea):
 
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
         log.debug("NodeGraph initialized.")
-        self.set_draw_func(self.on_draw)
+        self.set_draw_func(self._on_draw)
 
         style_manager = Adw.StyleManager.get_default()
-        style_manager.connect('notify::dark', self.on_style_changed)
+        style_manager.connect('notify::dark', self._on_style_changed)
 
         self._setup_gestures()
         self._setup_context_menu()
 
     def _setup_gestures(self) -> None:
         gesture_drag = Gtk.GestureDrag.new()
-        gesture_drag.connect("drag-begin", self.on_drag_begin)
-        gesture_drag.connect("drag-update", self.on_drag_update)
-        gesture_drag.connect("drag-end", self.on_drag_end)
+        gesture_drag.connect("drag-begin", self._on_drag_begin)
+        gesture_drag.connect("drag-update", self._on_drag_update)
+        gesture_drag.connect("drag-end", self._on_drag_end)
         self.add_controller(gesture_drag)
 
         gesture_click = Gtk.GestureClick.new()
         gesture_click.set_button(1)
-        gesture_click.connect("pressed", self.on_click)
+        gesture_click.connect("pressed", self._on_click)
         self.add_controller(gesture_click)
 
         gesture_right_click = Gtk.GestureClick.new()
         gesture_right_click.set_button(3)
-        gesture_right_click.connect("pressed", self.on_right_click)
+        gesture_right_click.connect("pressed", self._on_right_click)
         self.add_controller(gesture_right_click)
 
         gesture_pan = Gtk.GestureDrag.new()
         gesture_pan.set_button(2)
-        gesture_pan.connect("drag-begin", self.on_pan_begin)
-        gesture_pan.connect("drag-update", self.on_pan_update)
+        gesture_pan.connect("drag-begin", self._on_pan_begin)
+        gesture_pan.connect("drag-update", self._on_pan_update)
         self.add_controller(gesture_pan)
 
         scroll_controller = Gtk.EventControllerScroll.new(
             Gtk.EventControllerScrollFlags.VERTICAL
         )
-        scroll_controller.connect("scroll", self.on_scroll)
+        scroll_controller.connect("scroll", self._on_scroll)
         self.add_controller(scroll_controller)
 
         motion_controller = Gtk.EventControllerMotion.new()
-        motion_controller.connect("motion", self.on_motion)
+        motion_controller.connect("motion", self._on_motion)
         self.add_controller(motion_controller)
 
     def _setup_context_menu(self) -> None:
@@ -109,24 +107,24 @@ class NodeGraph(Gtk.DrawingArea):
         action_group = Gio.SimpleActionGroup()
 
         action_reset = Gio.SimpleAction.new("reset-layout", None)
-        action_reset.connect("activate", self.on_reset_layout)
+        action_reset.connect("activate", self._on_reset_layout_action)
         action_group.add_action(action_reset)
 
         action_export = Gio.SimpleAction.new("export", None)
-        action_export.connect("activate", self.on_export_action)
+        action_export.connect("activate", self._on_export_action)
         action_group.add_action(action_export)
 
         self.insert_action_group("node-graph", action_group)
 
-    def on_right_click(self, _gesture: Gtk.GestureClick, _n_press: int, x: float,
-                       y: float) -> None:
+    def _on_right_click(self, _gesture: Gtk.GestureClick, _n_press: int, x: float,
+                        y: float) -> None:
         """Shows context menu on right click."""
         if self.popover_menu:
             self.popover_menu.set_pointing_to(Gdk.Rectangle(int(x), int(y), 1, 1))
             self.popover_menu.popup()
 
-    def on_pan_begin(self, gesture: Gtk.GestureDrag, start_x: float,
-                     start_y: float) -> None:
+    def _on_pan_begin(self, gesture: Gtk.GestureDrag, start_x: float,
+                      start_y: float) -> None:
         """Starts panning operation."""
         self.pan_start_x = start_x
         self.pan_start_y = start_y
@@ -134,21 +132,21 @@ class NodeGraph(Gtk.DrawingArea):
         self.pan_start_offset_y = self.offset_y
         gesture.set_state(Gtk.EventSequenceState.CLAIMED)
 
-    def on_pan_update(self, _gesture: Gtk.GestureDrag, offset_x: float,
-                      offset_y: float) -> None:
+    def _on_pan_update(self, _gesture: Gtk.GestureDrag, offset_x: float,
+                       offset_y: float) -> None:
         """Updates panning offset."""
         self.offset_x = self.pan_start_offset_x + offset_x
         self.offset_y = self.pan_start_offset_y + offset_y
         self.queue_draw()
 
-    def on_motion(self, _controller: Gtk.EventControllerMotion, x: float,
-                  y: float) -> None:
+    def _on_motion(self, _controller: Gtk.EventControllerMotion, x: float,
+                   y: float) -> None:
         """Tracks mouse position."""
         self.mouse_x = x
         self.mouse_y = y
 
-    def on_scroll(self, _controller: Gtk.EventControllerScroll, _dx: float,
-                  dy: float) -> bool:
+    def _on_scroll(self, _controller: Gtk.EventControllerScroll, _dx: float,
+                   dy: float) -> bool:
         """Handles zooming via scroll."""
         x = self.mouse_x
         y = self.mouse_y
@@ -168,14 +166,17 @@ class NodeGraph(Gtk.DrawingArea):
         self.queue_draw()
         return True
 
-    def on_reset_layout(self, _action: Gio.SimpleAction, _param: GLib.Variant) -> None:
+    def reset_layout(self) -> None:
         """Resets the layout (scale and offset)."""
         self.scale = 1.0
         self.offset_x = 0
         self.offset_y = 0
         self.set_data([n['data'] for n in self.nodes])
 
-    def on_export_action(self, _action: Gio.SimpleAction, _param: GLib.Variant) -> None:
+    def _on_reset_layout_action(self, _action: Gio.SimpleAction, _param: GLib.Variant) -> None:
+        self.reset_layout()
+
+    def _on_export_action(self, _action: Gio.SimpleAction, _param: GLib.Variant) -> None:
         """Triggers the export dialog."""
         self.show_export_dialog()
 
@@ -200,10 +201,10 @@ class NodeGraph(Gtk.DrawingArea):
         filter_txt.add_pattern("*.txt")
         dialog.add_filter(filter_txt)
 
-        dialog.connect("response", self.on_export_response)
+        dialog.connect("response", self._on_export_response)
         dialog.show()
 
-    def on_export_response(self, dialog: Gtk.FileChooserNative, response_id: int) -> None:
+    def _on_export_response(self, dialog: Gtk.FileChooserNative, response_id: int) -> None:
         """Handles the export dialog response."""
         if response_id == Gtk.ResponseType.ACCEPT:
             file = dialog.get_file()
@@ -235,14 +236,14 @@ class NodeGraph(Gtk.DrawingArea):
         width, height = self._get_total_bounds()
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width), int(height))
         cr = cairo.Context(surface)
-        self.draw_graph_content(cr, width, height)
+        self._draw_graph_content(cr, width, height)
         surface.write_to_png(filepath)
 
     def _export_svg(self, filepath: str) -> None:
         width, height = self._get_total_bounds()
         surface = cairo.SVGSurface(filepath, width, height)
         cr = cairo.Context(surface)
-        self.draw_graph_content(cr, width, height)
+        self._draw_graph_content(cr, width, height)
         surface.finish()
 
     def _export_text(self, filepath: str) -> None:
@@ -260,7 +261,7 @@ class NodeGraph(Gtk.DrawingArea):
                     f.write("\n")
                 f.write("\n" + "-" * 40 + "\n\n")
 
-    def on_style_changed(self, _style_manager: Adw.StyleManager, _param: Any) -> None:
+    def _on_style_changed(self, _style_manager: Adw.StyleManager, _param: Any) -> None:
         """Handles theme changes."""
         log.debug("System style (light/dark) changed, queueing redraw.")
         self.queue_draw()
@@ -294,15 +295,15 @@ class NodeGraph(Gtk.DrawingArea):
             x += node_width + 300
         self.queue_draw()
 
-    def on_draw(self, _area: Gtk.DrawingArea, cr: cairo.Context, width: int,
-                height: int) -> None:
+    def _on_draw(self, _area: Gtk.DrawingArea, cr: cairo.Context, width: int,
+                 height: int) -> None:
         """The main drawing method."""
-        self.draw_graph_content(cr, float(width), float(height),
-                                self.scale, self.offset_x, self.offset_y)
+        self._draw_graph_content(cr, float(width), float(height),
+                                 self.scale, self.offset_x, self.offset_y)
 
-    def draw_graph_content(self, cr: cairo.Context, width: float, height: float,
-                           scale: float = 1.0, offset_x: float = 0,
-                           offset_y: float = 0) -> None:
+    def _draw_graph_content(self, cr: cairo.Context, width: float, height: float,
+                            scale: float = 1.0, offset_x: float = 0,
+                            offset_y: float = 0) -> None:
         """Draws the entire graph content."""
         # pylint: disable=too-many-arguments
         # pylint: disable=too-many-positional-arguments
@@ -320,13 +321,13 @@ class NodeGraph(Gtk.DrawingArea):
         cr.translate(offset_x, offset_y)
         cr.scale(scale, scale)
 
-        self.draw_connections(cr)
+        self._draw_connections(cr)
 
         for node in self.nodes:
-            self.draw_node(cr, node)
+            self._draw_node(cr, node)
 
         for node in self.nodes:
-            self.draw_resize_handle(cr, node)
+            self._draw_resize_handle(cr, node)
 
         cr.restore()
 
@@ -341,7 +342,7 @@ class NodeGraph(Gtk.DrawingArea):
             return accent.red, accent.green, accent.blue
         return 0.2, 0.5, 0.9
 
-    def draw_connections(self, cr: cairo.Context) -> None:
+    def _draw_connections(self, cr: cairo.Context) -> None:
         """Draws lines connecting the nodes."""
         # pylint: disable=too-many-locals
         r, g, b = self._get_accent_color()
@@ -431,7 +432,7 @@ class NodeGraph(Gtk.DrawingArea):
             return fallback_dark
         return fallback_light
 
-    def draw_node(self, cr: cairo.Context, node: Dict[str, Any]) -> None:
+    def _draw_node(self, cr: cairo.Context, node: Dict[str, Any]) -> None:
         """Draws a single node."""
         # pylint: disable=too-many-locals
         x, y, w, h = node["x"], node["y"], node["width"], node["height"]
@@ -441,22 +442,22 @@ class NodeGraph(Gtk.DrawingArea):
         if self.selected_node_index == node["id"]:
             r, g, b = self._get_accent_color()
             cr.set_source_rgba(r, g, b, 0.4)
-            self.rounded_rectangle(cr, x - 8, y - 8, w + 16, h + 16, 18)
+            self._rounded_rectangle(cr, x - 8, y - 8, w + 16, h + 16, 18)
             cr.fill()
             cr.set_source_rgba(r, g, b, 1.0)
             cr.set_line_width(3)
-            self.rounded_rectangle(cr, x, y, w, h, 10)
+            self._rounded_rectangle(cr, x, y, w, h, 10)
             cr.stroke()
 
         cr.set_source_rgba(0.0, 0.0, 0.0, 0.4)
-        self.rounded_rectangle(cr, x + 2, y + 3, w, h, 10)
+        self._rounded_rectangle(cr, x + 2, y + 3, w, h, 10)
         cr.fill()
 
         body_color = self._get_color(node['data'].body_color, is_dark,
                                      (0.8, 0.8, 0.85, 1), (0.2, 0.2, 0.25, 1))
         cr.set_source_rgba(*body_color)
 
-        self.rounded_rectangle(cr, x, y, w, h, 10)
+        self._rounded_rectangle(cr, x, y, w, h, 10)
         cr.fill_preserve()
 
         border_color = (0.5, 0.5, 0.5, 0.8) if is_dark else (0.4, 0.4, 0.4, 0.8)
@@ -468,8 +469,8 @@ class NodeGraph(Gtk.DrawingArea):
                                        (0.7, 0.7, 0.75, 1), (0.3, 0.3, 0.35, 1))
         cr.set_source_rgba(*header_color)
 
-        self.rounded_rectangle(cr, x, y, w, NODE_HEADER_HEIGHT, 10,
-                               corners={'bl': False, 'br': False})
+        self._rounded_rectangle(cr, x, y, w, NODE_HEADER_HEIGHT, 10,
+                                corners={'bl': False, 'br': False})
         cr.fill_preserve()
 
         cr.set_source_rgba(*border_color)
@@ -490,6 +491,9 @@ class NodeGraph(Gtk.DrawingArea):
     def _draw_node_text(self, cr: cairo.Context, node: Dict[str, Any],
                         x: float, y: float, w: float, is_dark: bool) -> None:
         """Draws the text content of the node."""
+        # pylint: disable=too-many-arguments
+        # pylint: disable=too-many-positional-arguments
+        # pylint: disable=too-many-locals
         font_desc_str = self.settings.get_string('node-font')
         if not font_desc_str:
             font_desc_str = "Monospace 14"
@@ -519,7 +523,7 @@ class NodeGraph(Gtk.DrawingArea):
             PangoCairo.show_layout(cr, layout)
             text_y += LINE_HEIGHT
 
-    def draw_resize_handle(self, cr: cairo.Context, node: Dict[str, Any]) -> None:
+    def _draw_resize_handle(self, cr: cairo.Context, node: Dict[str, Any]) -> None:
         """Draws a resize handle in the bottom-right corner of a node."""
         x = node["x"] + node["width"] - RESIZE_HANDLE_SIZE
         y = node["y"] + node["height"] - RESIZE_HANDLE_SIZE
@@ -531,8 +535,8 @@ class NodeGraph(Gtk.DrawingArea):
         cr.close_path()
         cr.fill()
 
-    def rounded_rectangle(self, cr: cairo.Context, x: float, y: float, w: float, h: float,
-                          r: float, corners: Optional[Dict[str, bool]] = None) -> None:
+    def _rounded_rectangle(self, cr: cairo.Context, x: float, y: float, w: float, h: float,
+                           r: float, corners: Optional[Dict[str, bool]] = None) -> None:
         """Helper to draw a rectangle with rounded corners."""
         # pylint: disable=too-many-arguments
         # pylint: disable=too-many-positional-arguments
@@ -558,8 +562,8 @@ class NodeGraph(Gtk.DrawingArea):
             cr.line_to(x, y + h)
         cr.close_path()
 
-    def on_drag_begin(self, gesture: Gtk.GestureDrag, start_x: float,
-                      start_y: float) -> None:
+    def _on_drag_begin(self, gesture: Gtk.GestureDrag, start_x: float,
+                       start_y: float) -> None:
         """Handles the beginning of a drag operation."""
         log.debug("Drag begin at (%s, %s).", start_x, start_y)
         self.dragging_node = None
@@ -605,8 +609,8 @@ class NodeGraph(Gtk.DrawingArea):
         self.pan_start_offset_y = self.offset_y
         gesture.set_state(Gtk.EventSequenceState.CLAIMED)
 
-    def on_drag_update(self, gesture: Gtk.GestureDrag, offset_x: float,
-                       offset_y: float) -> None:
+    def _on_drag_update(self, gesture: Gtk.GestureDrag, offset_x: float,
+                        offset_y: float) -> None:
         """Handles the update during a drag operation."""
         ok, start_x, start_y = gesture.get_start_point()
         if not ok:
@@ -634,22 +638,22 @@ class NodeGraph(Gtk.DrawingArea):
 
         self.queue_draw()
 
-    def on_drag_end(self, gesture: Gtk.GestureDrag, offset_x: float,
-                    offset_y: float) -> None:
+    def _on_drag_end(self, gesture: Gtk.GestureDrag, offset_x: float,
+                     offset_y: float) -> None:
         """Handles the end of a drag operation."""
         log.debug("Drag ended.")
         if self.dragging_node:
-            self.on_drag_update(gesture, offset_x, offset_y)
+            self._on_drag_update(gesture, offset_x, offset_y)
             self.dragging_node = None
         elif self.resizing_node:
-            self.on_drag_update(gesture, offset_x, offset_y)
+            self._on_drag_update(gesture, offset_x, offset_y)
             self.resizing_node = None
         elif self.is_panning:
-            self.on_drag_update(gesture, offset_x, offset_y)
+            self._on_drag_update(gesture, offset_x, offset_y)
             self.is_panning = False
 
-    def on_click(self, _gesture: Gtk.GestureClick, n_press: int, x: float,
-                 y: float) -> None:
+    def _on_click(self, _gesture: Gtk.GestureClick, n_press: int, x: float,
+                  y: float) -> None:
         """Handles click events."""
         wx = (x - self.offset_x) / self.scale
         wy = (y - self.offset_y) / self.scale

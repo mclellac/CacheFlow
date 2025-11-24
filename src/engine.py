@@ -122,7 +122,6 @@ class CacheFlowEngine:
     def _process_layer(self, layer: Dict[str, Any], test_path: str,
                        user_agent: str) -> Dict[str, Any]:
         """Processes a single layer."""
-        # Determine overrides
         host_header_override = layer.get('host_header')
         if 'host_overrides' in layer:
             for override in layer['host_overrides']:
@@ -136,7 +135,6 @@ class CacheFlowEngine:
         hostname = parsed_url.hostname
         final_host_header = host_header_override or hostname
 
-        # Resolve DNS
         target_ip, dns_error = self._resolve_dns_for_layer(hostname)
         if dns_error:
             return {
@@ -145,14 +143,12 @@ class CacheFlowEngine:
                 'error_type': 'dns'
             }
 
-        # Prepare Request
         url = base_url + test_path
         headers = layer.get('custom_headers', {}).copy()
         headers['User-Agent'] = user_agent
         if host_header_override:
             headers['Host'] = final_host_header
 
-        # Execute Request
         return self._execute_request(url, headers, target_ip, layer,
                                      base_url + test_path)
 
