@@ -1,3 +1,8 @@
+"""
+This module provides a custom DNS adapter for the requests library, allowing
+for hostname-to-IP resolution overrides while preserving SNI and SSL verification.
+"""
+
 import logging
 from requests.adapters import HTTPAdapter
 from urllib3.poolmanager import PoolManager
@@ -6,7 +11,12 @@ from urllib3.connection import HTTPSConnection, HTTPConnection
 
 log = logging.getLogger(__name__)
 
+
 class CustomHTTPSConnectionPool(HTTPSConnectionPool):
+    """
+    Custom HTTPS connection pool that connects to a specific target IP
+    instead of resolving the hostname, but keeps the hostname for SNI.
+    """
     def __init__(self, host, port=None, target_ip=None, **kwargs):
         self.target_ip = target_ip
         super().__init__(host, port, **kwargs)
@@ -15,7 +25,7 @@ class CustomHTTPSConnectionPool(HTTPSConnectionPool):
         self.num_connections += 1
         actual_host = self.target_ip if self.target_ip else self.host
 
-        log.debug(f"Creating HTTPS connection to {actual_host} for {self.host}")
+        log.debug("Creating HTTPS connection to %s for %s", actual_host, self.host)
         return HTTPSConnection(
             host=actual_host,
             port=self.port,
@@ -24,7 +34,12 @@ class CustomHTTPSConnectionPool(HTTPSConnectionPool):
             **self.conn_kw
         )
 
+
 class CustomHTTPConnectionPool(HTTPConnectionPool):
+    """
+    Custom HTTP connection pool that connects to a specific target IP
+    instead of resolving the hostname.
+    """
     def __init__(self, host, port=None, target_ip=None, **kwargs):
         self.target_ip = target_ip
         super().__init__(host, port, **kwargs)
@@ -33,7 +48,7 @@ class CustomHTTPConnectionPool(HTTPConnectionPool):
         self.num_connections += 1
         actual_host = self.target_ip if self.target_ip else self.host
 
-        log.debug(f"Creating HTTP connection to {actual_host} for {self.host}")
+        log.debug("Creating HTTP connection to %s for %s", actual_host, self.host)
         return HTTPConnection(
             host=actual_host,
             port=self.port,
@@ -41,7 +56,12 @@ class CustomHTTPConnectionPool(HTTPConnectionPool):
             **self.conn_kw
         )
 
+
 class CustomPoolManager(PoolManager):
+    """
+    Custom PoolManager that creates CustomHTTPSConnectionPool or
+    CustomHTTPConnectionPool instances based on the scheme.
+    """
     def __init__(self, dns_map=None, **kwargs):
         self.dns_map = dns_map or {}
         super().__init__(**kwargs)
@@ -49,13 +69,21 @@ class CustomPoolManager(PoolManager):
     def _new_pool(self, scheme, host, port, request_context=None):
         target_ip = self.dns_map.get(host)
         if target_ip:
-            log.debug(f"Using custom IP {target_ip} for host {host} (scheme: {scheme})")
+            log.debug(
+                "Using custom IP %s for host %s (scheme: %s)",
+                target_ip, host, scheme
+            )
 
         if scheme == 'https':
-            return CustomHTTPSConnectionPool(host, port, target_ip=target_ip, **self.connection_pool_kw)
+            return CustomHTTPSConnectionPool(
+                host, port, target_ip=target_ip, **self.connection_pool_kw
+            )
         if scheme == 'http':
-            return CustomHTTPConnectionPool(host, port, target_ip=target_ip, **self.connection_pool_kw)
+            return CustomHTTPConnectionPool(
+                host, port, target_ip=target_ip, **self.connection_pool_kw
+            )
         return super()._new_pool(scheme, host, port, request_context)
+
 
 class DNSAdapter(HTTPAdapter):
     """
@@ -66,10 +94,14 @@ class DNSAdapter(HTTPAdapter):
         self.dns_map = dns_map or {}
         super().__init__(**kwargs)
 
-    def init_poolmanager(self, connections, maxsize, block=False):
+    def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+        """
+        Initialize the pool manager with the custom CustomPoolManager.
+        """
         self.poolmanager = CustomPoolManager(
             dns_map=self.dns_map,
             num_pools=connections,
             maxsize=maxsize,
-            block=block
+            block=block,
+            **pool_kwargs
         )

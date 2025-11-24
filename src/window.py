@@ -1,7 +1,12 @@
+"""
+This module defines the main application window, managing the UI and
+coordinating inspection tasks.
+"""
+
 import logging
 import threading
 
-import gi
+# pylint: disable=unused-import
 from gi.repository import Gtk, Adw, Gio, GLib
 
 from .node_graph import NodeGraph
@@ -13,6 +18,7 @@ log = logging.getLogger(__name__)
 
 @Gtk.Template(filename='src/ui/main.ui')
 class Window(Adw.ApplicationWindow):
+    """The main application window."""
     __gtype_name__ = 'Window'
 
     path_entry = Gtk.Template.Child()
@@ -27,6 +33,8 @@ class Window(Adw.ApplicationWindow):
         log.debug("Main window initialized.")
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
         self.environments = ["production", "staging", "qa", "dev"]
+        self.win_action_group = None
+        self.env_model = None
 
         self.setup_actions()
         self.setup_env_switcher()
@@ -39,13 +47,15 @@ class Window(Adw.ApplicationWindow):
         self.node_graph.connect('node-double-clicked', self._on_node_double_clicked)
 
     def setup_window_size(self):
+        """Restores the window size from settings."""
         width = self.settings.get_int('window-width')
         height = self.settings.get_int('window-height')
 
         if width > 0 and height > 0:
             self.set_default_size(width, height)
 
-    def on_close_request(self, window):
+    def on_close_request(self, _window):
+        """Saves window size before closing."""
         width = self.get_width()
         height = self.get_height()
         self.settings.set_int('window-width', width)
@@ -65,12 +75,15 @@ class Window(Adw.ApplicationWindow):
             transient_for=self,
             modal=True
         )
-        dialog.set_default_size(self.settings.get_int('header-dialog-width'), self.settings.get_int('header-dialog-height'))
+        width = self.settings.get_int('header-dialog-width')
+        height = self.settings.get_int('header-dialog-height')
+        dialog.set_default_size(width, height)
         dialog.set_resizable(True)
         dialog.connect('close-request', self._on_header_dialog_close)
         dialog.present()
 
     def setup_actions(self):
+        """Sets up window-scope actions."""
         self.win_action_group = Gio.SimpleActionGroup()
         self.insert_action_group("win", self.win_action_group)
 
@@ -78,18 +91,22 @@ class Window(Adw.ApplicationWindow):
         self.add_action("export-graph", self.on_export_graph_action)
         self.add_action("reset-layout", self.on_reset_layout_action)
 
-    def on_export_graph_action(self, action, param):
+    def on_export_graph_action(self, _action, _param):
+        """Triggers the export graph dialog."""
         self.node_graph.show_export_dialog()
 
-    def on_reset_layout_action(self, action, param):
+    def on_reset_layout_action(self, _action, _param):
+        """Resets the node graph layout."""
         self.node_graph.on_reset_layout(None, None)
 
     def add_action(self, name, callback):
+        """Helper to add an action to the window group."""
         action = Gio.SimpleAction.new(name, None)
         action.connect("activate", callback)
         self.win_action_group.add_action(action)
 
     def setup_env_switcher(self):
+        """Sets up the environment switcher dropdown."""
         self.env_model = Gtk.StringList.new(self.environments)
         self.env_switcher.set_model(self.env_model)
 
@@ -103,6 +120,7 @@ class Window(Adw.ApplicationWindow):
         self.env_switcher.connect('notify::selected', self.on_env_selected)
 
     def on_env_selected(self, dropdown, _):
+        """Callback when the environment selection changes."""
         selected_idx = dropdown.get_selected()
         new_env = self.environments[selected_idx]
         self.settings.set_string('active-environment', new_env)
@@ -110,6 +128,7 @@ class Window(Adw.ApplicationWindow):
         self.update_env_label(new_env)
 
     def update_env_label(self, env_name):
+        """Updates the environment label with the host URL."""
         config_key = f'config-{env_name}'
         layers_config = self.settings.get_value(config_key).unpack()
         if layers_config and len(layers_config) > 0:
@@ -120,13 +139,17 @@ class Window(Adw.ApplicationWindow):
             self.env_label.set_text("No Host Configured")
 
     def on_inspect_clicked(self, _):
+        """Callback for the inspect button."""
         log.info("Inspect button clicked.")
         path = self.path_entry.get_text()
         self.set_inspection_in_progress(True)
         if not path or not path.startswith('/'):
             error_msg = f"Invalid path for inspection: '{path}'"
             log.error(error_msg)
-            self.show_error_dialog("Invalid Input", "Path must not be empty and must start with '/'.")
+            self.show_error_dialog(
+                "Invalid Input",
+                "Path must not be empty and must start with '/'."
+            )
             self.set_inspection_in_progress(False)
             return
 
@@ -136,7 +159,10 @@ class Window(Adw.ApplicationWindow):
         config_key = f'config-{active_env}'
         layers_config = self.settings.get_value(config_key).unpack()
         if not layers_config:
-            self.show_error_dialog("Configuration Error", f"No layers configured for '{active_env}' environment.")
+            self.show_error_dialog(
+                "Configuration Error",
+                f"No layers configured for '{active_env}' environment."
+            )
             self.set_inspection_in_progress(False)
             return
 
@@ -146,35 +172,44 @@ class Window(Adw.ApplicationWindow):
             'dns_servers': self.settings.get_string('dns-servers'),
             'verify_ssl': self.settings.get_boolean('verify-ssl')
         }
-        
-        thread = threading.Thread(target=self.do_inspection_thread, args=(config, path))
+
+        thread = threading.Thread(
+            target=self.do_inspection_thread, args=(config, path)
+        )
         thread.daemon = True
         thread.start()
 
     def do_inspection_thread(self, config, path):
+        """Executes the inspection in a background thread."""
+        # pylint: disable=import-outside-toplevel
         from .engine import CacheFlowEngine
         log.debug("Starting inspection in background thread.")
         try:
             engine = CacheFlowEngine(config)
             results = engine.run_inspection(test_path=path)
-            GLib.idle_add(self.on_inspection_succeeded, results, config['layers'])
-        except Exception as e:
-            log.error(f"Exception in inspection thread: {e}", exc_info=True)
+            GLib.idle_add(
+                self.on_inspection_succeeded, results, config['layers']
+            )
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            log.error("Exception in inspection thread: %s", e, exc_info=True)
             GLib.idle_add(self.on_inspection_failed, e)
 
     def on_inspection_succeeded(self, results, layer_config):
+        """Callback when inspection succeeds."""
         log.debug("Inspection succeeded, processing results.")
         self.process_and_display_results(results, layer_config)
         self.set_inspection_in_progress(False)
         return GLib.SOURCE_REMOVE
 
     def on_inspection_failed(self, exception):
-        log.error(f"Inspection task failed: {exception}")
+        """Callback when inspection fails."""
+        log.error("Inspection task failed: %s", exception)
         self.show_error_dialog("Inspection Failed", str(exception))
         self.set_inspection_in_progress(False)
         return GLib.SOURCE_REMOVE
 
     def process_and_display_results(self, results, layer_config):
+        """Processes inspection results and updates the node graph."""
         log.debug("Processing inspection results for display.")
         processed_nodes = []
 
@@ -189,14 +224,18 @@ class Window(Adw.ApplicationWindow):
         self.node_graph.set_data(processed_nodes)
 
     def _create_node_data(self, result, index, all_results, layer_config):
-        original_layer = next((layer for layer in layer_config if layer.get('name') == result.get('name')), {})
+        original_layer = next(
+            (layer for layer in layer_config if layer.get('name') == result.get('name')),
+            {}
+        )
 
         headers_list = []
         if 'error' in result:
             error_type = result.get('error_type', 'unknown').capitalize()
             error_message = result['error']
             headers_list.append((f"Error ({error_type})", error_message, True, ""))
-            log.warning(f"Layer '{result.get('name')}' resulted in an error: {result['error']}")
+            log.warning("Layer '%s' resulted in an error: %s",
+                        result.get('name'), result['error'])
         else:
             headers_list = self._compare_headers(result, index, all_results)
 
@@ -221,7 +260,9 @@ class Window(Adw.ApplicationWindow):
             upstream_result = all_results[index+1]
             upstream_name = upstream_result.get('name', 'Unknown')
             if 'headers' in upstream_result:
-                upstream_headers = {k.lower(): v for k, v in upstream_result.get('headers', {}).items()}
+                upstream_headers = {
+                    k.lower(): v for k, v in upstream_result.get('headers', {}).items()
+                }
 
         for key, value in result.get('headers', {}).items():
             lower_key = key.lower()
@@ -244,11 +285,13 @@ class Window(Adw.ApplicationWindow):
         return headers_list
 
     def set_inspection_in_progress(self, in_progress):
+        """Toggles UI state during inspection."""
         self.inspect_button.set_sensitive(not in_progress)
         self.spinner.set_spinning(in_progress)
         self.spinner.set_visible(in_progress)
 
     def show_error_dialog(self, primary_text, secondary_text):
+        """Displays an error dialog."""
         dialog = Adw.MessageDialog.new(self, primary_text, secondary_text)
         dialog.add_response("ok", "OK")
         dialog.set_default_response("ok")
