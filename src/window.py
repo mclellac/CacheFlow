@@ -7,10 +7,9 @@ import logging
 import threading
 from typing import Dict, Any, List, Tuple
 
-# pylint: disable=unused-import
 from gi.repository import Gtk, Adw, Gio, GLib
 
-from .node_graph import NodeGraph
+from .node_graph import NodeGraph  # pylint: disable=unused-import
 from .header_dialog import HeaderDialog
 from .node_data import NodeData
 
