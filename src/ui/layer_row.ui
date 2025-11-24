@@ -20,6 +20,16 @@
     </child>
 
     <child>
+      <object class="AdwComboRow" id="type_row">
+        <property name="title">Layer Type</property>
+      </object>
+    </child>
+    <child>
+      <object class="AdwComboRow" id="provider_row">
+        <property name="title">Provider</property>
+      </object>
+    </child>
+    <child>
       <object class="AdwEntryRow" id="name_row">
         <property name="title">Name</property>
       </object>
