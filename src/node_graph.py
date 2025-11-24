@@ -4,7 +4,7 @@ as a node-based graph using Cairo.
 """
 
 import logging
-from typing import List, Dict, Tuple, Any, Optional
+from typing import List, Dict, Tuple, Any, Optional, NamedTuple
 
 # pylint: disable=wrong-import-position
 import cairo
@@ -22,6 +22,18 @@ NODE_HEADER_HEIGHT = 45
 LINE_HEIGHT = 22
 PADDING = 15
 RESIZE_HANDLE_SIZE = 15
+
+
+class ConnectionPoints(NamedTuple):
+    """Encapsulates the coordinates for a connection curve."""
+    start_x: float
+    start_y: float
+    c1_x: float
+    c1_y: float
+    c2_x: float
+    c2_y: float
+    end_x: float
+    end_y: float
 
 
 # pylint: disable=too-many-instance-attributes
@@ -357,25 +369,23 @@ class NodeGraph(Gtk.DrawingArea):
             cr.curve_to(c1_x, c1_y, c2_x, c2_y, end_x, end_y)
             cr.stroke()
 
-            self._draw_connection_label(cr, node_b, start_x, start_y,
-                                        c1_x, c1_y, c2_x, c2_y, end_x, end_y)
+            points = ConnectionPoints(start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y)
+            self._draw_connection_label(cr, node_b, points)
 
     def _draw_connection_label(self, cr: cairo.Context, node_b: Dict[str, Any],
-                               start_x: float, start_y: float,
-                               c1_x: float, c1_y: float, c2_x: float, c2_y: float,
-                               end_x: float, end_y: float) -> None:
+                               points: ConnectionPoints) -> None:
         """Draws the label on the connection line."""
         # pylint: disable=too-many-locals
-        # pylint: disable=too-many-arguments
-        # pylint: disable=too-many-positional-arguments
         request_url = node_b["data"].request_url
         request_host = node_b["data"].request_host
 
         if not request_url:
             return
 
-        mid_x = 0.125 * start_x + 0.375 * c1_x + 0.375 * c2_x + 0.125 * end_x
-        mid_y = 0.125 * start_y + 0.375 * c1_y + 0.375 * c2_y + 0.125 * end_y
+        mid_x = (0.125 * points.start_x + 0.375 * points.c1_x +
+                 0.375 * points.c2_x + 0.125 * points.end_x)
+        mid_y = (0.125 * points.start_y + 0.375 * points.c1_y +
+                 0.375 * points.c2_y + 0.125 * points.end_y)
 
         layout = PangoCairo.create_layout(cr)
         font_desc = Pango.FontDescription("Sans 12")
@@ -392,8 +402,12 @@ class NodeGraph(Gtk.DrawingArea):
         text_width = logical_rect.width / Pango.SCALE
         text_height = logical_rect.height / Pango.SCALE
 
-        dx = 0.75 * (c1_x - start_x) + 1.5 * (c2_x - c1_x) + 0.75 * (end_x - c2_x)
-        dy = 0.75 * (c1_y - start_y) + 1.5 * (c2_y - c1_y) + 0.75 * (end_y - c2_y)
+        dx = (0.75 * (points.c1_x - points.start_x) +
+              1.5 * (points.c2_x - points.c1_x) +
+              0.75 * (points.end_x - points.c2_x))
+        dy = (0.75 * (points.c1_y - points.start_y) +
+              1.5 * (points.c2_y - points.c1_y) +
+              0.75 * (points.end_y - points.c2_y))
 
         is_horizontal = abs(dx) >= abs(dy)
 

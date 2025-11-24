@@ -39,26 +39,26 @@ The initial Pylint analysis revealed the following categories of issues:
 
 ## 5. Improvement Opportunities
 
-1.  [x] **Refactor `run_inspection`**: Break down `src/engine.py:run_inspection` into smaller methods:
+1.  [x] **Refactor `run_inspection`** (Verified): Break down `src/engine.py:run_inspection` into smaller methods:
     *   `_should_process_layer(layer, test_path)`
     *   `_resolve_layer_host(hostname)`
     *   `_execute_layer_request(url, headers)`
     *   `_handle_request_error(exception)`
 
-2.  [x] **Centralize Color Logic**: Create a helper method in `NodeGraph` or a separate `ThemeManager` to handle color resolution based on state (selected, dark mode, custom color).
+2.  [x] **Centralize Color Logic** (Verified): Create a helper method in `NodeGraph` or a separate `ThemeManager` to handle color resolution based on state (selected, dark mode, custom color).
 
-3.  [x] **Fix Indentation**: `src/node_graph.py` has mixed indentation that needs immediate correction.
+3.  [x] **Fix Indentation** (Verified): `src/node_graph.py` has mixed indentation that needs immediate correction.
 
-4.  [x] **Strict Comment Adherence**: Remove all inline comments and replace them with docstrings where explanation is necessary, or refactor the code to be self-documenting.
+4.  [x] **Strict Comment Adherence** (Verified): Remove all inline comments and replace them with docstrings where explanation is necessary, or refactor the code to be self-documenting.
 
-5.  [x] **Logging Best Practices**: Switch to lazy logging (e.g., `log.info("Msg %s", arg)`) to improve performance when logging is disabled.
+5.  [x] **Logging Best Practices** (Verified): Switch to lazy logging (e.g., `log.info("Msg %s", arg)`) to improve performance when logging is disabled.
 
-6.  [x] **Type Hinting**: While not strictly enforced by Pylint by default, adding type hints would improve code clarity, especially for the `NodeData` structure.
+6.  [x] **Type Hinting** (Verified): While not strictly enforced by Pylint by default, adding type hints would improve code clarity, especially for the `NodeData` structure.
 
-7.  [x] **Unify Error Handling**: Consolidate error handling logic in `src/engine.py` to reduce duplication.
+7.  [x] **Unify Error Handling** (Verified): Consolidate error handling logic in `src/engine.py` to reduce duplication.
 
-8.  [x] **Refactor Window Logic**: Add type hints and improve clarity in `src/window.py`.
+8.  [x] **Refactor Window Logic** (Verified): Add type hints and improve clarity in `src/window.py`.
 
-9.  [x] **Address Linting Issues**: Fix remaining Pylint warnings (e.g., unused imports, whitespace) and verify code quality.
+9.  [x] **Address Linting Issues** (Verified & Improved): Fix remaining Pylint warnings (e.g., unused imports, whitespace) and verify code quality. (Additional refactoring performed to remove suppressions).
 
-10. [x] **Refactor Layer Widgets**: Restore usage of `HeaderRow`, `OverrideRow`, and `PathMatchRow` templates to fix UI separation violation.
+10. [x] **Refactor Layer Widgets** (Verified): Restore usage of `HeaderRow`, `OverrideRow`, and `PathMatchRow` templates to fix UI separation violation.
