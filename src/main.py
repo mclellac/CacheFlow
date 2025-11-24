@@ -119,7 +119,6 @@ class CacheFlowApplication(Adw.Application):
 
 def main(version):
     """Application entry point."""
-    # Setup file logging
     log_file = os.path.join(GLib.get_user_cache_dir(), 'cacheflow.log')
     try:
         file_handler = logging.FileHandler(log_file)

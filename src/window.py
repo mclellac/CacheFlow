@@ -97,7 +97,7 @@ class Window(Adw.ApplicationWindow):
 
     def on_reset_layout_action(self, _action, _param):
         """Resets the node graph layout."""
-        self.node_graph.on_reset_layout(None, None)
+        self.node_graph.reset_layout()
 
     def add_action(self, name, callback):
         """Helper to add an action to the window group."""
