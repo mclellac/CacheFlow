@@ -4,14 +4,14 @@ This document outlines the findings from the codebase audit, categorizing issues
 
 ## 1. Critical Bugs & Issues
 
-* Some GTK Buttons not using Adw.ButtonContent - LIBADWAITA IS TO BE USED ALWAYS OVER JUST GTK! <https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1.7/class.ButtonContent.html>
-* **Empty UI File**: `src/ui/window.ui` is a 0-byte file. It appears unused as `src/window.py` uses `src/ui/main.ui`, but it should be removed or populated to avoid confusion.
-* **Hardcoded Widget Creation**: `src/ui_utils.py` and `src/header_dialog.py` create widgets (e.g., `Gtk.Box`, `Gtk.Label`) directly in Python code within factory setup methods. This violates `AGENTS.md` Rule #1 ("ALL UI layout... must reside in src/ui/ as XML templates").
+* ~~Some GTK Buttons not using Adw.ButtonContent - LIBADWAITA IS TO BE USED ALWAYS OVER JUST GTK! <https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1.7/class.ButtonContent.html>~~
+* ~~**Empty UI File**: `src/ui/window.ui` is a 0-byte file. It appears unused as `src/window.py` uses `src/ui/main.ui`, but it should be removed or populated to avoid confusion.~~
+* ~~**Hardcoded Widget Creation**: `src/ui_utils.py` and `src/header_dialog.py` create widgets (e.g., `Gtk.Box`, `Gtk.Label`) directly in Python code within factory setup methods. This violates `AGENTS.md` Rule #1 ("ALL UI layout... must reside in src/ui/ as XML templates").~~
   * *Recommendation*: Create simple XML templates (e.g., `list_item_header.ui`, `column_item_label.ui`) and use `Gtk.Builder` or wrapper classes with `@Gtk.Template` to instantiate them in the factories.
 
 ## 2. Refactoring & Code Quality
 
-* **`src/layer_widgets.py` Duplication**: The classes `HeaderRow`, `OverrideRow`, `PathMatchRow`, and `RoutingRuleRow` share significant boilerplate code (initialization, signal connection, change notification).
+* ~~**`src/layer_widgets.py` Duplication**: The classes `HeaderRow`, `OverrideRow`, `PathMatchRow`, and `RoutingRuleRow` share significant boilerplate code (initialization, signal connection, change notification).~~
   * *Recommendation*: Create a base class `BaseConfigRow` that handles the common signal connections and delete button logic.
 * **`src/window.py` Logic**:
   * `on_inspect_clicked` modifies the configuration object in-memory (injecting `entry_point` into the first layer's `host_url`). This mutation is implicit and could lead to state issues.
@@ -32,13 +32,13 @@ This document outlines the findings from the codebase audit, categorizing issues
 
 ## 4. `AGENTS.md` Compliance
 
-* **Rule #1 (UI Separation)**: Violated in `src/ui_utils.py` (`_setup_header_list_item`) and `src/header_dialog.py` (`_on_factory_setup_*`).
-* **Rule #3 (Comments)**: Code generally follows the "Docstrings only" rule, but some inline comments exist in `src/engine.py` (e.g., inside `_process_layer_dynamic`).
+* ~~**Rule #1 (UI Separation)**: Violated in `src/ui_utils.py` (`_setup_header_list_item`) and `src/header_dialog.py` (`_on_factory_setup_*`).~~
+* ~~**Rule #3 (Comments)**: Code generally follows the "Docstrings only" rule, but some inline comments exist in `src/engine.py` (e.g., inside `_process_layer_dynamic`).~~
 
 ## 5. File Structure & Organization
 
-* **Unused Files**: `src/ui/window.ui` (empty).
-* **Test Location**: There are no tests in `src/tests/` or `tests/`.
+* ~~**Unused Files**: `src/ui/window.ui` (empty).~~
+* ~~**Test Location**: There are no tests in `src/tests/` or `tests/`.~~
   * *Recommendation*: Create a `tests/` directory and add unit tests for `engine.py` (routing logic) and `preferences.py` (persistence).
 
 ## 6. Architecture & Systems
@@ -49,9 +49,9 @@ This document outlines the findings from the codebase audit, categorizing issues
 
 ## Summary of Action Items
 
-1. **Delete** `src/ui/window.ui`.
-2. **Refactor** `src/ui_utils.py` and `src/header_dialog.py` to load list items from XML templates.
-3. **Refactor** `src/layer_widgets.py` to reduce boilerplate.
-4. **Clean up** inline comments in `src/engine.py`.
-5. **Create** unit tests for the new routing engine logic.
-6. ENSURE LIBADWAITA IS USED OVER ALL FOR UI WIDGETS!
+1. ~~**Delete** `src/ui/window.ui`.~~
+2. ~~**Refactor** `src/ui_utils.py` and `src/header_dialog.py` to load list items from XML templates.~~
+3. ~~**Refactor** `src/layer_widgets.py` to reduce boilerplate.~~
+4. ~~**Clean up** inline comments in `src/engine.py`.~~
+5. ~~**Create** unit tests for the new routing engine logic.~~
+6. ~~ENSURE LIBADWAITA IS USED OVER ALL FOR UI WIDGETS!~~
