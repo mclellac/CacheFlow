@@ -20,6 +20,7 @@ python_sources = [
   'analyzer.py',
   'analysis_dialog.py',
   'controller.py',
+  'routing.py',
   'models.py',
 ]
 
