@@ -5,6 +5,9 @@ install_data('com.github.mclellac.CacheFlow.gschema.xml',
   install_dir: join_paths(get_option('datadir'), 'glib-2.0', 'schemas')
 )
 
+# Also compile the schema for local development
+gnome.compile_schemas()
+
 # Desktop File
 i18n.merge_file(
   input: 'com.github.mclellac.CacheFlow.desktop.in',
