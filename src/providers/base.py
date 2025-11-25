@@ -20,7 +20,6 @@ class ProviderType(Enum):
     CDN = "CDN"
     LOAD_BALANCER = "Load Balancer"
     CACHE_PROXY = "Cache Proxy"
-    APP_BACKEND = "Application Backend"
 
 class BaseProvider:
     """

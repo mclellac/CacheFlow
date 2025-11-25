@@ -7,13 +7,11 @@ from .base import BaseProvider, ProviderType
 from .akamai import Akamai
 from .varnish import Varnish
 from .netscalar import Netscalar
-from .openshift import OpenShift
 
 PROVIDERS: Dict[str, Type[BaseProvider]] = {
     "Akamai": Akamai,
     "Varnish": Varnish,
-    "Netscalar": Netscalar,
-    "OpenShift": OpenShift
+    "Netscalar": Netscalar
 }
 
 def get_providers_by_type(provider_type: ProviderType) -> List[Type[BaseProvider]]:

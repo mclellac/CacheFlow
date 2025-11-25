@@ -54,7 +54,7 @@ DEFAULT_LAYERS = [
         },
         "host_overrides": [],
         "path_match_only": [],
-        "routing_rules": []
+        "origin_rules": []
     },
     {
         "name": "Infra_Cache",
@@ -75,7 +75,8 @@ DEFAULT_LAYERS = [
             }
         ],
         "path_match_only": [],
-        "routing_rules": []
+        "origin_rules": [],
+        "varnish_backends": []
     }
 ]
 
@@ -111,6 +112,7 @@ class ConfigManager:
 
         # Unpack layers recursively
         unpacked_configs = []
+        configs_updated = False
         for c in configs:
             c_dict = dict(c) # c is a dict from aa{sv}
             layers_variant = c_dict.get('layers')
@@ -119,6 +121,31 @@ class ConfigManager:
             else:
                 layers = layers_variant if layers_variant else []
 
+            # Data migration from routing_rules to origin_rules
+            for layer in layers:
+                if 'routing_rules' in layer:
+                    configs_updated = True
+                    routing_rules = layer.pop('routing_rules')
+                    layer['origin_rules'] = []
+
+                    # Group rules by origin
+                    grouped_origins = {}
+                    for rule in routing_rules:
+                        origin_key = (
+                            rule.get('backend_host', ''),
+                            rule.get('backend_host_header', '')
+                        )
+                        if origin_key not in grouped_origins:
+                            grouped_origins[origin_key] = {
+                                'origin_host': origin_key[0],
+                                'origin_host_header': origin_key[1],
+                                'path_matches': [],
+                                'domain_matches': []
+                            }
+                        grouped_origins[origin_key]['path_matches'].append(rule.get('path_match', ''))
+
+                    layer['origin_rules'] = list(grouped_origins.values())
+
             # entry_point is deprecated/removed, use name (Domain Name)
             unpacked_configs.append({
                 'id': c_dict.get('id', ''),
@@ -126,6 +153,10 @@ class ConfigManager:
                 'entry_point': c_dict.get('name', ''),
                 'layers': layers
             })
+
+        if configs_updated:
+            self._save_configs(unpacked_configs)
+
         return unpacked_configs
 
     def get_configuration(self, conf_id):
@@ -201,7 +232,8 @@ class ConfigManager:
                 'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
                 'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
                 'path_match_only': GLib.Variant('as', l_data.get('path_match_only', [])),
-                'routing_rules': GLib.Variant('aa{ss}', l_data.get('routing_rules', []))
+                'origin_rules': GLib.Variant('aa{sv}', l_data.get('origin_rules', [])),
+                'varnish_backends': GLib.Variant('aa{sv}', l_data.get('varnish_backends', []))
             }
             variant_data.append(layer_dict)
 
@@ -231,7 +263,8 @@ class ConfigManager:
                     'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
                     'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
                     'path_match_only': GLib.Variant('as', l_data.get('path_match_only', [])),
-                    'routing_rules': GLib.Variant('aa{ss}', l_data.get('routing_rules', []))
+                    'origin_rules': GLib.Variant('aa{sv}', l_data.get('origin_rules', [])),
+                    'varnish_backends': GLib.Variant('aa{sv}', l_data.get('varnish_backends', []))
                 }
                 variant_data.append(layer_dict)
             try:
