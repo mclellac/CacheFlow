@@ -103,7 +103,13 @@ class HeaderDialog(Adw.Dialog):
         self.column_note.set_factory(factory_note)
 
     def _on_factory_setup_key(self, _factory, item):
-        label = Gtk.Label(xalign=0)
+        builder = Gtk.Builder()
+        builder.add_from_resource("/com/github/mclellac/CacheFlow/ui/column_item_label.ui")
+        label = builder.get_object("label")
+        # Ensure keys don't ellipsize if not desired, though template has it.
+        # Original code didn't set ellipsize, so let's unset it to be safe or keep it.
+        # "Key" is usually important to see fully, but it's a column view, so it might resize.
+        # Let's trust the template (ellipsize=end) is a reasonable default for columns.
         item.set_child(label)
 
     def _on_factory_bind_key(self, _factory, item):
@@ -113,7 +119,9 @@ class HeaderDialog(Adw.Dialog):
         label.set_markup(f"<b>{escaped_key}</b>")
 
     def _on_factory_setup_value(self, _factory, item):
-        label = Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END)
+        builder = Gtk.Builder()
+        builder.add_from_resource("/com/github/mclellac/CacheFlow/ui/column_item_label.ui")
+        label = builder.get_object("label")
         item.set_child(label)
 
     def _on_factory_bind_value(self, _factory, item):
@@ -135,7 +143,9 @@ class HeaderDialog(Adw.Dialog):
         label.set_attributes(attrs)
 
     def _on_factory_setup_note(self, _factory, item):
-        label = Gtk.Label(xalign=0, ellipsize=Pango.EllipsizeMode.END)
+        builder = Gtk.Builder()
+        builder.add_from_resource("/com/github/mclellac/CacheFlow/ui/column_item_label.ui")
+        label = builder.get_object("label")
         label.add_css_class("dim-label")
         item.set_child(label)
 

@@ -101,19 +101,8 @@ class Window(Adw.ApplicationWindow):
             'headers': {k: v for k, v, _, _ in node_data.headers}
         }
 
-        # Find upstream layer
-        nodes = [n['data'] for n in self.node_graph.nodes]
-        upstream_layer = None
-        try:
-            idx = nodes.index(node_data)
-            if idx < len(nodes) - 1:
-                upstream_data = nodes[idx + 1]
-                upstream_layer = {
-                    'name': upstream_data.name,
-                    'headers': {k: v for k, v, _, _ in upstream_data.headers}
-                }
-        except ValueError:
-            log.warning("Node data not found in graph nodes.")
+        # Upstream layer is now attached to node_data
+        upstream_layer = node_data.upstream_layer
 
         # pylint: disable=import-outside-toplevel
         from .analysis_dialog import HeaderAnalysisDialog
@@ -220,12 +209,10 @@ class Window(Adw.ApplicationWindow):
             return
 
         layers_config = config_data.get('layers', [])
-        # Inject entry point into first layer's host_url
-        if layers_config:
-            layers_config[0]['host_url'] = config_data.get('entry_point', '')
 
         config = {
             'layers': layers_config,
+            'entry_point': config_data.get('entry_point', ''),
             'user_agent': self.settings.get_string('user-agent'),
             'dns_servers': self.settings.get_string('dns-servers'),
             'verify_ssl': self.settings.get_boolean('verify-ssl')
