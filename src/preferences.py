@@ -108,7 +108,11 @@ class ConfigManager:
         for c in configs:
             c_dict = dict(c) # c is a dict from aa{sv}
             layers_variant = c_dict.get('layers')
-            layers = layers_variant.unpack() if layers_variant else []
+            if isinstance(layers_variant, GLib.Variant):
+                layers = layers_variant.unpack()
+            else:
+                layers = layers_variant if layers_variant else []
+
             unpacked_configs.append({
                 'id': c_dict.get('id', ''),
                 'name': c_dict.get('name', ''),
