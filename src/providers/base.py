@@ -26,7 +26,7 @@ class BaseProvider:
     Base class for all providers.
     """
     name: str = "Unknown"
-    provider_type: ProviderType = ProviderType.APP_BACKEND
+    provider_type: ProviderType = ProviderType.CDN
 
     def get_debug_headers(self) -> Dict[str, str]:
         """
