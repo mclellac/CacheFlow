@@ -3,7 +3,7 @@ This module defines custom widgets used in the Layer configuration UI,
 including the LayerRow for editing layer details.
 """
 
-from gi.repository import Gtk, Adw, Gdk
+from gi.repository import Gtk, Adw, Gdk, GObject
 from .providers.base import ProviderType
 from .providers import get_providers_by_type
 
@@ -99,42 +99,6 @@ class PathMatchRow(ConfigRowMixin, Adw.PreferencesRow):
         return [self.pat_entry.get_text()]
 
 
-@Gtk.Template(filename='src/ui/routing_rule_row.ui')
-class RoutingRuleRow(ConfigRowMixin, Adw.PreferencesRow):
-    """Row for editing a routing rule."""
-    __gtype_name__ = 'RoutingRuleRow'
-
-    match_entry = Gtk.Template.Child()
-    host_entry = Gtk.Template.Child()
-    host_header_entry = Gtk.Template.Child()
-    rewrite_entry = Gtk.Template.Child()
-    delete_btn = Gtk.Template.Child()
-
-    def __init__(self, match='', host='', rewrite='', host_header='',
-                 on_change=None, on_delete=None, **kwargs):
-        super().__init__(**kwargs)
-        self.setup_mixin(on_change, on_delete)
-
-        self.match_entry.set_text(match)
-        self.host_entry.set_text(host)
-        self.host_header_entry.set_text(host_header)
-        self.rewrite_entry.set_text(rewrite)
-
-        self.match_entry.connect('changed', self.notify_change)
-        self.host_entry.connect('changed', self.notify_change)
-        self.host_header_entry.connect('changed', self.notify_change)
-        self.rewrite_entry.connect('changed', self.notify_change)
-
-    def get_texts(self):
-        """Returns [match, host, host_header, rewrite] list."""
-        return [
-            self.match_entry.get_text(),
-            self.host_entry.get_text(),
-            self.host_header_entry.get_text(),
-            self.rewrite_entry.get_text()
-        ]
-
-
 @Gtk.Template(filename='src/ui/layer_row.ui')
 class LayerRow(Adw.ExpanderRow):
     """
@@ -183,7 +147,7 @@ class LayerRow(Adw.ExpanderRow):
         self.header_rows = []
         self.override_rows = []
         self.path_match_rows = []
-        self.routing_rule_rows = []
+        self.backend_rule_rows = []
 
         # Setup Models for Type and Provider
         self.type_model = Gtk.StringList()
@@ -375,13 +339,25 @@ class LayerRow(Adw.ExpanderRow):
 
         routing_rules = data.get('routing_rules', [])
         if routing_rules:
+            # Group rules by backend host, header, and rewrite
+            grouped_backends = {}
             for rule in routing_rules:
-                self.add_routing_rule_row(
-                    rule.get('path_match', ''),
+                backend_key = (
                     rule.get('backend_host', ''),
-                    rule.get('path_rewrite', ''),
-                    rule.get('backend_host_header', '')
+                    rule.get('backend_host_header', ''),
+                    rule.get('path_rewrite', '')
                 )
+                if backend_key not in grouped_backends:
+                    grouped_backends[backend_key] = {
+                        'backend_host': backend_key[0],
+                        'backend_host_header': backend_key[1],
+                        'path_rewrite': backend_key[2],
+                        'path_matches': []
+                    }
+                grouped_backends[backend_key]['path_matches'].append(rule.get('path_match', ''))
+
+            for backend_data in grouped_backends.values():
+                self.add_backend_rule_row(backend_data)
 
     def on_changed(self, *_args):
         """Callback when any data in the layer row changes."""
@@ -459,24 +435,24 @@ class LayerRow(Adw.ExpanderRow):
         self.on_changed()
 
     def on_add_routing_rule(self, _btn):
-        """Callback to add a new routing rule row."""
-        self.add_routing_rule_row()
+        """Callback to add a new backend rule row."""
+        self.add_backend_rule_row()
         self.on_changed()
 
-    def add_routing_rule_row(self, match='', host='', rewrite='', host_header=''):
-        """Adds a routing rule entry row."""
-        row = RoutingRuleRow(
-            match=match, host=host, rewrite=rewrite, host_header=host_header,
+    def add_backend_rule_row(self, backend_data=None):
+        """Adds a backend rule entry row."""
+        row = BackendRuleRow(
+            backend_data=backend_data,
             on_change=self.on_changed,
-            on_delete=self.remove_routing_rule_row
+            on_delete=self.remove_backend_rule_row
         )
-        self.routing_rules_group.add_row(row)
-        self.routing_rule_rows.append(row)
+        self.routing_rules_group.add(row)
+        self.backend_rule_rows.append(row)
 
-    def remove_routing_rule_row(self, row):
-        """Removes a routing rule entry row."""
+    def remove_backend_rule_row(self, row):
+        """Removes a backend rule entry row."""
         self.routing_rules_group.remove(row)
-        self.routing_rule_rows.remove(row)
+        self.backend_rule_rows.remove(row)
         self.on_changed()
 
     def get_data(self):
@@ -529,14 +505,104 @@ class LayerRow(Adw.ExpanderRow):
             if p:
                 data['path_match_only'].append(p)
 
-        for row in self.routing_rule_rows:
-            m, h, hh, r = row.get_texts()
-            if m and h:
-                data['routing_rules'].append({
-                    'path_match': m,
-                    'backend_host': h,
-                    'backend_host_header': hh,
-                    'path_rewrite': r
-                })
+        # Flatten routing rules from backend rows
+        for backend_row in self.backend_rule_rows:
+            backend_data = backend_row.get_data()
+            if backend_data['backend_host']:
+                for path_match in backend_data['path_matches']:
+                    data['routing_rules'].append({
+                        'path_match': path_match,
+                        'backend_host': backend_data['backend_host'],
+                        'backend_host_header': backend_data['backend_host_header'],
+                        'path_rewrite': backend_data['path_rewrite']
+                    })
 
         return data
+
+
+@Gtk.Template(filename='src/ui/backend_rule_row.ui')
+class BackendRuleRow(ConfigRowMixin, Adw.ExpanderRow):
+    """Row for editing a backend destination and its associated path matches."""
+    __gtype_name__ = 'BackendRuleRow'
+
+    host_entry = Gtk.Template.Child()
+    host_header_entry = Gtk.Template.Child()
+    rewrite_entry = Gtk.Template.Child()
+    path_match_group = Gtk.Template.Child()
+    add_path_btn = Gtk.Template.Child()
+    delete_btn = Gtk.Template.Child()
+
+    def __init__(self, backend_data=None, on_change=None, on_delete=None, **kwargs):
+        super().__init__(**kwargs)
+        self.setup_mixin(on_change, on_delete)
+        self._loading = True
+
+        self.path_match_rows = []
+
+        self.host_entry.connect('changed', self.on_backend_host_changed)
+        self.host_header_entry.connect('changed', self.notify_change)
+        self.rewrite_entry.connect('changed', self.notify_change)
+        self.add_path_btn.connect('clicked', self.on_add_path_clicked)
+
+        if backend_data:
+            self.load_data(backend_data)
+        else:
+            # Set initial title for new rows
+            self.on_backend_host_changed(self.host_entry)
+
+        self._loading = False
+
+    def on_backend_host_changed(self, entry):
+        """Updates the row title and notifies of change."""
+        host = entry.get_text()
+        self.set_title(f"Backend: {host}" if host else "Backend: (Not Set)")
+        self.notify_change()
+
+    def load_data(self, data):
+        """Loads backend data into the UI."""
+        self.host_entry.set_text(data.get('backend_host', ''))
+        self.host_header_entry.set_text(data.get('backend_host_header', ''))
+        self.rewrite_entry.set_text(data.get('path_rewrite', ''))
+        self.on_backend_host_changed(self.host_entry) # Update title
+
+        for path in data.get('path_matches', []):
+            self.add_path_match_row(pattern=path)
+
+        self.update_subtitle()
+
+    def on_add_path_clicked(self, _btn):
+        """Callback to add a new path match row."""
+        self.add_path_match_row()
+        self.notify_change()
+
+    def add_path_match_row(self, pattern=''):
+        """Adds a path match entry row."""
+        row = PathMatchRow(
+            pattern=pattern,
+            on_change=self.notify_change,
+            on_delete=self.remove_path_match_row
+        )
+        self.path_match_group.add(row)
+        self.path_match_rows.append(row)
+        self.update_subtitle()
+
+    def remove_path_match_row(self, row):
+        """Removes a path match entry row."""
+        self.path_match_group.remove(row)
+        self.path_match_rows.remove(row)
+        self.notify_change()
+        self.update_subtitle()
+
+    def update_subtitle(self):
+        """Updates the subtitle with the number of paths."""
+        count = len(self.path_match_rows)
+        self.set_subtitle(f"{count} Path{'s' if count != 1 else ''}")
+
+    def get_data(self):
+        """Returns the backend and path data."""
+        return {
+            'backend_host': self.host_entry.get_text(),
+            'backend_host_header': self.host_header_entry.get_text(),
+            'path_rewrite': self.rewrite_entry.get_text(),
+            'path_matches': [row.get_texts()[0] for row in self.path_match_rows if row.get_texts()[0]]
+        }
