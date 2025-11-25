@@ -27,13 +27,11 @@
     <child>
       <object class="AdwEntryRow" id="host_header_entry">
         <property name="title">Host Header</property>
-        <property name="placeholder-text">Optional: uses Backend Host if empty</property>
       </object>
     </child>
     <child>
       <object class="AdwEntryRow" id="rewrite_entry">
         <property name="title">Path Rewrite</property>
-        <property name="placeholder-text">Optional: e.g. s|^/old|/new|</property>
       </object>
     </child>
 

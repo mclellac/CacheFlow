@@ -383,7 +383,7 @@ class LayerRow(Adw.ExpanderRow):
             on_change=self.on_changed,
             on_delete=self.remove_header_row
         )
-        self.headers_group.add_row(row)
+        self.headers_group.add(row)
         self.header_rows.append(row)
 
     def remove_header_row(self, row):
@@ -404,7 +404,7 @@ class LayerRow(Adw.ExpanderRow):
             on_change=self.on_changed,
             on_delete=self.remove_override_row
         )
-        self.overrides_group.add_row(row)
+        self.overrides_group.add(row)
         self.override_rows.append(row)
 
     def remove_override_row(self, row):
@@ -425,7 +425,7 @@ class LayerRow(Adw.ExpanderRow):
             on_change=self.on_changed,
             on_delete=self.remove_path_match_row
         )
-        self.path_match_group.add_row(row)
+        self.path_match_group.add(row)
         self.path_match_rows.append(row)
 
     def remove_path_match_row(self, row):
