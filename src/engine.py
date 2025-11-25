@@ -51,7 +51,7 @@ class CacheFlowEngine:
         self.config = config
         self.dns_servers = []
         self.verify_ssl = config.get('verify_ssl', False)
-        log.debug("CacheFlowEngine initialized with config: %s", config)
+        log.debug("CacheFlowEngine initialized.")
 
         dns_config = self.config.get('dns_servers', '')
         if dns_config:
@@ -192,17 +192,11 @@ class CacheFlowEngine:
         idx = 0
         while idx < len(layers_config):
             layer = layers_config[idx]
-            log.debug("--- Processing Layer #%d: %s ---", idx, layer.get('name'))
-            log.debug("Current Base: %s, Path: %s, Host Header: %s",
-                      current_base, current_path, current_host_header)
 
             result, next_base, next_path, next_hh = self._process_layer_dynamic(
                 layer, current_base, current_path, current_host_header, user_agent
             )
             results.append(result)
-            log.debug("Layer Result: %s", result)
-            log.debug("Next Hop Determined: Base: %s, Path: %s, HH: %s",
-                      next_base, next_path, next_hh)
 
             if next_base:
                 current_base = next_base
@@ -221,7 +215,6 @@ class CacheFlowEngine:
                     break
 
             if idx == len(layers_config) - 1 and next_base:
-                log.info("End of configured layers, but a next hop exists. Adding dynamic backend layer.")
                 dynamic_layer = {
                     'name': 'Backend',
                     'description': 'Dynamically routed backend',
@@ -233,7 +226,6 @@ class CacheFlowEngine:
 
             idx += 1
 
-        log.info("Inspection run finished.")
         return results
 
     def _should_process_layer(self, layer: Dict[str, Any], test_path: str,
@@ -254,13 +246,10 @@ class CacheFlowEngine:
     def _process_layer(self, layer: Dict[str, Any], test_path: str,
                        user_agent: str) -> Dict[str, Any]:
         """Processes a single layer."""
-        log.debug("Processing layer '%s' for path '%s'", layer.get('name'), test_path)
         host_header_override = layer.get('host_header')
         if 'host_overrides' in layer:
             for override in layer['host_overrides']:
                 if fnmatch.fnmatch(test_path, override['path_pattern']):
-                    log.debug("Path '%s' matched host override pattern '%s'.",
-                              test_path, override['path_pattern'])
                     host_header_override = override['host_header']
                     break
         log.debug("Host header override is: '%s'", host_header_override)
@@ -292,7 +281,6 @@ class CacheFlowEngine:
             original_url=base_url + test_path
         )
 
-        log.debug("Final request params: %s", params)
         return self._execute_request(params)
 
     def _resolve_dns_for_layer(self, hostname: str) -> Tuple[str, Optional[Any]]:
@@ -300,20 +288,15 @@ class CacheFlowEngine:
         target_ip = hostname
         dns_error = None
         if self.dns_servers:
-            log.debug("Resolving DNS for '%s' using custom servers.", hostname)
             target_ip, dns_error = self.resolve_host(hostname)
             if not dns_error and target_ip != hostname:
-                log.debug("Adding DNS override to session: %s -> %s", hostname, target_ip)
                 self.dns_map[hostname] = target_ip
         return target_ip, dns_error
 
     def _execute_request(self, params: RequestParams) -> Dict[str, Any]:
         """Executes the HTTP request and handles errors."""
-        log.info("Executing request for '%s'...", params.layer['name'])
-        log.debug("  URL: %s", params.url)
-        log.debug("  Headers: %s", params.headers)
-        log.debug("  Target IP (via DNS): %s", params.target_ip)
-        log.debug("  Verify SSL: %s", self.verify_ssl)
+        log.debug("Request URL: %s", params.url)
+        log.debug("Request Headers: %s", params.headers)
 
         layer_result = {
             'name': params.layer['name'],

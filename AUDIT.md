@@ -1,49 +1,57 @@
-# Code Audit - CacheFlow
+# Application Audit Report
 
-This document contains the findings of a manual code audit performed on the CacheFlow codebase.
+This document outlines the findings from the codebase audit, categorizing issues into Code Quality, UI/UX, Architecture, and Compliance.
 
-## High-Level Summary
+## 1. Critical Bugs & Issues
 
-The codebase is generally well-structured and follows modern Python and GTK4 development practices. The separation of concerns between the UI, the application logic, and the backend engine is clear. The use of GSettings for configuration is appropriate for a GNOME-style application. The main challenges discovered were related to environment setup and dependencies, not the code itself.
+* ~~Some GTK Buttons not using Adw.ButtonContent - LIBADWAITA IS TO BE USED ALWAYS OVER JUST GTK! <https://gnome.pages.gitlab.gnome.org/libadwaita/doc/1.7/class.ButtonContent.html>~~
+* ~~**Empty UI File**: `src/ui/window.ui` is a 0-byte file. It appears unused as `src/window.py` uses `src/ui/main.ui`, but it should be removed or populated to avoid confusion.~~
+* ~~**Hardcoded Widget Creation**: `src/ui_utils.py` and `src/header_dialog.py` create widgets (e.g., `Gtk.Box`, `Gtk.Label`) directly in Python code within factory setup methods. This violates `AGENTS.md` Rule #1 ("ALL UI layout... must reside in src/ui/ as XML templates").~~
+  * *Recommendation*: Create simple XML templates (e.g., `list_item_header.ui`, `column_item_label.ui`) and use `Gtk.Builder` or wrapper classes with `@Gtk.Template` to instantiate them in the factories.
 
-## Findings by File
+## 2. Refactoring & Code Quality
 
-### `src/main.py`
+* ~~**`src/layer_widgets.py` Duplication**: The classes `HeaderRow`, `OverrideRow`, `PathMatchRow`, and `RoutingRuleRow` share significant boilerplate code (initialization, signal connection, change notification).~~
+  * *Recommendation*: Create a base class `BaseConfigRow` that handles the common signal connections and delete button logic.
+* ~~**`src/window.py` Logic**:~~
+  * ~~`on_inspect_clicked` modifies the configuration object in-memory (injecting `entry_point` into the first layer's `host_url`). This mutation is implicit and could lead to state issues.~~
+  * ~~`_on_analyze_requested` relies on list index math (`idx + 1`) to find the upstream layer. This is brittle.~~
+  * ~~*Recommendation*: Move the "Effective Configuration" logic (injecting entry points) into `InspectionController` or `CacheFlowEngine` to keep the UI layer clean.~~
+* ~~**`src/engine.py` Complexity**: The `run_inspection_v2` method is growing large with dynamic routing logic, loop handling, and result processing.~~
+  * ~~*Recommendation*: Extract the "Next Hop Calculation" into a dedicated helper class or method `RouteCalculator` that takes a layer + result and returns the next URL.~~
 
-*   **Observation:** The `on_preferences_action` method creates a new `PreferencesWindow` every time it's called.
-*   **Recommendation:** While the window is modal, for a singleton window like preferences, it's better practice to create it once and then show/hide it. The `AGENTS.md` file even warns about "zombie" windows. This could be improved by storing a reference to the `PreferencesWindow` on the application instance.
-*   **Severity:** Low. The current implementation works but is inefficient.
+## 3. UI/UX Improvements (GNOME HIG / Libadwaita)
 
-### `src/preferences.py`
+* ~~**Header Dialog**: The `HeaderDialog` (`src/header_dialog.py`) uses `Adw.Dialog` but manages its content with a `Gtk.ColumnView`.~~
+  * *Suggestion*: Consolidate the "Analysis" and "Raw View" into a single cohesive interface, or ensure consistent styling. The "Analysis" view uses a rich list (good), while the "Header" view uses columns (functional, but maybe less "Adwaita-ish" for simple key-values).
+* ~~**Node Graph**:~~
+  * ~~*Suggestion*: Add Provider Icons (Akamai, Varnish, etc.) to the nodes in `NodeGraph` to verify the "Provider" selection visually.~~
+  * ~~*Suggestion*: Context menus on nodes are mentioned in `REFACTOR.md` but not fully implemented/standardized.~~
+* ~~**Preferences**:~~
+  * ~~The "CNAME" field removal left the code cleaner, but `entry_point` in the GSettings schema is now effectively a duplicate of `domain_name`. Consider future schema migration to remove `entry_point` if it serves no distinct purpose.~~
 
-*   **Observation:** The `ConfigManager.get_configurations` method contains complex data migration logic.
-*   **Analysis:** This is a common pattern in applications with evolving configuration schemas. The logic appears sound, but it's a fragile part of the code that will need careful maintenance as the application evolves. The debug logging I added will be very helpful here.
-*   **Severity:** Low.
+## 4. `AGENTS.md` Compliance
 
-*   **Observation:** The `_pack_layers` method is very long and manually constructs `GLib.Variant` objects for each key.
-*   **Recommendation:** This could be simplified. A helper function that recursively converts a Python dictionary to a `GLib.Variant` dictionary would reduce code duplication and make this method much more maintainable.
-*   **Severity:** Medium. The current code is hard to read and prone to errors if new layer properties are added.
+* ~~**Rule #1 (UI Separation)**: Violated in `src/ui_utils.py` (`_setup_header_list_item`) and `src/header_dialog.py` (`_on_factory_setup_*`).~~
+* ~~**Rule #3 (Comments)**: Code generally follows the "Docstrings only" rule, but some inline comments exist in `src/engine.py` (e.g., inside `_process_layer_dynamic`).~~
 
-### `src/engine.py`
+## 5. File Structure & Organization
 
-*   **Observation:** The `run_inspection` and `_process_layer_dynamic` methods have high cyclomatic complexity.
-*   **Analysis:** The routing logic is complex, and these methods are doing a lot of work. The `RouteCalculator` class helps, but more of the logic could be moved into it.
-*   **Recommendation:** Continue to refactor the routing and next-hop-determination logic out of the `CacheFlowEngine` and into the `RouteCalculator` or other dedicated classes. This would make the engine itself simpler and easier to test.
-*   **Severity:** Medium. The code is hard to follow, which increases the risk of bugs.
+* ~~**Unused Files**: `src/ui/window.ui` (empty).~~
+* ~~**Test Location**: There are no tests in `src/tests/` or `tests/`.~~
+  * *Recommendation*: Create a `tests/` directory and add unit tests for `engine.py` (routing logic) and `preferences.py` (persistence).
 
-### `src/window.py`
+## 6. Architecture & Systems
 
-*   **Observation:** The `_on_analyze_requested` method performs a lazy import: `from .analysis_dialog import HeaderAnalysisDialog`.
-*   **Analysis:** While lazy imports can sometimes be useful, in a desktop application, it's generally better to import all dependencies at the top of the file. This makes the module's dependencies explicit and avoids potential runtime import errors.
-*   **Recommendation:** Move the import to the top of the file.
-*   **Severity:** Low.
+* **Providers**: The `src/providers/` system is clean and extensible.
+* **Analysis**: `src/analyzer.py` and `src/knowledge.py` are well separated.
+* ~~**Dynamic Routing**: The new routing logic in `src/engine.py` is functional but essentially implements a small state machine. Documenting this state flow (Current URL -> Layer Rule -> Next URL) in `DESIGN.md` would be beneficial.~~
 
-## Compliance with `AGENTS.md`
+## Summary of Action Items
 
-*   **UI Separation:** Excellent. The code consistently uses `@Gtk.Template` and `.ui` files. I found no instances of UI widgets being created in Python code.
-*   **Configuration & Storage:** Excellent. The application uses GSettings correctly, and the `ConfigManager` provides a good abstraction layer.
-*   **Code Style & Quality:** Good. The code is generally PEP8 compliant. There are a few `pylint: disable` comments that could be addressed, but they are mostly in reasonable places (like GTK signal handlers with unused arguments). The user's request for no inline comments has been followed.
-
-## Conclusion
-
-The codebase is in good shape. The most critical issues were related to the development and runtime environment, which have now been resolved. The remaining issues are minor and can be addressed in future refactoring. No critical, show-stopping bugs were found in the code itself.
+1. ~~**Delete** `src/ui/window.ui`.~~
+2. ~~**Refactor** `src/ui_utils.py` and `src/header_dialog.py` to load list items from XML templates.~~
+3. ~~**Refactor** `src/layer_widgets.py` to reduce boilerplate.~~
+4. ~~**Clean up** inline comments in `src/engine.py`.~~
+5. ~~**Create** unit tests for the new routing engine logic.~~
+6. ~~ENSURE LIBADWAITA IS USED OVER ALL FOR UI WIDGETS!~~

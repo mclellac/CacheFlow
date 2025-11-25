@@ -25,28 +25,6 @@
       </object>
     </child>
     <child>
-      <object class="AdwPreferencesGroup" id="varnish_backend_group">
-        <property name="title">Varnish Backends</property>
-        <property name="description">Define backends for Varnish.</property>
-        <child>
-            <object class="AdwActionRow">
-                <property name="activatable">True</property>
-                <property name="title">Add New Backend</property>
-                <property name="icon-name">list-add-symbolic</property>
-                <property name="activatable-widget">add_varnish_backend_btn</property>
-                <child type="suffix">
-                    <object class="GtkButton" id="add_varnish_backend_btn">
-                        <property name="icon-name">list-add-symbolic</property>
-                        <property name="valign">center</property>
-                        <property name="has-frame">False</property>
-                        <property name="tooltip-text">Add Varnish Backend</property>
-                    </object>
-                </child>
-            </object>
-        </child>
-      </object>
-    </child>
-    <child>
       <object class="AdwComboRow" id="provider_row">
         <property name="title">Provider</property>
       </object>
@@ -174,21 +152,21 @@
       </object>
     </child>
     <child>
-      <object class="AdwPreferencesGroup" id="origin_rules_group">
-        <property name="title">Origin Rules</property>
-        <property name="description">Define origins based on request paths and domains.</property>
+      <object class="AdwPreferencesGroup" id="routing_rules_group">
+        <property name="title">Routing Rules</property>
+        <property name="description">Define backend destinations based on request paths.</property>
         <child>
             <object class="AdwActionRow">
                 <property name="activatable">True</property>
-                <property name="title">Add New Origin</property>
+                <property name="title">Add New Backend</property>
                 <property name="icon-name">list-add-symbolic</property>
-                <property name="activatable-widget">add_origin_rule_btn</property>
+                <property name="activatable-widget">add_routing_rule_btn</property>
                 <child type="suffix">
-                    <object class="GtkButton" id="add_origin_rule_btn">
+                    <object class="GtkButton" id="add_routing_rule_btn">
                         <property name="icon-name">list-add-symbolic</property>
                         <property name="valign">center</property>
                         <property name="has-frame">False</property>
-                        <property name="tooltip-text">Add Origin Rule</property>
+                        <property name="tooltip-text">Add Routing Rule</property>
                     </object>
                 </child>
             </object>

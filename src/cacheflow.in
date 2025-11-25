@@ -29,18 +29,13 @@ try:
     gi.require_version('Gtk', '4.0')
     gi.require_version('Adw', '1')
     from gi.repository import Gio, GLib
-except ImportError as e:
-    sys.exit(f"FATAL: Missing Python gir bindings for GTK4/Adwaita ({e}).\n"
-             "Please install `python3-gi` and `python3-gi-cairo` packages.")
 
-try:
     # Load the GResource bundle
     resource_path = os.path.join(pkgdatadir, 'cacheflow.gresource')
     resource = Gio.Resource.load(resource_path)
     Gio.Resource._register(resource)
-except GLib.Error as e:
+except (ImportError, GLib.Error) as e:
     sys.exit(f"FATAL: Failed to load application resources from {resource_path}. {e}")
-
 
 # Now that resources are loaded and registered, we can safely import and run the application.
 if __name__ == '__main__':

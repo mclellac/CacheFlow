@@ -36,9 +36,7 @@ class CacheFlowApplication(Adw.Application):
 
     def on_activate(self, app):
         """Callback when the application is activated."""
-        log.debug("Application activating.")
         self.settings = Gio.Settings.new("com.github.mclellac.CacheFlow")
-        log.debug("GSettings schema 'com.github.mclellac.CacheFlow' loaded.")
         self.create_action("preferences", self.on_preferences_action)
         self.create_action("shortcuts", self.on_shortcuts_action)
         self.create_action("about", self.on_about_action)
@@ -54,14 +52,9 @@ class CacheFlowApplication(Adw.Application):
         self.set_accels_for_action("win.inspect", ["<Primary>Return"])
         self.set_accels_for_action("win.export-graph", ["<Primary>e"])
         self.set_accels_for_action("win.reset-layout", ["<Primary>r"])
-        log.debug("Accelerators configured.")
         if not self.get_active_window():
-            log.debug("No active window found, creating new main window.")
             self.win = Window(application=app)
             self.win.present()
-        else:
-            log.debug("Main window already active, presenting it.")
-            self.get_active_window().present()
 
     def _on_accent_color_changed(self, style_manager, _):
         log.debug("System accent color changed to: %s",
@@ -76,7 +69,6 @@ class CacheFlowApplication(Adw.Application):
     def _update_color_scheme(self):
         """Reads theme from settings and applies it."""
         theme = self.settings.get_string("theme")
-        log.debug("Updating color scheme to '%s'.", theme)
         if theme == "light":
             self.style_manager.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
         elif theme == "dark":
@@ -86,16 +78,14 @@ class CacheFlowApplication(Adw.Application):
 
     def on_preferences_action(self, _action, _param):
         """Callback for the app.preferences action."""
-        log.debug("Preferences action triggered.")
+        log.debug("Preferences action triggered. Creating new PreferencesWindow.")
         prefs_window = PreferencesWindow(
             transient_for=self.get_active_window(), modal=True
         )
-        log.debug("Presenting PreferencesWindow.")
         prefs_window.present()
 
     def on_about_action(self, _action, _param):
         """Callback for the app.about action."""
-        log.debug("About action triggered.")
         if hasattr(Adw, "AboutDialog"):
             about = Adw.AboutDialog(
                 application_name="CacheFlow",
@@ -126,7 +116,6 @@ class CacheFlowApplication(Adw.Application):
 
     def on_shortcuts_action(self, _action, _param):
         """Callback for the app.shortcuts action."""
-        log.debug("Shortcuts action triggered.")
         builder = Gtk.Builder()
         builder.add_from_resource(
             "/com/github/mclellac/CacheFlow/ui/shortcuts.ui"
@@ -140,12 +129,10 @@ class CacheFlowApplication(Adw.Application):
         action = Gio.SimpleAction.new(name, None)
         action.connect("activate", callback)
         self.add_action(action)
-        log.debug("Action '%s' created.", name)
 
 
 def main(version):
     """Application entry point."""
-    log.info("--- CacheFlow Application Start ---")
     log_file = os.path.join(GLib.get_user_cache_dir(), 'cacheflow.log')
     try:
         file_handler = logging.FileHandler(log_file)
@@ -164,7 +151,3 @@ def main(version):
         flags=Gio.ApplicationFlags.FLAGS_NONE,
     )
     app.run(sys.argv)
-
-
-if __name__ == '__main__':
-    main(version="0.1.0-dev")
