@@ -4,6 +4,7 @@ and configuration management via GSettings.
 """
 
 import logging
+import uuid
 from gi.repository import Gtk, Adw, Gio, GObject, GLib, Gdk
 
 from .layer_widgets import LayerRow
@@ -39,7 +40,7 @@ def rgba_to_setting(gdk_rgba, _user_data=None):
     return None
 
 
-DEFAULT_CONFIG = [
+DEFAULT_LAYERS = [
     {
         "name": "CDN_Edge",
         "description": "Akamai (External View)",
@@ -69,19 +70,6 @@ DEFAULT_CONFIG = [
             }
         ],
         "path_match_only": []
-    },
-    {
-        "name": "Application_Backend_A",
-        "description": "Openshift App Backend (mybackend.openshift.app.com)",
-        "layer_type": "Application Backend",
-        "provider": "OpenShift",
-        "host_url": "https://mybackend.openshift.app.com",
-        "custom_headers": {},
-        "path_match_only": [
-            "/products/*",
-            "/api/v1/*"
-        ],
-        "host_overrides": []
     }
 ]
 
@@ -93,22 +81,98 @@ class ConfigManager:
         self.settings = settings
         log.debug("ConfigManager initialized.")
 
-    def get_layers(self, key):
-        """Gets and unpacks layers for a given config key."""
-        val = self.settings.get_value(key)
-        layers = val.unpack()
-        if not layers:
-            return DEFAULT_CONFIG
-        return layers
+    def get_configurations(self):
+        """Returns the list of configurations (list of dicts)."""
+        val = self.settings.get_value('configurations')
+        configs = val.unpack()
+        if not configs:
+            # If empty, create a default one
+            default_id = str(uuid.uuid4())
+            default_config = {
+                'id': GLib.Variant('s', default_id),
+                'name': GLib.Variant('s', 'Example Domain'),
+                'entry_point': GLib.Variant('s', 'www.example.com'),
+                'layers': self._pack_layers(DEFAULT_LAYERS)
+            }
+            self.settings.set_value('configurations', GLib.Variant('aa{sv}', [default_config]))
+            self.settings.set_string('active-config-id', default_id)
+            return [{
+                'id': default_id,
+                'name': 'Example Domain',
+                'entry_point': 'www.example.com',
+                'layers': DEFAULT_LAYERS
+            }]
 
-    def save_layers(self, key, layer_rows):
-        """Constructs a GVariant from a list of LayerRow widgets and saves it."""
-        log.info("Saving configuration for key '%s'.", key)
-        layers_data = [row.get_data() for row in layer_rows]
-        self.save_layers_data(key, layers_data)
+        # Unpack layers recursively
+        unpacked_configs = []
+        for c in configs:
+            c_dict = dict(c) # c is a dict from aa{sv}
+            layers_variant = c_dict.get('layers')
+            layers = layers_variant.unpack() if layers_variant else []
+            unpacked_configs.append({
+                'id': c_dict.get('id', ''),
+                'name': c_dict.get('name', ''),
+                'entry_point': c_dict.get('entry_point', ''),
+                'layers': layers
+            })
+        return unpacked_configs
 
-    def save_layers_data(self, key, layers_data):
-        """Constructs a GVariant from a list of layer data dicts and saves it."""
+    def get_configuration(self, conf_id):
+        """Returns a single configuration by ID."""
+        configs = self.get_configurations()
+        for c in configs:
+            if c['id'] == conf_id:
+                return c
+        return None
+
+    def add_configuration(self, name, entry_point):
+        """Adds a new configuration."""
+        configs = self.get_configurations()
+        new_id = str(uuid.uuid4())
+        new_conf = {
+            'id': new_id,
+            'name': name,
+            'entry_point': entry_point,
+            'layers': []
+        }
+        configs.append(new_conf)
+        self._save_configs(configs)
+        return new_id
+
+    def delete_configuration(self, conf_id):
+        """Deletes a configuration."""
+        configs = self.get_configurations()
+        configs = [c for c in configs if c['id'] != conf_id]
+        self._save_configs(configs)
+
+    def save_configuration(self, conf_id, data):
+        """Updates a configuration."""
+        configs = self.get_configurations()
+        for i, c in enumerate(configs):
+            if c['id'] == conf_id:
+                configs[i] = data
+                break
+        self._save_configs(configs)
+
+    def _save_configs(self, configs):
+        """ packs and saves list of configs to GSettings."""
+        variant_data = []
+        for c in configs:
+            c_dict = {
+                'id': GLib.Variant('s', c['id']),
+                'name': GLib.Variant('s', c['name']),
+                'entry_point': GLib.Variant('s', c['entry_point']),
+                'layers': self._pack_layers(c['layers'])
+            }
+            variant_data.append(c_dict)
+
+        try:
+            self.settings.set_value('configurations', GLib.Variant('aa{sv}', variant_data))
+        except Exception as e:
+            log.error("Error saving configurations: %s", e)
+
+    def _pack_layers(self, layers_data):
+        """Packs list of layer dicts into Variant."""
         variant_data = []
         for l_data in layers_data:
             layer_dict = {
@@ -182,24 +246,18 @@ class PreferencesWindow(Adw.PreferencesWindow):
     dns_row = Gtk.Template.Child()
     font_button = Gtk.Template.Child()
 
-    prod_group = Gtk.Template.Child()
-    staging_group = Gtk.Template.Child()
-    qa_group = Gtk.Template.Child()
-    dev_group = Gtk.Template.Child()
+    config_selector = Gtk.Template.Child()
+    add_config_btn = Gtk.Template.Child()
+    delete_config_btn = Gtk.Template.Child()
 
-    prod_add_row = Gtk.Template.Child()
-    staging_add_row = Gtk.Template.Child()
-    qa_add_row = Gtk.Template.Child()
-    dev_add_row = Gtk.Template.Child()
+    domain_name_row = Gtk.Template.Child()
+    entry_point_row = Gtk.Template.Child()
 
-    prod_export_row = Gtk.Template.Child()
-    prod_import_row = Gtk.Template.Child()
-    staging_export_row = Gtk.Template.Child()
-    staging_import_row = Gtk.Template.Child()
-    qa_export_row = Gtk.Template.Child()
-    qa_import_row = Gtk.Template.Child()
-    dev_export_row = Gtk.Template.Child()
-    dev_import_row = Gtk.Template.Child()
+    layers_group = Gtk.Template.Child()
+    add_layer_row = Gtk.Template.Child()
+
+    export_row = Gtk.Template.Child()
+    import_row = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -208,7 +266,9 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
         self.config_manager = ConfigManager(self.settings)
         self.exporter = ConfigExporter(self)
-        self._layer_rows = {}
+        self._layer_rows = []
+        self._loading = True
+        self.current_config_id = None
 
         self.settings.bind('dns-servers', self.dns_row, 'text',
                            Gio.SettingsBindFlags.DEFAULT)
@@ -219,28 +279,24 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.font_button.set_font(self.settings.get_string('node-font'))
         self.font_button.connect('font-set', self.on_font_set)
 
-        env_map = {'production': self.prod_group, 'staging': self.staging_group,
-                   'qa': self.qa_group, 'dev': self.dev_group}
-        add_row_map = {'production': self.prod_add_row, 'staging': self.staging_add_row,
-                       'qa': self.qa_add_row, 'dev': self.dev_add_row}
-        export_row_map = {
-            'production': self.prod_export_row, 'staging': self.staging_export_row,
-            'qa': self.qa_export_row, 'dev': self.dev_export_row
-        }
-        import_row_map = {
-            'production': self.prod_import_row, 'staging': self.staging_import_row,
-            'qa': self.qa_import_row, 'dev': self.dev_import_row
-        }
+        # Setup Config Selector
+        self.config_model = Gtk.StringList()
+        self.config_selector.set_model(self.config_model)
+        self.config_selector.connect('notify::selected', self.on_config_selected)
 
-        for env, group in env_map.items():
-            key = f'config-{env}'
-            add_row_map[env].connect('activated',
-                                     lambda r, g=group, k=key: self.add_layer(g, k))
-            export_row_map[env].connect('activated',
-                                        lambda r, k=key: self.do_export_config(k))
-            import_row_map[env].connect('activated',
-                                        lambda r, g=group, k=key: self.do_import_config(g, k))
-            self.setup_env_config(group, key)
+        self.add_config_btn.connect('clicked', self.on_add_config)
+        self.delete_config_btn.connect('clicked', self.on_delete_config)
+
+        self.domain_name_row.connect('notify::text', self.on_details_changed)
+        self.entry_point_row.connect('notify::text', self.on_details_changed)
+
+        self.add_layer_row.connect('activated', self.add_layer)
+
+        self.export_row.connect('activated', self.do_export_config)
+        self.import_row.connect('activated', self.do_import_config)
+
+        self.refresh_config_list()
+        self._loading = False
 
         self.connect('close-request',
                      lambda win: log.debug("PreferencesWindow close requested."))
@@ -277,50 +333,126 @@ class PreferencesWindow(Adw.PreferencesWindow):
         font_string = button.get_font()
         self.settings.set_string('node-font', font_string)
 
-    def setup_env_config(self, group, key):
-        """Populates the configuration group with layer rows."""
-        log.debug("Setting up configuration for group '%s' with key '%s'.",
-                  group.get_title(), key)
-        self._layer_rows[group] = []
-        self.config_manager.ensure_default_config(key)
-        layers = self.config_manager.get_layers(key)
+    def refresh_config_list(self):
+        """Refreshes the config selector model."""
+        self._loading = True
+        configs = self.config_manager.get_configurations()
+
+        # Keep track of IDs in order
+        self.config_ids = [c['id'] for c in configs]
+
+        # Update model
+        # Clear/Splice
+        if self.config_model.get_n_items() > 0:
+            self.config_model.splice(0, self.config_model.get_n_items(), [])
+
+        for c in configs:
+            self.config_model.append(c['name'])
+
+        # Select active
+        active_id = self.settings.get_string('active-config-id')
+        if active_id in self.config_ids:
+            idx = self.config_ids.index(active_id)
+            self.config_selector.set_selected(idx)
+        elif configs:
+            self.config_selector.set_selected(0)
+            self.settings.set_string('active-config-id', configs[0]['id'])
+
+        self._loading = False
+        self.on_config_selected(self.config_selector, None)
+
+    def on_config_selected(self, _row, _param):
+        """Callback when a configuration is selected."""
+        if self._loading:
+            return
+
+        idx = self.config_selector.get_selected()
+        if idx < 0 or idx >= len(self.config_ids):
+            return
+
+        self.current_config_id = self.config_ids[idx]
+        self.settings.set_string('active-config-id', self.current_config_id)
+
+        config = self.config_manager.get_configuration(self.current_config_id)
+        if config:
+            self.load_config_ui(config)
+
+    def load_config_ui(self, config):
+        """Loads configuration into the UI fields."""
+        self._loading = True
+        self.domain_name_row.set_text(config.get('name', ''))
+        self.entry_point_row.set_text(config.get('entry_point', ''))
+
+        # Clear existing layers
+        for row in self._layer_rows:
+            self.layers_group.remove(row)
+        self._layer_rows = []
+
+        # Load layers
+        layers = config.get('layers', [])
         for layer_data in layers:
-            self.create_layer_row(group, key, layer_data)
+            self.create_layer_row(layer_data)
 
-    def create_layer_row(self, group, key, data, save_on_change=True):
-        """Creates a LayerRow and adds it to the UI."""
-        on_change_callback = (
-            lambda: self.config_manager.save_layers(key, self._layer_rows[group])
-        ) if save_on_change else None
+        # Re-add add button at the end
+        self.layers_group.remove(self.add_layer_row)
+        self.layers_group.add(self.add_layer_row)
 
+        self._loading = False
+
+    def create_layer_row(self, data):
+        """Creates a LayerRow."""
         row = LayerRow(
             layer_data=data,
-            on_delete=lambda r: self.remove_layer(group, key, r),
-            on_change=on_change_callback
+            on_delete=self.remove_layer,
+            on_change=self.save_current_config
         )
+        self._layer_rows.append(row)
+        self.layers_group.add(row)
 
-        if group not in self._layer_rows:
-            self._layer_rows[group] = []
-        self._layer_rows[group].append(row)
+    def on_details_changed(self, *_args):
+        """Callback when domain details change."""
+        if self._loading or not self.current_config_id:
+            return
 
-        add_row_map = {
-            self.prod_group: self.prod_add_row,
-            self.staging_group: self.staging_add_row,
-            self.qa_group: self.qa_add_row,
-            self.dev_group: self.dev_add_row
+        # Update name in list if changed
+        new_name = self.domain_name_row.get_text()
+        # We can try to update the GtkStringList but it's easier to wait for refresh or save.
+        self.save_current_config()
+
+    def save_current_config(self):
+        """Saves the current UI state to the configuration."""
+        if self._loading or not self.current_config_id:
+            return
+
+        layers_data = [row.get_data() for row in self._layer_rows]
+        data = {
+            'id': self.current_config_id,
+            'name': self.domain_name_row.get_text(),
+            'entry_point': self.entry_point_row.get_text(),
+            'layers': layers_data
         }
-        add_row = add_row_map.get(group)
+        self.config_manager.save_configuration(self.current_config_id, data)
 
-        if add_row:
-            group.remove(add_row)
-            group.add(row)
-            group.add(add_row)
-        else:
-            group.add(row)
+    def on_add_config(self, _btn):
+        """Adds a new configuration."""
+        new_id = self.config_manager.add_configuration("New Domain", "www.example.com")
+        # Refresh first
+        self.refresh_config_list()
+        # Set active to new
+        self.settings.set_string('active-config-id', new_id)
+        self.refresh_config_list()
 
-    def add_layer(self, group, key):
-        """Handles adding a new, default layer to a group."""
-        log.info("Adding new layer to group '%s'.", group.get_title())
+    def on_delete_config(self, _btn):
+        """Deletes the current configuration."""
+        if not self.current_config_id:
+            return
+
+        self.config_manager.delete_configuration(self.current_config_id)
+        # The refresh will pick a new one or default
+        self.refresh_config_list()
+
+    def add_layer(self, _row):
+        """Adds a new layer to the current config."""
         new_data = {
             'name': 'New Layer',
             'description': '',
@@ -332,40 +464,46 @@ class PreferencesWindow(Adw.PreferencesWindow):
             'path_match_only': [],
             'routing_rules': []
         }
-        self.create_layer_row(group, key, new_data)
-        self.config_manager.save_layers(key, self._layer_rows[group])
+        self.create_layer_row(new_data)
+        self.layers_group.remove(self.add_layer_row)
+        self.layers_group.add(self.add_layer_row)
+        self.save_current_config()
 
-    def remove_layer(self, group, key, row):
-        """Handles removing a layer from a group."""
-        log.info("Removing layer '%s' from group '%s'.",
-                 row.get_title(), group.get_title())
-        group.remove(row)
-        if group in self._layer_rows and row in self._layer_rows[group]:
-            self._layer_rows[group].remove(row)
-        self.config_manager.save_layers(key, self._layer_rows[group])
+    def remove_layer(self, row):
+        """Removes a layer."""
+        self.layers_group.remove(row)
+        self._layer_rows.remove(row)
+        self.save_current_config()
 
-    def do_export_config(self, key):
-        """Exports the configuration for the given key."""
-        layers = self.config_manager.get_layers(key)
-        self.exporter.export_config(layers, on_success=self.on_export_success)
+    def do_export_config(self, _row):
+        """Exports the current configuration."""
+        if not self.current_config_id:
+            return
+        config = self.config_manager.get_configuration(self.current_config_id)
+        # Export just layers as per previous logic, or update Exporter?
+        # Let's export layers for now.
+        self.exporter.export_config(config['layers'], on_success=self.on_export_success)
 
     def on_export_success(self, filepath):
         """Callback when configuration is exported."""
         self.add_toast(Adw.Toast.new(f"Exported to {filepath}"))
 
-    def do_import_config(self, group, key):
-        """Imports the configuration for the given key."""
-        self.exporter.import_config(lambda data: self.on_config_imported(group, key, data))
+    def do_import_config(self, _row):
+        """Imports the configuration."""
+        self.exporter.import_config(self.on_config_imported)
 
-    def on_config_imported(self, group, key, layers_data):
+    def on_config_imported(self, layers_data):
         """Callback when configuration is imported."""
-        # Save the new data
-        self.config_manager.save_layers_data(key, layers_data)
+        # This replaces layers of current config
+        if not self.current_config_id:
+            return
 
-        # Refresh the UI
-        rows_to_remove = self._layer_rows.get(group, [])[:]
-        for row in rows_to_remove:
-            group.remove(row)
+        # We assume import is just layers list for now
+        # Update current config
+        config = self.config_manager.get_configuration(self.current_config_id)
+        config['layers'] = layers_data
+        self.config_manager.save_configuration(self.current_config_id, config)
 
-        self.setup_env_config(group, key)
+        # Refresh UI
+        self.load_config_ui(config)
         self.add_toast(Adw.Toast.new("Configuration imported"))
