@@ -96,65 +96,10 @@ class CacheFlowEngine:
         exec_layer = layer_config.copy()
         exec_layer['host_url'] = target_base
         if target_host_header:
-            overrides = exec_layer.get('host_overrides', [])
-            exec_layer['host_overrides'] = [{
-                'path_pattern': '*',
-                'host_header': target_host_header
-            }] + overrides
+            # If a host header is passed from the previous layer, it takes precedence.
             exec_layer['host_header'] = target_host_header
 
         result = self._process_layer(exec_layer, target_path, user_agent)
-
-        next_base = None
-        next_path = target_path
-        next_host_header = None
-
-        routing_rules = layer_config.get('routing_rules', [])
-        rule_matched = False
-
-        for rule in routing_rules:
-            path_match = rule.get('path_match')
-            is_match = False
-            if path_match:
-                is_match = fnmatch.fnmatch(target_path, path_match)
-
-            if is_match:
-                log.info("Routing rule matched: %s", path_match)
-                backend_host = rule.get('backend_host')
-                path_rewrite = rule.get('path_rewrite')
-                backend_host_header = rule.get('backend_host_header')
-
-                if backend_host:
-                    if not backend_host.startswith('http'):
-                        next_base = f"https://{backend_host}"
-                    else:
-                        next_base = backend_host
-
-                if backend_host_header:
-                    next_host_header = backend_host_header
-
-                if path_rewrite and path_rewrite.startswith('s'):
-                    try:
-                        parts = path_rewrite.split(path_rewrite[1])
-                        if len(parts) >= 3:
-                            pattern = parts[1]
-                            repl = parts[2]
-                            next_path = re.sub(pattern, repl, target_path)
-                            log.debug("Rewrote path '%s' to '%s'", target_path, next_path)
-                    except Exception as e: # pylint: disable=broad-exception-caught
-                        log.error("Failed to parse rewrite rule: %s", e)
-
-                rule_matched = True
-                break
-
-        if not rule_matched:
-            default_host = layer_config.get('default_backend_host')
-            if default_host:
-                log.info("Using default backend: %s", default_host)
-                if not default_host.startswith('http'):
-                    next_base = f"https://{default_host}"
-                else:
-                    next_base = default_host
 
         next_base, next_path, next_host_header = RouteCalculator.calculate_next_hop(
             layer_config, target_path
@@ -167,10 +112,9 @@ class CacheFlowEngine:
         Executes the inspection run using dynamic routing.
         """
         log.info("Starting inspection run (Dynamic).")
-        if test_path is None:
-            test_path = self.config.get('test_path', '/')
+        test_path = test_path or self.config.get('test_path', '/')
         if not test_path.startswith('/'):
-            test_path = '/' + test_path
+            test_path = f'/{test_path}'
 
         user_agent = self.config.get('user_agent', 'CacheFlow/0.1.0')
         layers_config = list(self.config.get('layers', []))
@@ -179,61 +123,63 @@ class CacheFlowEngine:
             return []
 
         results = []
+        entry_point = self.config.get('entry_point') or layers_config[0].get('host_url', 'localhost')
 
-        entry_point = self.config.get('entry_point', '')
-        if not entry_point:
-            entry_point = layers_config[0].get('host_url', 'localhost')
-
-        parsed = urlparse(entry_point if entry_point.startswith('http') else f"https://{entry_point}")
-        current_base = f"{parsed.scheme}://{parsed.netloc}"
+        parsed_entry = urlparse(f'https://{entry_point}' if '://' not in entry_point else entry_point)
+        current_base = f'{parsed_entry.scheme}://{parsed_entry.netloc}'
         current_path = test_path
         current_host_header = None
 
-        idx = 0
-        while idx < len(layers_config):
-            layer = layers_config[idx]
+        processed_layers = 0
+        while processed_layers < len(layers_config):
+            layer = layers_config[processed_layers]
 
             result, next_base, next_path, next_hh = self._process_layer_dynamic(
                 layer, current_base, current_path, current_host_header, user_agent
             )
             results.append(result)
 
+            is_last_layer = processed_layers == len(layers_config) - 1
+
             if next_base:
                 current_base = next_base
                 current_path = next_path
                 current_host_header = next_hh
-            else:
-                if idx < len(layers_config) - 1:
-                    log.warning("Layer '%s' did not define a next hop, but more layers exist.", layer['name'])
-                    next_layer = layers_config[idx+1]
-                    fallback_url = next_layer.get('host_url')
-                    if fallback_url:
-                        current_base = fallback_url if fallback_url.startswith('http') else f"https://{fallback_url}"
-                    else:
-                        break
+
+                if is_last_layer:
+                    # If the last configured layer points to another backend, add a dynamic layer to represent it
+                    dynamic_layer = {
+                        'name': 'Backend',
+                        'description': 'Dynamically routed backend',
+                        'layer_type': 'Application Backend',
+                        'provider': 'Unknown',
+                        'host_url': next_base,
+                    }
+                    layers_config.append(dynamic_layer)
+
+            elif not is_last_layer:
+                # If there's no next hop but more layers are configured, try to fall back to the next layer's URL
+                log.warning("Layer '%s' did not define a next hop. Falling back to next layer's host.", layer['name'])
+                next_layer = layers_config[processed_layers + 1]
+                fallback_url = next_layer.get('host_url')
+                if fallback_url:
+                    parsed_fallback = urlparse(f'https://{fallback_url}' if '://' not in fallback_url else fallback_url)
+                    current_base = f'{parsed_fallback.scheme}://{parsed_fallback.netloc}'
+                    current_path = test_path # Reset path on fallback? Maybe not. Let's keep it.
+                    current_host_header = None
                 else:
-                    break
+                    log.error("Next layer '%s' has no host_url to fall back to. Stopping inspection.", next_layer['name'])
+                    break # Stop processing
+            else:
+                # Last layer and no next hop, we're done.
+                break
 
-            if idx == len(layers_config) - 1 and next_base:
-                dynamic_layer = {
-                    'name': 'Backend',
-                    'description': 'Dynamically routed backend',
-                    'layer_type': 'Application Backend',
-                    'provider': 'Unknown',
-                    'host_url': next_base,
-                }
-                layers_config.append(dynamic_layer)
-
-            idx += 1
+            processed_layers += 1
 
         return results
 
-    def _should_process_layer(self, layer: Dict[str, Any], test_path: str,
-                              check_match: bool) -> bool:
+    def _should_process_layer(self, layer: Dict[str, Any], test_path: str) -> bool:
         """Determines if a layer should be processed based on path matching."""
-        if not check_match:
-            return True
-
         path_match_patterns = layer.get('path_match_only', [])
         if not path_match_patterns:
             return True
@@ -246,18 +192,29 @@ class CacheFlowEngine:
     def _process_layer(self, layer: Dict[str, Any], test_path: str,
                        user_agent: str) -> Dict[str, Any]:
         """Processes a single layer."""
+        if not self._should_process_layer(layer, test_path):
+            return {
+                'name': layer['name'],
+                'skipped': True
+            }
+
         host_header_override = layer.get('host_header')
         if 'host_overrides' in layer:
             for override in layer['host_overrides']:
-                if fnmatch.fnmatch(test_path, override['path_pattern']):
-                    host_header_override = override['host_header']
+                if fnmatch.fnmatch(test_path, override.get('path_pattern', '')):
+                    host_header_override = override.get('host_header')
                     break
-        log.debug("Host header override is: '%s'", host_header_override)
 
-        base_url = layer['host_url'].rstrip('/')
+        base_url = layer.get('host_url', '').rstrip('/')
+        if not base_url:
+            return {
+                'name': layer['name'],
+                'error': 'Host URL is not configured for this layer.',
+                'error_type': 'config_error'
+            }
+
         parsed_url = urlparse(base_url)
         hostname = parsed_url.hostname
-        final_host_header = host_header_override or hostname
 
         target_ip, dns_error = self._resolve_dns_for_layer(hostname)
         if dns_error:
@@ -271,7 +228,7 @@ class CacheFlowEngine:
         headers = layer.get('custom_headers', {}).copy()
         headers['User-Agent'] = user_agent
         if host_header_override:
-            headers['Host'] = final_host_header
+            headers['Host'] = host_header_override
 
         params = RequestParams(
             url=url,
@@ -295,24 +252,25 @@ class CacheFlowEngine:
 
     def _execute_request(self, params: RequestParams) -> Dict[str, Any]:
         """Executes the HTTP request and handles errors."""
-        log.debug("Request URL: %s", params.url)
-        log.debug("Request Headers: %s", params.headers)
+        log.debug("Executing request: URL=%s, Headers=%s", params.url, params.headers)
 
         layer_result = {
             'name': params.layer['name'],
+            'provider': params.layer.get('provider'),
+            'layer_type': params.layer.get('layer_type'),
             'description': params.layer.get('description', ''),
             'url': params.url,
             'original_url': params.original_url,
             'sent_host_header': params.headers.get('Host'),
-            'method': 'GET'
+            'method': 'GET'  # Hardcoded for now, can be a parameter later
         }
 
         try:
             response = self.session.get(
-                params.url, headers=params.headers, timeout=10, stream=True,
+                params.url, headers=params.headers, timeout=10,
                 allow_redirects=False, verify=self.verify_ssl
             )
-            response.close()
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
 
             layer_result.update({
                 'status_code': response.status_code,
@@ -322,21 +280,27 @@ class CacheFlowEngine:
 
         except requests.exceptions.SSLError as e:
             self._handle_error(layer_result, ERR_SSL, e, 'ssl')
-        except requests.exceptions.ConnectTimeout as e:
-            self._handle_error(layer_result, ERR_TIMEOUT.format(params.target_ip), e,
-                               'timeout')
+        except requests.exceptions.Timeout as e:
+            self._handle_error(layer_result, ERR_TIMEOUT.format(params.target_ip), e, 'timeout')
         except requests.exceptions.ConnectionError as e:
-            self._handle_error(layer_result, ERR_CONNECTION.format(params.target_ip), e,
-                               'connection')
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            self._handle_error(layer_result, str(e), e, 'unknown')
+            self._handle_error(layer_result, ERR_CONNECTION.format(params.target_ip), e, 'connection')
+        except requests.exceptions.HTTPError as e:
+            # For 4xx/5xx errors, we still want to record the response
+            layer_result.update({
+                'status_code': e.response.status_code,
+                'headers': dict(e.response.headers)
+            })
+            self._handle_error(layer_result, f"HTTP Error: {e.response.status_code}", e, 'http_error')
+        except requests.exceptions.RequestException as e:
+            # Catch any other `requests` specific exceptions
+            self._handle_error(layer_result, f"Request Error: {e}", e, 'request_error')
 
         return layer_result
 
     def _handle_error(self, result: Dict[str, Any], message: str,
                       exception: Exception, error_type: str) -> None:
         """Helper to update result with error info."""
-        log.error("Request failed for %s: %s - %s",
-                  result.get('url'), message, exception)
+        log.error("Request failed for '%s': %s (%s)",
+                  result.get('name'), message, exception)
         result['error'] = message
         result['error_type'] = error_type

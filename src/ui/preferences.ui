@@ -85,17 +85,27 @@
                         <property name="spacing">6</property>
                         <child>
                           <object class="GtkButton" id="add_config_btn">
-                              <property name="icon-name">list-add-symbolic</property>
-                              <property name="tooltip-text">Add New Domain</property>
+                            <property name="tooltip-text">Add New Domain</property>
+                            <child>
+                              <object class="AdwButtonContent">
+                                <property name="icon-name">list-add-symbolic</property>
+                                <property name="label">Add</property>
+                              </object>
+                            </child>
                           </object>
                         </child>
                         <child>
                           <object class="GtkButton" id="delete_config_btn">
-                              <property name="icon-name">user-trash-symbolic</property>
-                              <property name="tooltip-text">Delete Selected Domain</property>
-                              <style>
-                                  <class name="destructive-action"/>
-                              </style>
+                            <property name="tooltip-text">Delete Selected Domain</property>
+                            <child>
+                              <object class="AdwButtonContent">
+                                <property name="icon-name">user-trash-symbolic</property>
+                                <property name="label">Delete</property>
+                              </object>
+                            </child>
+                            <style>
+                              <class name="destructive-action"/>
+                            </style>
                           </object>
                         </child>
                       </object>

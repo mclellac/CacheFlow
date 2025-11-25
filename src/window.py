@@ -12,8 +12,8 @@ from .node_graph import NodeGraph  # pylint: disable=unused-import
 from .header_dialog import HeaderDialog
 from .node_data import NodeData
 from .analyzer import HeaderAnalyzer
-from .controller import InspectionController
-from .preferences import ConfigManager
+from .inspection_controller import InspectionController
+from .config_manager import ConfigManager
 
 log = logging.getLogger(__name__)
 
