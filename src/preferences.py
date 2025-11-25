@@ -273,6 +273,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
     __gtype_name__ = 'PreferencesWindow'
 
     theme_row = Gtk.Template.Child()
+    ssl_row = Gtk.Template.Child()
     dns_row = Gtk.Template.Child()
     font_button = Gtk.Template.Child()
 
@@ -300,6 +301,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.current_config_id = None
 
         self.settings.bind('dns-servers', self.dns_row, 'text',
+                           Gio.SettingsBindFlags.DEFAULT)
+        self.settings.bind('verify-ssl', self.ssl_row, 'active',
                            Gio.SettingsBindFlags.DEFAULT)
 
         self.theme_row.connect('notify::selected-item', self.on_theme_changed)
