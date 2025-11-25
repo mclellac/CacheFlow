@@ -111,12 +111,6 @@
                         <property name="title">Domain Name</property>
                     </object>
                 </child>
-                <child>
-                    <object class="AdwEntryRow" id="entry_point_row">
-                        <property name="title">Entry Hostname (CNAME)</property>
-                        <property name="tooltip-text">The hostname that points to the first layer (e.g. www.example.com.edgekey.net)</property>
-                    </object>
-                </child>
             </object>
         </child>
 

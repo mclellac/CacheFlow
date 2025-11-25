@@ -265,24 +265,37 @@ class LayerRow(Adw.ExpanderRow):
 
         selected_type = self.types_list[selected_idx]
 
-        # Show/Hide fields based on type
-        is_routing_layer = selected_type in (ProviderType.CACHE_PROXY, ProviderType.CDN, ProviderType.LOAD_BALANCER)
+        # Configure Visibility and Labels based on Type
+        if selected_type == ProviderType.CDN:
+            self.url_row.set_visible(False)
+            self.default_backend_group.set_visible(True)
+            self.default_backend_group.set_title("Default Origin")
+            self.routing_rules_group.set_visible(True)
+            self.routing_rules_group.set_title("Routing Rules")
+            self.overrides_group.set_visible(False)
+            self.path_match_group.set_visible(False)
 
-        self.routing_rules_group.set_visible(is_routing_layer)
-        self.default_backend_group.set_visible(is_routing_layer)
-        self.overrides_group.set_visible(is_routing_layer)
-        self.path_match_group.set_visible(is_routing_layer)
+        elif selected_type in (ProviderType.CACHE_PROXY, ProviderType.LOAD_BALANCER):
+            self.url_row.set_visible(True)
+            self.default_backend_group.set_visible(False) # No default backend, falls through or routed
+            self.routing_rules_group.set_visible(True)
+            self.routing_rules_group.set_title("Routing Rules")
+            self.overrides_group.set_visible(True)
+            self.path_match_group.set_visible(True)
 
-        # Clear provider model (Gtk.StringList doesn't have clear, so we create new or splice)
-        # Splicing is cleaner
+        elif selected_type == ProviderType.APP_BACKEND:
+            self.url_row.set_visible(False) # Backend location determined by previous layer
+            self.default_backend_group.set_visible(False)
+            self.routing_rules_group.set_visible(False)
+            self.overrides_group.set_visible(False)
+            self.path_match_group.set_visible(False)
+
+        # Clear provider model
         n_items = self.provider_model.get_n_items()
         if n_items > 0:
             self.provider_model.splice(0, n_items, [])
 
         self.current_providers = get_providers_by_type(selected_type)
-
-        # If no providers for this type (shouldn't happen with our setup), add a dummy
-        # or handle gracefully. But we defined providers for all types.
 
         for prov in self.current_providers:
             self.provider_model.append(prov.name)
@@ -290,8 +303,6 @@ class LayerRow(Adw.ExpanderRow):
         # Select first by default if not loading
         if not self._loading and self.current_providers:
             self.provider_row.set_selected(0)
-            # Trigger provider change to potentially update headers?
-            # For now, we only update headers on user explicit action, but here we just update state.
             self.on_changed()
 
     def on_provider_changed(self, _row, _param):
@@ -308,7 +319,6 @@ class LayerRow(Adw.ExpanderRow):
             debug_headers = provider.get_debug_headers()
 
             # If headers are empty, populate them.
-            # We don't want to overwrite existing configuration blindly.
             if not self.header_rows and debug_headers:
                 for key, value in debug_headers.items():
                     self.add_header_row(key, value)
@@ -337,6 +347,7 @@ class LayerRow(Adw.ExpanderRow):
         self.type_row.set_selected(type_idx)
 
         # Force provider update immediately to populate the second dropdown
+        # and set visibility before loading other fields
         self.on_type_changed(None, None)
 
         # Load Provider
