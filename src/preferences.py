@@ -91,30 +91,52 @@ class ConfigManager:
     def get_configurations(self):
         """Returns the list of configurations (list of dicts)."""
         val = self.settings.get_value('configurations')
-        configs = val.unpack()
-        if not configs:
-            # If empty, create a default one
+        configs_list = val.unpack()
+        configs_updated = False  # Migration flag
+
+        if not configs_list:
+            # If settings is completely empty, create and return a default config.
             default_id = str(uuid.uuid4())
-            default_config = {
-                'id': GLib.Variant('s', default_id),
-                'name': GLib.Variant('s', 'Example Domain'),
-                'entry_point': GLib.Variant('s', 'www.example.com'),
-                'layers': self._pack_layers(DEFAULT_LAYERS)
-            }
-            self.settings.set_value('configurations', GLib.Variant('aa{sv}', [default_config]))
-            self.settings.set_string('active-config-id', default_id)
-            return [{
+            default_config_dict = {
                 'id': default_id,
                 'name': 'Example Domain',
-                'entry_point': 'www.example.com',
                 'layers': DEFAULT_LAYERS
-            }]
+            }
+            self._save_configs([default_config_dict]) # Save will handle packing correctly
+            self.settings.set_string('active-config-id', default_id)
+            return [default_config_dict]
+
+        # Data migration: Check for old a{sv} format vs new aa{sv}
+        if isinstance(configs_list[0], dict):
+            configs = configs_list  # Old format: the list is the config list
+            configs_updated = True
+        elif isinstance(configs_list[0], list):
+            configs = configs_list[0]  # New format: the first element is the config list
+        else: # Corrupted data
+            configs = []
+            configs_updated = True # Force a re-save to default
+
+        if not configs:
+            # Handle case where configs is `[[]]` or corrupted
+            default_id = str(uuid.uuid4())
+            default_config_dict = {'id': default_id, 'name': 'Example Domain', 'layers': DEFAULT_LAYERS}
+            self._save_configs([default_config_dict])
+            self.settings.set_string('active-config-id', default_id)
+            return [default_config_dict]
+
 
         # Unpack layers recursively
         unpacked_configs = []
-        configs_updated = False
         for c in configs:
-            c_dict = dict(c) # c is a dict from aa{sv}
+            # Robustly unpack variants from the dictionary
+            c_dict = {}
+            if not isinstance(c, dict): continue # Skip corrupted entries
+            for k, v in c.items():
+                if isinstance(v, GLib.Variant):
+                    c_dict[k] = v.unpack()
+                else:
+                    c_dict[k] = v
+
             layers_variant = c_dict.get('layers')
             if isinstance(layers_variant, GLib.Variant):
                 layers = layers_variant.unpack()
@@ -209,7 +231,8 @@ class ConfigManager:
             variant_data.append(c_dict)
 
         try:
-            self.settings.set_value('configurations', GLib.Variant('aa{sv}', variant_data))
+            # The schema is aa{sv}, so we wrap our list of configs in another list
+            self.settings.set_value('configurations', GLib.Variant('aa{sv}', [variant_data]))
         except Exception as e:
             log.error("Error saving configurations: %s", e)
 
@@ -232,8 +255,8 @@ class ConfigManager:
                 'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
                 'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
                 'path_match_only': GLib.Variant('as', l_data.get('path_match_only', [])),
-                'origin_rules': GLib.Variant('aa{sv}', l_data.get('origin_rules', [])),
-                'varnish_backends': GLib.Variant('aa{sv}', l_data.get('varnish_backends', []))
+                'origin_rules': GLib.Variant('a{sv}', l_data.get('origin_rules', [])),
+                'varnish_backends': GLib.Variant('a{ss}', l_data.get('varnish_backends', []))
             }
             variant_data.append(layer_dict)
 
