@@ -47,11 +47,14 @@ DEFAULT_LAYERS = [
         "layer_type": "CDN",
         "provider": "Akamai",
         "host_url": "https://www.example.com",
+        "default_backend_host": "cache.examplefarm.com",
+        "default_backend_host_header": "origin.example.com",
         "custom_headers": {
             "Pragma": "akamai-x-get-request-id, akamai-x-cache-on, akamai-x-cache-key"
         },
         "host_overrides": [],
-        "path_match_only": []
+        "path_match_only": [],
+        "routing_rules": []
     },
     {
         "name": "Infra_Cache",
@@ -59,6 +62,8 @@ DEFAULT_LAYERS = [
         "layer_type": "Cache Proxy",
         "provider": "Varnish",
         "host_url": "http://cache.examplefarm.com",
+        "default_backend_host": "",
+        "default_backend_host_header": "",
         "custom_headers": {
             "X-Varnish-Debug": "true",
             "X-Origin-Auth": "secret-token-123"
@@ -69,7 +74,8 @@ DEFAULT_LAYERS = [
                 "host_header": "api-internal.example.com"
             }
         ],
-        "path_match_only": []
+        "path_match_only": [],
+        "routing_rules": []
     }
 ]
 
