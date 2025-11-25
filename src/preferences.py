@@ -40,6 +40,20 @@ def rgba_to_setting(gdk_rgba, _user_data=None):
     return None
 
 
+def _pack_as_variant(data):
+    """Recursively packs a dict into a GLib.Variant."""
+    variant_dict = {}
+    for key, value in data.items():
+        if isinstance(value, dict):
+            variant_dict[key] = GLib.Variant('a{sv}', _pack_as_variant(value))
+        elif isinstance(value, list):
+            # Assuming list of strings for now
+            variant_dict[key] = GLib.Variant('as', value)
+        else:
+            variant_dict[key] = GLib.Variant('s', str(value))
+    return variant_dict
+
+
 DEFAULT_LAYERS = [
     {
         "name": "CDN_Edge",
