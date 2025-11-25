@@ -85,73 +85,110 @@
         </child>
       </object>
     </child>
-    <child>
-      <object class="AdwExpanderRow" id="headers_group">
+ <child>
+      <object class="AdwPreferencesGroup" id="headers_group">
         <property name="title">Custom Headers</property>
-        <child type="suffix">
-            <object class="GtkButton" id="add_header_btn">
+        <property name="description">Inject or override headers for requests to this layer.</property>
+        <child>
+            <object class="AdwActionRow">
+                <property name="activatable">True</property>
+                <property name="title">Add New Header</property>
                 <property name="icon-name">list-add-symbolic</property>
-                <property name="valign">center</property>
-                <property name="has-frame">False</property>
-                <property name="tooltip-text">Add Header</property>
+                <property name="activatable-widget">add_header_btn</property>
+                <child type="suffix">
+                    <object class="GtkButton" id="add_header_btn">
+                        <property name="icon-name">list-add-symbolic</property>
+                        <property name="valign">center</property>
+                        <property name="has-frame">False</property>
+                        <property name="tooltip-text">Add Header</property>
+                    </object>
+                </child>
             </object>
         </child>
       </object>
     </child>
     <child>
-      <object class="AdwExpanderRow" id="overrides_group">
+      <object class="AdwPreferencesGroup" id="overrides_group">
         <property name="title">Host Overrides</property>
-         <child type="suffix">
-            <object class="GtkButton" id="add_override_btn">
+        <property name="description">Force a different Host header for specific path patterns.</property>
+        <child>
+            <object class="AdwActionRow">
+                <property name="activatable">True</property>
+                <property name="title">Add New Override</property>
                 <property name="icon-name">list-add-symbolic</property>
-                 <property name="valign">center</property>
-                 <property name="has-frame">False</property>
-                 <property name="tooltip-text">Add Host Override</property>
+                <property name="activatable-widget">add_override_btn</property>
+                <child type="suffix">
+                    <object class="GtkButton" id="add_override_btn">
+                        <property name="icon-name">list-add-symbolic</property>
+                        <property name="valign">center</property>
+                        <property name="has-frame">False</property>
+                        <property name="tooltip-text">Add Host Override</property>
+                    </object>
+                </child>
             </object>
         </child>
       </object>
     </child>
     <child>
-      <object class="AdwExpanderRow" id="path_match_group">
+      <object class="AdwPreferencesGroup" id="path_match_group">
         <property name="title">Path Match Only</property>
-         <child type="suffix">
-            <object class="GtkButton" id="add_path_match_btn">
+        <property name="description">Only process requests where the path matches one of these patterns.</property>
+        <child>
+            <object class="AdwActionRow">
+                <property name="activatable">True</property>
+                <property name="title">Add New Path Match</property>
                 <property name="icon-name">list-add-symbolic</property>
-                 <property name="valign">center</property>
-                 <property name="has-frame">False</property>
-                 <property name="tooltip-text">Add Path Pattern</property>
+                <property name="activatable-widget">add_path_match_btn</property>
+                <child type="suffix">
+                    <object class="GtkButton" id="add_path_match_btn">
+                        <property name="icon-name">list-add-symbolic</property>
+                        <property name="valign">center</property>
+                        <property name="has-frame">False</property>
+                        <property name="tooltip-text">Add Path Pattern</property>
+                    </object>
+                </child>
             </object>
         </child>
       </object>
     </child>
     <child>
-      <object class="AdwExpanderRow" id="routing_rules_group">
-        <property name="title">Routing Rules (Cache Proxy)</property>
-         <child type="suffix">
-            <object class="GtkButton" id="add_routing_rule_btn">
+      <object class="AdwPreferencesGroup" id="routing_rules_group">
+        <property name="title">Routing Rules</property>
+        <property name="description">Define backend destinations based on request paths.</property>
+        <child>
+            <object class="AdwActionRow">
+                <property name="activatable">True</property>
+                <property name="title">Add New Backend</property>
                 <property name="icon-name">list-add-symbolic</property>
-                 <property name="valign">center</property>
-                 <property name="has-frame">False</property>
-                 <property name="tooltip-text">Add Routing Rule</property>
+                <property name="activatable-widget">add_routing_rule_btn</property>
+                <child type="suffix">
+                    <object class="GtkButton" id="add_routing_rule_btn">
+                        <property name="icon-name">list-add-symbolic</property>
+                        <property name="valign">center</property>
+                        <property name="has-frame">False</property>
+                        <property name="tooltip-text">Add Routing Rule</property>
+                    </object>
+                </child>
             </object>
         </child>
       </object>
     </child>
     <child>
-      <object class="AdwExpanderRow" id="default_backend_group">
-        <property name="title">Default Backend (Origin)</property>
+      <object class="AdwPreferencesGroup" id="default_backend_group">
+        <property name="title">Default Destination</property>
+        <property name="description">The destination for requests that do not match any routing rules.</property>
         <child>
             <object class="AdwEntryRow" id="default_backend_host_row">
-                <property name="title">Default Host</property>
+                <property name="title">Host</property>
             </object>
         </child>
         <child>
             <object class="AdwEntryRow" id="default_backend_header_row">
-                <property name="title">Default Host Header</property>
+                <property name="title">Host Header</property>
+                <property name="placeholder-text">Optional: uses Host if empty</property>
             </object>
         </child>
       </object>
     </child>
-
   </template>
 </interface>
