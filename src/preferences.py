@@ -108,7 +108,11 @@ class ConfigManager:
         for c in configs:
             c_dict = dict(c) # c is a dict from aa{sv}
             layers_variant = c_dict.get('layers')
-            layers = layers_variant.unpack() if layers_variant else []
+            if isinstance(layers_variant, GLib.Variant):
+                layers = layers_variant.unpack()
+            else:
+                layers = layers_variant if layers_variant else []
+
             unpacked_configs.append({
                 'id': c_dict.get('id', ''),
                 'name': c_dict.get('name', ''),
@@ -125,7 +129,7 @@ class ConfigManager:
                 return c
         return None
 
-    def add_configuration(self, name, entry_point):
+    def add_configuration(self, name, entry_point, layers=None):
         """Adds a new configuration."""
         configs = self.get_configurations()
         new_id = str(uuid.uuid4())
@@ -133,7 +137,7 @@ class ConfigManager:
             'id': new_id,
             'name': name,
             'entry_point': entry_point,
-            'layers': []
+            'layers': layers if layers else []
         }
         configs.append(new_conf)
         self._save_configs(configs)
@@ -194,11 +198,7 @@ class ConfigManager:
             }
             variant_data.append(layer_dict)
 
-        try:
-            variant = GLib.Variant('aa{sv}', variant_data)
-            self.settings.set_value(key, variant)
-        except Exception as e:  # pylint: disable=broad-exception-caught
-            log.error("Error saving config for key '%s': %s", key, e)
+        return GLib.Variant('aa{sv}', variant_data)
 
     def ensure_default_config(self, key):
         """
@@ -233,6 +233,29 @@ class ConfigManager:
             except Exception as e:  # pylint: disable=broad-exception-caught
                 log.error("Error creating default config for key '%s': %s", key, e)
             log.info("No config found for '%s'. Saved default configuration.", key)
+
+
+@Gtk.Template(filename='src/ui/add_config_dialog.ui')
+class AddConfigDialog(Adw.Window):
+    """Dialog to add a new domain configuration."""
+    __gtype_name__ = 'AddConfigDialog'
+
+    domain_name_entry = Gtk.Template.Child()
+    add_btn = Gtk.Template.Child()
+    cancel_btn = Gtk.Template.Child()
+
+    def __init__(self, parent_window, on_add_callback):
+        super().__init__(transient_for=parent_window)
+        self.on_add = on_add_callback
+        self.add_btn.connect('clicked', self.on_add_clicked)
+        self.cancel_btn.connect('clicked', lambda *_: self.close())
+
+    def on_add_clicked(self, _btn):
+        """Callback when Add is clicked."""
+        domain = self.domain_name_entry.get_text()
+        if domain:
+            self.on_add(domain)
+            self.close()
 
 
 @Gtk.Template(filename='src/ui/preferences.ui')
@@ -435,7 +458,28 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     def on_add_config(self, _btn):
         """Adds a new configuration."""
-        new_id = self.config_manager.add_configuration("New Domain", "www.example.com")
+        dialog = AddConfigDialog(self, self.do_add_config)
+        dialog.present()
+
+    def do_add_config(self, domain):
+        """Actually adds the config after dialog confirms."""
+        # Create default CDN layer
+        # Host URL defaults to the domain itself initially, user can change it to CNAME
+        default_cdn_layer = {
+            "name": "CDN",
+            "description": "CDN Layer for " + domain,
+            "layer_type": "CDN",
+            "provider": "Akamai", # Default provider
+            "host_url": domain,
+            "custom_headers": {},
+            "host_overrides": [],
+            "path_match_only": [],
+            "routing_rules": []
+        }
+
+        # Entry point is also the domain initially
+        new_id = self.config_manager.add_configuration(domain, domain, layers=[default_cdn_layer])
+
         # Refresh first
         self.refresh_config_list()
         # Set active to new

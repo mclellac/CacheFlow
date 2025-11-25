@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="adw" version="1.0"/>
+  <template class="AddConfigDialog" parent="AdwWindow">
+    <property name="modal">True</property>
+    <property name="default-width">400</property>
+    <property name="default-height">300</property>
+    <property name="title">Add Configuration</property>
+    <property name="content">
+      <object class="AdwToolbarView">
+        <child type="top">
+          <object class="AdwHeaderBar">
+            <property name="show-end-title-buttons">False</property>
+            <child type="start">
+              <object class="GtkButton" id="cancel_btn">
+                <property name="label">Cancel</property>
+              </object>
+            </child>
+            <child type="end">
+              <object class="GtkButton" id="add_btn">
+                <property name="label">Add</property>
+                <style>
+                  <class name="suggested-action"/>
+                </style>
+              </object>
+            </child>
+          </object>
+        </child>
+        <property name="content">
+          <object class="AdwPreferencesPage">
+            <child>
+              <object class="AdwPreferencesGroup">
+                <property name="title">New Domain Configuration</property>
+                <property name="description">Enter the domain name to configure.</property>
+                <child>
+                  <object class="AdwEntryRow" id="domain_name_entry">
+                    <property name="title">Domain Name</property>
+                    <property name="text">www.example.com</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
+        </property>
+      </object>
+    </property>
+  </template>
+</interface>
