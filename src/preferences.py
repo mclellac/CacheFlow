@@ -121,12 +121,33 @@ class ConfigManager:
                 'id': default_id,
                 'name': 'Example Domain',
                 'layers': DEFAULT_LAYERS
-            }]
+            }
+            self._save_configs([default_config_dict]) # Save will handle packing correctly
+            self.settings.set_string('active-config-id', default_id)
+            return [default_config_dict]
+
+        # Data migration: Check for old a{sv} format vs new aa{sv}
+        if isinstance(configs_list[0], dict):
+            configs = configs_list  # Old format: the list is the config list
+            configs_updated = True
+        elif isinstance(configs_list[0], list):
+            configs = configs_list[0]  # New format: the first element is the config list
+        else: # Corrupted data
+            configs = []
+            configs_updated = True # Force a re-save to default
+
+        if not configs:
+            # Handle case where configs is `[[]]` or corrupted
+            default_id = str(uuid.uuid4())
+            default_config_dict = {'id': default_id, 'name': 'Example Domain', 'layers': DEFAULT_LAYERS}
+            self._save_configs([default_config_dict])
+            self.settings.set_string('active-config-id', default_id)
+            return [default_config_dict]
+
 
         # Unpack layers recursively
         configs = configs_list[0] # The actual list of configs is the first element
         unpacked_configs = []
-        configs_updated = False
         for c in configs:
             c_dict = {k: v.unpack() if isinstance(v, GLib.Variant) else v for k, v in c.items()}
             layers_variant = c_dict.get('layers')
