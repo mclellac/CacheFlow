@@ -241,6 +241,7 @@ class AddConfigDialog(Adw.Window):
     __gtype_name__ = 'AddConfigDialog'
 
     domain_name_entry = Gtk.Template.Child()
+    cname_entry = Gtk.Template.Child()
     add_btn = Gtk.Template.Child()
     cancel_btn = Gtk.Template.Child()
 
@@ -253,8 +254,9 @@ class AddConfigDialog(Adw.Window):
     def on_add_clicked(self, _btn):
         """Callback when Add is clicked."""
         domain = self.domain_name_entry.get_text()
-        if domain:
-            self.on_add(domain)
+        cname = self.cname_entry.get_text()
+        if domain and cname:
+            self.on_add(domain, cname)
             self.close()
 
 
@@ -461,24 +463,22 @@ class PreferencesWindow(Adw.PreferencesWindow):
         dialog = AddConfigDialog(self, self.do_add_config)
         dialog.present()
 
-    def do_add_config(self, domain):
+    def do_add_config(self, domain, cname):
         """Actually adds the config after dialog confirms."""
         # Create default CDN layer
-        # Host URL defaults to the domain itself initially, user can change it to CNAME
         default_cdn_layer = {
             "name": "CDN",
             "description": "CDN Layer for " + domain,
             "layer_type": "CDN",
             "provider": "Akamai", # Default provider
-            "host_url": domain,
+            "host_url": cname,
             "custom_headers": {},
             "host_overrides": [],
             "path_match_only": [],
             "routing_rules": []
         }
 
-        # Entry point is also the domain initially
-        new_id = self.config_manager.add_configuration(domain, domain, layers=[default_cdn_layer])
+        new_id = self.config_manager.add_configuration(domain, cname, layers=[default_cdn_layer])
 
         # Refresh first
         self.refresh_config_list()

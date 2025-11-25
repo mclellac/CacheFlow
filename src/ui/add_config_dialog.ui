@@ -32,11 +32,17 @@
             <child>
               <object class="AdwPreferencesGroup">
                 <property name="title">New Domain Configuration</property>
-                <property name="description">Enter the domain name to configure.</property>
+                <property name="description">Enter the domain name and its CNAME entry point.</property>
                 <child>
                   <object class="AdwEntryRow" id="domain_name_entry">
                     <property name="title">Domain Name</property>
                     <property name="text">www.example.com</property>
+                  </object>
+                </child>
+                <child>
+                  <object class="AdwEntryRow" id="cname_entry">
+                    <property name="title">CNAME (Entry Point)</property>
+                    <property name="text">www.example.com.edgekey.net</property>
                   </object>
                 </child>
               </object>
