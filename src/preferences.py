@@ -218,6 +218,17 @@ class ConfigManager:
         """Packs list of layer dicts into Variant."""
         variant_data = []
         for l_data in layers_data:
+            # Handle nested aa{sv} for origin_rules
+            packed_origin_rules = []
+            for rule in l_data.get('origin_rules', []):
+                packed_rule = {
+                    'origin_host': GLib.Variant('s', rule.get('origin_host', '')),
+                    'origin_host_header': GLib.Variant('s', rule.get('origin_host_header', '')),
+                    'path_matches': GLib.Variant('as', rule.get('path_matches', [])),
+                    'domain_matches': GLib.Variant('as', rule.get('domain_matches', []))
+                }
+                packed_origin_rules.append(packed_rule)
+
             layer_dict = {
                 'name': GLib.Variant('s', l_data.get('name', '')),
                 'description': GLib.Variant('s', l_data.get('description', '')),
@@ -233,8 +244,8 @@ class ConfigManager:
                 'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
                 'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
                 'path_match_only': GLib.Variant('as', l_data.get('path_match_only', [])),
-                'origin_rules': GLib.Variant('a{sv}', l_data.get('origin_rules', [])),
-                'varnish_backends': GLib.Variant('a{ss}', l_data.get('varnish_backends', []))
+                'origin_rules': GLib.Variant('a{sv}', packed_origin_rules),
+                'varnish_backends': GLib.Variant('aa{sv}', l_data.get('varnish_backends', []))
             }
             variant_data.append(layer_dict)
 
