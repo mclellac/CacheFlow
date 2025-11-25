@@ -178,7 +178,7 @@ class LayerRow(Adw.ExpanderRow):
         self.provider_model = Gtk.StringList()
 
         # Populate Type Model
-        self.types_list = list(ProviderType)
+        self.types_list = [t for t in ProviderType if t != ProviderType.APP_BACKEND]
         for t in self.types_list:
             self.type_model.append(t.value)
 
