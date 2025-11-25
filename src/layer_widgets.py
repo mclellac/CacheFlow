@@ -265,13 +265,13 @@ class LayerRow(Adw.ExpanderRow):
 
         selected_type = self.types_list[selected_idx]
 
-        # Show/Hide Routing Rules and Default Backend based on type
-        if selected_type in (ProviderType.CACHE_PROXY, ProviderType.CDN):
-            self.routing_rules_group.set_visible(True)
-            self.default_backend_group.set_visible(True)
-        else:
-            self.routing_rules_group.set_visible(False)
-            self.default_backend_group.set_visible(False)
+        # Show/Hide fields based on type
+        is_routing_layer = selected_type in (ProviderType.CACHE_PROXY, ProviderType.CDN, ProviderType.LOAD_BALANCER)
+
+        self.routing_rules_group.set_visible(is_routing_layer)
+        self.default_backend_group.set_visible(is_routing_layer)
+        self.overrides_group.set_visible(is_routing_layer)
+        self.path_match_group.set_visible(is_routing_layer)
 
         # Clear provider model (Gtk.StringList doesn't have clear, so we create new or splice)
         # Splicing is cleaner
