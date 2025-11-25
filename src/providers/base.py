@@ -20,13 +20,14 @@ class ProviderType(Enum):
     CDN = "CDN"
     LOAD_BALANCER = "Load Balancer"
     CACHE_PROXY = "Cache Proxy"
+    APP_BACKEND = "Application Backend"
 
 class BaseProvider:
     """
     Base class for all providers.
     """
     name: str = "Unknown"
-    provider_type: ProviderType = ProviderType.CDN
+    provider_type: ProviderType = ProviderType.APP_BACKEND
 
     def get_debug_headers(self) -> Dict[str, str]:
         """

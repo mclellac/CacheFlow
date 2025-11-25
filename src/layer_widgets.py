@@ -177,8 +177,8 @@ class LayerRow(Adw.ExpanderRow):
         self.type_model = Gtk.StringList()
         self.provider_model = Gtk.StringList()
 
-        # Populate Type Model
-        self.types_list = list(ProviderType)
+        # Populate Type Model, excluding APP_BACKEND
+        self.types_list = [t for t in list(ProviderType) if t != ProviderType.APP_BACKEND]
         for t in self.types_list:
             self.type_model.append(t.value)
 
@@ -569,11 +569,10 @@ class VarnishBackendRow(ConfigRowMixin, Adw.ExpanderRow):
         self._loading = True
 
         self.type_model = Gtk.StringList()
-        self.type_model.append("OpenShift")
-        self.type_model.append("VMware")
-        self.type_model.append("AWS")
-        self.type_model.append("Google Cloud")
-        self.type_model.append("Azure")
+        self.app_backend_providers = get_providers_by_type(ProviderType.APP_BACKEND)
+        for provider in self.app_backend_providers:
+            self.type_model.append(provider.name)
+        self.type_model.append("Other")
         self.type_row.set_model(self.type_model)
 
         self.name_row.connect('notify::text', self.on_name_changed)
