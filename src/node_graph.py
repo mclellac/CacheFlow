@@ -19,7 +19,7 @@ from .exporters import GraphExporter
 log = logging.getLogger(__name__)
 
 NODE_WIDTH = 450
-NODE_HEADER_HEIGHT = 45
+NODE_HEADER_HEIGHT = 55
 LINE_HEIGHT = 22
 PADDING = 15
 RESIZE_HANDLE_SIZE = 15
@@ -457,8 +457,18 @@ class NodeGraph(Gtk.DrawingArea):
             cr.set_source_rgba(0, 0, 0, 1)
         cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
         cr.set_font_size(16)
-        cr.move_to(x + PADDING, y + 25)
+        cr.move_to(x + PADDING, y + 22)
         cr.show_text(node["data"].name)
+
+        # Draw Provider
+        cr.set_font_size(12)
+        cr.set_source_rgba(0.4, 0.4, 0.4, 1) # Dim color for provider
+        if is_dark:
+             cr.set_source_rgba(0.7, 0.7, 0.7, 1)
+
+        cr.move_to(x + PADDING, y + 42)
+        provider_name = node["data"].provider if node["data"].provider else "Unknown"
+        cr.show_text(f"{provider_name}")
 
         self._draw_node_text(cr, node, x, y, w, is_dark)
 

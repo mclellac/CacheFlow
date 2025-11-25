@@ -103,36 +103,7 @@ def _bind_analysis_item(analysis_item, title, subtitle, box, icon, badge):
 
 def _setup_header_list_item(item):
     """Helper to setup the widget structure for header list items."""
-    box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-    box.set_margin_start(12)
-    box.set_margin_end(12)
-    box.set_margin_top(8)
-    box.set_margin_bottom(8)
-
-    # Icon (Analysis only)
-    icon = Gtk.Image()
-    icon.set_pixel_size(16)
-    box.append(icon)
-
-    # Text Stack
-    vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
-    vbox.set_hexpand(True)
-
-    title = Gtk.Label(xalign=0)
-    title.add_css_class("heading")
-    title.set_ellipsize(Pango.EllipsizeMode.END)
-
-    subtitle = Gtk.Label(xalign=0)
-    subtitle.add_css_class("caption")
-    subtitle.set_ellipsize(Pango.EllipsizeMode.END)
-
-    vbox.append(title)
-    vbox.append(subtitle)
-    box.append(vbox)
-
-    # Suffix/Badge
-    badge = Gtk.Label()
-    badge.add_css_class("caption")
-    box.append(badge)
-
+    builder = Gtk.Builder()
+    builder.add_from_resource("/com/github/mclellac/CacheFlow/ui/list_item_header.ui")
+    box = builder.get_object("box")
     item.set_child(box)

@@ -12,5 +12,7 @@
     <file preprocess="xml-stripblanks" alias="ui/header_dialog.ui">ui/header_dialog.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/analysis_dialog.ui">ui/analysis_dialog.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/shortcuts.ui">ui/shortcuts.ui</file>
+    <file preprocess="xml-stripblanks" alias="ui/list_item_header.ui">ui/list_item_header.ui</file>
+    <file preprocess="xml-stripblanks" alias="ui/column_item_label.ui">ui/column_item_label.ui</file>
   </gresource>
 </gresources>
