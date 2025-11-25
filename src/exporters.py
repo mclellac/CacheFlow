@@ -88,6 +88,11 @@ class ConfigExporter(BaseExporter):
                 if not isinstance(layers_data, list):
                     raise ValueError("Imported data must be a list of layers.")
 
+                # Validate that items are dictionaries (basic check)
+                for item in layers_data:
+                    if not isinstance(item, dict):
+                         raise ValueError("Imported list contains non-dictionary items.")
+
                 log.info("Configuration imported from %s", filepath)
                 on_success(layers_data)
             except Exception as e:  # pylint: disable=broad-exception-caught
