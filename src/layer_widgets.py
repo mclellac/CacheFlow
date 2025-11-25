@@ -8,29 +8,31 @@ from .providers.base import ProviderType
 from .providers import get_providers_by_type
 
 
-class BaseConfigRow(Adw.PreferencesRow):
-    """Base class for configuration rows with change and delete handling."""
+class ConfigRowMixin:
+    """Mixin for configuration rows with change and delete handling."""
 
-    def __init__(self, on_change=None, on_delete=None, **kwargs):
-        super().__init__(**kwargs)
-        self.setup_mixin(on_change, on_delete)
+    def setup_mixin(self, on_change=None, on_delete=None):
+        """Sets up the mixin with callback functions."""
+        self.on_change = on_change
+        self.on_delete = on_delete
 
+        # Connect delete button if it exists (template child)
         if hasattr(self, 'delete_btn'):
             self.delete_btn.connect('clicked', self.on_delete_clicked)
 
     def notify_change(self, *_args):
         """Notifies when data changes."""
-        if self.on_change:
+        if getattr(self, 'on_change', None):
             self.on_change()
 
     def on_delete_clicked(self, _btn):
         """Callback for delete button."""
-        if self.on_delete:
+        if getattr(self, 'on_delete', None):
             self.on_delete(self)
 
 
 @Gtk.Template(filename='src/ui/header_row.ui')
-class HeaderRow(BaseConfigRow):
+class HeaderRow(ConfigRowMixin, Adw.PreferencesRow):
     """Row for editing a single header key-value pair."""
     __gtype_name__ = 'HeaderRow'
 
@@ -39,7 +41,8 @@ class HeaderRow(BaseConfigRow):
     delete_btn = Gtk.Template.Child()
 
     def __init__(self, key='', value='', on_change=None, on_delete=None, **kwargs):
-        super().__init__(on_change=on_change, on_delete=on_delete, **kwargs)
+        super().__init__(**kwargs)
+        self.setup_mixin(on_change, on_delete)
 
         self.key_entry.set_text(key)
         self.val_entry.set_text(value)
@@ -53,7 +56,7 @@ class HeaderRow(BaseConfigRow):
 
 
 @Gtk.Template(filename='src/ui/override_row.ui')
-class OverrideRow(BaseConfigRow):
+class OverrideRow(ConfigRowMixin, Adw.PreferencesRow):
     """Row for editing a host override."""
     __gtype_name__ = 'OverrideRow'
 
@@ -62,7 +65,8 @@ class OverrideRow(BaseConfigRow):
     delete_btn = Gtk.Template.Child()
 
     def __init__(self, pattern='', host='', on_change=None, on_delete=None, **kwargs):
-        super().__init__(on_change=on_change, on_delete=on_delete, **kwargs)
+        super().__init__(**kwargs)
+        self.setup_mixin(on_change, on_delete)
 
         self.pat_entry.set_text(pattern)
         self.host_entry.set_text(host)
@@ -76,7 +80,7 @@ class OverrideRow(BaseConfigRow):
 
 
 @Gtk.Template(filename='src/ui/path_match_row.ui')
-class PathMatchRow(BaseConfigRow):
+class PathMatchRow(ConfigRowMixin, Adw.PreferencesRow):
     """Row for editing a path match pattern."""
     __gtype_name__ = 'PathMatchRow'
 
@@ -84,7 +88,8 @@ class PathMatchRow(BaseConfigRow):
     delete_btn = Gtk.Template.Child()
 
     def __init__(self, pattern='', on_change=None, on_delete=None, **kwargs):
-        super().__init__(on_change=on_change, on_delete=on_delete, **kwargs)
+        super().__init__(**kwargs)
+        self.setup_mixin(on_change, on_delete)
 
         self.pat_entry.set_text(pattern)
         self.pat_entry.connect('changed', self.notify_change)
@@ -95,7 +100,7 @@ class PathMatchRow(BaseConfigRow):
 
 
 @Gtk.Template(filename='src/ui/routing_rule_row.ui')
-class RoutingRuleRow(BaseConfigRow):
+class RoutingRuleRow(ConfigRowMixin, Adw.PreferencesRow):
     """Row for editing a routing rule."""
     __gtype_name__ = 'RoutingRuleRow'
 
@@ -107,7 +112,8 @@ class RoutingRuleRow(BaseConfigRow):
 
     def __init__(self, match='', host='', rewrite='', host_header='',
                  on_change=None, on_delete=None, **kwargs):
-        super().__init__(on_change=on_change, on_delete=on_delete, **kwargs)
+        super().__init__(**kwargs)
+        self.setup_mixin(on_change, on_delete)
 
         self.match_entry.set_text(match)
         self.host_entry.set_text(host)
