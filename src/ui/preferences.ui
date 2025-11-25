@@ -107,10 +107,11 @@
         <child>
             <object class="AdwPreferencesGroup" id="details_group">
                 <property name="title">Domain Details</property>
-                <property name="description">The primary domain for this configuration (e.g., www.example.com)</property>
+                <property name="description">Basic information for the selected domain configuration.</property>
                 <child>
                     <object class="AdwEntryRow" id="domain_name_row">
                         <property name="title">Domain Name</property>
+                        <property name="subtitle">The primary domain for this configuration (e.g., www.example.com)</property>
                     </object>
                 </child>
             </object>
@@ -131,10 +132,10 @@
         <child>
             <object class="AdwPreferencesGroup" id="import_export_group">
                 <property name="title">Configuration Data</property>
-                <property name="description">Save or replace the layers of the current domain to a YAML file.</property>
                 <child>
                     <object class="AdwActionRow" id="export_row">
                         <property name="title">Export Layers</property>
+                        <property name="subtitle">Save the layers of the current domain to a YAML file</property>
                         <property name="icon-name">document-save-as-symbolic</property>
                         <property name="activatable">True</property>
                     </object>
@@ -142,6 +143,7 @@
                 <child>
                     <object class="AdwActionRow" id="import_row">
                         <property name="title">Import Layers</property>
+                        <property name="subtitle">Replace the layers of the current domain from a YAML file</property>
                         <property name="icon-name">document-open-symbolic</property>
                         <property name="activatable">True</property>
                     </object>
