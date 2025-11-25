@@ -13,8 +13,7 @@ class BaseConfigRow(Adw.PreferencesRow):
 
     def __init__(self, on_change=None, on_delete=None, **kwargs):
         super().__init__(**kwargs)
-        self.on_change = on_change
-        self.on_delete = on_delete
+        self.setup_mixin(on_change, on_delete)
 
         if hasattr(self, 'delete_btn'):
             self.delete_btn.connect('clicked', self.on_delete_clicked)
