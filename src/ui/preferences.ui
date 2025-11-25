@@ -50,38 +50,82 @@
             </child>
           </object>
         </child>
-      </object>
-    </child>
 
-    <!-- Font Settings -->
-    <child>
-      <object class="AdwPreferencesPage">
-        <property name="visible">True</property>
-        <property name="title">Fonts</property>
-        <property name="icon-name">font-select-symbolic</property>
         <child>
-          <object class="AdwPreferencesGroup">
-            <property name="title">Node Font</property>
-            <child>
-              <object class="GtkFontButton" id="font_button"/>
-            </child>
-          </object>
+            <object class="AdwPreferencesGroup">
+                <property name="title">Node Font</property>
+                <child>
+                  <object class="GtkFontButton" id="font_button"/>
+                </child>
+            </object>
         </child>
       </object>
     </child>
 
-    <!-- Production Environment -->
+    <!-- Configurations (Domains) -->
     <child>
       <object class="AdwPreferencesPage">
         <property name="visible">True</property>
-        <property name="title">Production</property>
-        <property name="icon-name">network-server-symbolic</property>
+        <property name="title">Configurations</property>
+        <property name="icon-name">network-workgroup-symbolic</property>
+
         <child>
-          <object class="AdwPreferencesGroup" id="prod_group">
+            <object class="AdwPreferencesGroup">
+                <property name="title">Select Configuration</property>
+                <child>
+                    <object class="AdwComboRow" id="config_selector">
+                        <property name="title">Domain</property>
+                        <property name="subtitle">Select a domain configuration to edit</property>
+                        <property name="model">
+                           <object class="GtkStringList"/>
+                        </property>
+                        <child type="suffix">
+                           <object class="GtkButton" id="add_config_btn">
+                               <property name="icon-name">list-add-symbolic</property>
+                               <property name="valign">center</property>
+                               <property name="has-frame">False</property>
+                               <property name="tooltip-text">Add New Configuration</property>
+                           </object>
+                        </child>
+                         <child type="suffix">
+                           <object class="GtkButton" id="delete_config_btn">
+                               <property name="icon-name">user-trash-symbolic</property>
+                               <property name="valign">center</property>
+                               <property name="has-frame">False</property>
+                               <property name="tooltip-text">Delete Configuration</property>
+                               <style>
+                                   <class name="destructive-action"/>
+                               </style>
+                           </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+
+        <child>
+            <object class="AdwPreferencesGroup">
+                <property name="title">Domain Details</property>
+                <child>
+                    <object class="AdwEntryRow" id="domain_name_row">
+                        <property name="title">Domain Name</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="AdwEntryRow" id="entry_point_row">
+                        <property name="title">Entry Hostname (CNAME)</property>
+                        <property name="tooltip-text">The hostname that points to the first layer (e.g. www.example.com.edgekey.net)</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+
+        <child>
+          <object class="AdwPreferencesGroup" id="layers_group">
             <property name="title">Layers</property>
-            <property name="description">Define layers and infrastructure headers.</property>
+            <property name="description">Define layers for this domain.</property>
             <child>
-               <object class="AdwActionRow" id="prod_add_row">
+               <object class="AdwActionRow" id="add_layer_row">
                    <property name="title">Add New Layer</property>
                    <property name="activatable">True</property>
                    <child type="prefix">
@@ -93,63 +137,12 @@
             </child>
           </object>
         </child>
-        <child>
-          <object class="AdwPreferencesGroup">
-            <property name="title">Configuration</property>
-            <child>
-               <object class="AdwActionRow" id="prod_export_row">
-                   <property name="title">Export to YAML</property>
-                   <property name="activatable">True</property>
-                   <child type="prefix">
-                        <object class="GtkImage">
-                            <property name="icon-name">document-save-symbolic</property>
-                        </object>
-                   </child>
-               </object>
-            </child>
-            <child>
-               <object class="AdwActionRow" id="prod_import_row">
-                   <property name="title">Import from YAML</property>
-                   <property name="activatable">True</property>
-                   <child type="prefix">
-                        <object class="GtkImage">
-                            <property name="icon-name">document-open-symbolic</property>
-                        </object>
-                   </child>
-               </object>
-            </child>
-          </object>
-        </child>
-      </object>
-    </child>
 
-    <!-- Staging Environment -->
-    <child>
-      <object class="AdwPreferencesPage">
-        <property name="visible">True</property>
-        <property name="title">Staging</property>
-        <property name="icon-name">folder-publicshare-symbolic</property>
-        <child>
-          <object class="AdwPreferencesGroup" id="staging_group">
-             <property name="title">Layers</property>
-            <child>
-               <object class="AdwActionRow" id="staging_add_row">
-                   <property name="title">Add New Layer</property>
-                   <property name="activatable">True</property>
-                   <child type="prefix">
-                        <object class="GtkImage">
-                            <property name="icon-name">list-add-symbolic</property>
-                        </object>
-                   </child>
-               </object>
-            </child>
-          </object>
-        </child>
         <child>
           <object class="AdwPreferencesGroup">
-            <property name="title">Configuration</property>
+            <property name="title">Actions</property>
             <child>
-               <object class="AdwActionRow" id="staging_export_row">
+               <object class="AdwActionRow" id="export_row">
                    <property name="title">Export to YAML</property>
                    <property name="activatable">True</property>
                    <child type="prefix">
@@ -160,111 +153,7 @@
                </object>
             </child>
             <child>
-               <object class="AdwActionRow" id="staging_import_row">
-                   <property name="title">Import from YAML</property>
-                   <property name="activatable">True</property>
-                   <child type="prefix">
-                        <object class="GtkImage">
-                            <property name="icon-name">document-open-symbolic</property>
-                        </object>
-                   </child>
-               </object>
-            </child>
-          </object>
-        </child>
-      </object>
-    </child>
-
-    <!-- QA Environment -->
-    <child>
-      <object class="AdwPreferencesPage">
-        <property name="visible">True</property>
-        <property name="title">QA</property>
-        <property name="icon-name">user-available-symbolic</property>
-        <child>
-          <object class="AdwPreferencesGroup" id="qa_group">
-             <property name="title">Layers</property>
-            <child>
-               <object class="AdwActionRow" id="qa_add_row">
-                   <property name="title">Add New Layer</property>
-                   <property name="activatable">True</property>
-                   <child type="prefix">
-                        <object class="GtkImage">
-                            <property name="icon-name">list-add-symbolic</property>
-                        </object>
-                   </child>
-               </object>
-            </child>
-          </object>
-        </child>
-        <child>
-          <object class="AdwPreferencesGroup">
-            <property name="title">Configuration</property>
-            <child>
-               <object class="AdwActionRow" id="qa_export_row">
-                   <property name="title">Export to YAML</property>
-                   <property name="activatable">True</property>
-                   <child type="prefix">
-                        <object class="GtkImage">
-                            <property name="icon-name">document-save-symbolic</property>
-                        </object>
-                   </child>
-               </object>
-            </child>
-            <child>
-               <object class="AdwActionRow" id="qa_import_row">
-                   <property name="title">Import from YAML</property>
-                   <property name="activatable">True</property>
-                   <child type="prefix">
-                        <object class="GtkImage">
-                            <property name="icon-name">document-open-symbolic</property>
-                        </object>
-                   </child>
-               </object>
-            </child>
-          </object>
-        </child>
-      </object>
-    </child>
-
-    <!-- Dev Environment -->
-    <child>
-      <object class="AdwPreferencesPage">
-        <property name="visible">True</property>
-        <property name="title">Dev</property>
-        <property name="icon-name">applications-development-symbolic</property>
-        <child>
-          <object class="AdwPreferencesGroup" id="dev_group">
-             <property name="title">Layers</property>
-            <child>
-               <object class="AdwActionRow" id="dev_add_row">
-                   <property name="title">Add New Layer</property>
-                   <property name="activatable">True</property>
-                   <child type="prefix">
-                        <object class="GtkImage">
-                            <property name="icon-name">list-add-symbolic</property>
-                        </object>
-                   </child>
-               </object>
-            </child>
-          </object>
-        </child>
-        <child>
-          <object class="AdwPreferencesGroup">
-            <property name="title">Configuration</property>
-            <child>
-               <object class="AdwActionRow" id="dev_export_row">
-                   <property name="title">Export to YAML</property>
-                   <property name="activatable">True</property>
-                   <child type="prefix">
-                        <object class="GtkImage">
-                            <property name="icon-name">document-save-symbolic</property>
-                        </object>
-                   </child>
-               </object>
-            </child>
-            <child>
-               <object class="AdwActionRow" id="dev_import_row">
+               <object class="AdwActionRow" id="import_row">
                    <property name="title">Import from YAML</property>
                    <property name="activatable">True</property>
                    <child type="prefix">

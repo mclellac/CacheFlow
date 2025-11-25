@@ -137,6 +137,21 @@
         </child>
       </object>
     </child>
+    <child>
+      <object class="AdwExpanderRow" id="default_backend_group">
+        <property name="title">Default Backend (Origin)</property>
+        <child>
+            <object class="AdwEntryRow" id="default_backend_host_row">
+                <property name="title">Default Host</property>
+            </object>
+        </child>
+        <child>
+            <object class="AdwEntryRow" id="default_backend_header_row">
+                <property name="title">Default Host Header</property>
+            </object>
+        </child>
+      </object>
+    </child>
 
   </template>
 </interface>

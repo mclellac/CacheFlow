@@ -13,6 +13,7 @@ from .header_dialog import HeaderDialog
 from .node_data import NodeData
 from .analyzer import HeaderAnalyzer
 from .controller import InspectionController
+from .preferences import ConfigManager
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class Window(Adw.ApplicationWindow):
     inspect_button = Gtk.Template.Child()
     node_graph = Gtk.Template.Child()
     spinner = Gtk.Template.Child()
-    env_switcher = Gtk.Template.Child()
+    config_switcher = Gtk.Template.Child()
     content_stack = Gtk.Template.Child()
     toast_overlay = Gtk.Template.Child()
 
@@ -35,9 +36,9 @@ class Window(Adw.ApplicationWindow):
         super().__init__(**kwargs)
         log.debug("Main window initialized.")
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
-        self.environments = ["production", "staging", "qa", "dev"]
+        self.config_manager = ConfigManager(self.settings)
         self.win_action_group = None
-        self.env_model = None
+        self.config_model = None
         self.analyzer = HeaderAnalyzer()
         self.controller = InspectionController(
             on_success=self.on_inspection_succeeded,
@@ -45,7 +46,7 @@ class Window(Adw.ApplicationWindow):
         )
 
         self.setup_actions()
-        self.setup_env_switcher()
+        self.setup_config_switcher()
         self.setup_window_size()
 
         self.inspect_button.connect('clicked', self.on_inspect_clicked)
@@ -53,6 +54,9 @@ class Window(Adw.ApplicationWindow):
 
         self.connect("close-request", self.on_close_request)
         self.node_graph.connect('node-double-clicked', self._on_node_double_clicked)
+
+        # Listen for setting changes (e.g. from Preferences) to refresh switcher
+        self.settings.connect('changed::configurations', self.on_configurations_changed)
 
     def setup_window_size(self):
         """Restores the window size from settings."""
@@ -139,37 +143,51 @@ class Window(Adw.ApplicationWindow):
         action.connect("activate", callback)
         self.win_action_group.add_action(action)
 
-    def setup_env_switcher(self):
-        """Sets up the environment switcher dropdown."""
-        self.env_model = Gtk.StringList.new(self.environments)
-        self.env_switcher.set_model(self.env_model)
+    def setup_config_switcher(self):
+        """Sets up the configuration switcher dropdown."""
+        configs = self.config_manager.get_configurations()
+        self.config_ids = [c['id'] for c in configs]
+        names = [c['name'] for c in configs]
 
-        active_env = self.settings.get_string('active-environment')
-        if active_env in self.environments:
-            self.env_switcher.set_selected(self.environments.index(active_env))
-        else:
-            self.env_switcher.set_selected(0)
+        self.config_model = Gtk.StringList.new(names)
+        self.config_switcher.set_model(self.config_model)
 
-        self.update_env_label(active_env)
-        self.env_switcher.connect('notify::selected', self.on_env_selected)
+        active_id = self.settings.get_string('active-config-id')
+        if active_id in self.config_ids:
+            idx = self.config_ids.index(active_id)
+            self.config_switcher.set_selected(idx)
+        elif configs:
+            self.config_switcher.set_selected(0)
+            self.settings.set_string('active-config-id', configs[0]['id'])
+            active_id = configs[0]['id']
 
-    def on_env_selected(self, dropdown, _):
-        """Callback when the environment selection changes."""
-        selected_idx = dropdown.get_selected()
-        new_env = self.environments[selected_idx]
-        self.settings.set_string('active-environment', new_env)
+        self.update_env_label(active_id)
+        self.config_switcher.connect('notify::selected', self.on_config_selected)
+
+    def on_configurations_changed(self, _settings, _key):
+        """Callback when configurations change in GSettings."""
+        # Re-setup switcher
+        # We need to preserve selection if possible or respect new active ID
+        # For simplicity, just re-run setup
+        self.setup_config_switcher()
+
+    def on_config_selected(self, dropdown, _):
+        """Callback when the configuration selection changes."""
+        idx = dropdown.get_selected()
+        if idx < 0 or idx >= len(self.config_ids):
+            return
+
+        new_id = self.config_ids[idx]
+        self.settings.set_string('active-config-id', new_id)
         self.node_graph.set_data([])
         self.content_stack.set_visible_child_name("empty")
-        self.update_env_label(new_env)
+        self.update_env_label(new_id)
 
-    def update_env_label(self, env_name):
-        """Updates the environment label with the host URL."""
-        config_key = f'config-{env_name}'
-        layers_config = self.settings.get_value(config_key).unpack()
-        if layers_config and len(layers_config) > 0:
-            first_layer = layers_config[0]
-            host_url = first_layer.get('host_url', 'No Host Configured')
-            self.env_label.set_text(host_url)
+    def update_env_label(self, config_id):
+        """Updates the environment label with the entry point."""
+        config = self.config_manager.get_configuration(config_id)
+        if config:
+            self.env_label.set_text(config.get('entry_point', 'No Host Configured'))
         else:
             self.env_label.set_text("No Host Configured")
 
@@ -190,16 +208,21 @@ class Window(Adw.ApplicationWindow):
 
         self.settings.set_string('test-path', path)
 
-        active_env = self.settings.get_string('active-environment')
-        config_key = f'config-{active_env}'
-        layers_config = self.settings.get_value(config_key).unpack()
-        if not layers_config:
+        active_id = self.settings.get_string('active-config-id')
+        config_data = self.config_manager.get_configuration(active_id)
+
+        if not config_data or not config_data.get('layers'):
             self.show_error_dialog(
                 "Configuration Error",
-                f"No layers configured for '{active_env}' environment."
+                "No layers configured for current domain."
             )
             self.set_inspection_in_progress(False)
             return
+
+        layers_config = config_data.get('layers', [])
+        # Inject entry point into first layer's host_url
+        if layers_config:
+            layers_config[0]['host_url'] = config_data.get('entry_point', '')
 
         config = {
             'layers': layers_config,

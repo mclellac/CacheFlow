@@ -16,8 +16,8 @@
               </object>
             </child>
             <child type="start">
-              <object class="GtkDropDown" id="env_switcher">
-                <property name="tooltip-text">Switch Environment</property>
+              <object class="GtkDropDown" id="config_switcher">
+                <property name="tooltip-text">Switch Domain</property>
               </object>
             </child>
             <child type="end">
