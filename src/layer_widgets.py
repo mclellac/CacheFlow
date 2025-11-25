@@ -265,13 +265,53 @@ class LayerRow(Adw.ExpanderRow):
 
         selected_type = self.types_list[selected_idx]
 
-        # Show/Hide Routing Rules and Default Backend based on type
-        if selected_type in (ProviderType.CACHE_PROXY, ProviderType.CDN):
-            self.routing_rules_group.set_visible(True)
-            self.default_backend_group.set_visible(True)
+        # Show/Hide fields based on type
+        # Logic derived from LAYER_CONFIGS.md
+
+        # CDN: Host URL, Headers, Routing (if applicable), Default Backend
+        if selected_type == ProviderType.CDN:
+             self.url_row.set_visible(True)
+             self.headers_group.set_visible(True)
+             self.routing_rules_group.set_visible(True)
+             self.default_backend_group.set_visible(True)
+             self.overrides_group.set_visible(False)
+             self.path_match_group.set_visible(False)
+
+        # Cache Proxy: Host URL, Headers, Overrides, Path Match, Routing, Default Backend
+        elif selected_type == ProviderType.CACHE_PROXY:
+             self.url_row.set_visible(True)
+             self.headers_group.set_visible(True)
+             self.routing_rules_group.set_visible(True)
+             self.default_backend_group.set_visible(True)
+             self.overrides_group.set_visible(True)
+             self.path_match_group.set_visible(True)
+
+        # Load Balancer: Host URL, Headers, Routing, Default Backend
+        elif selected_type == ProviderType.LOAD_BALANCER:
+             self.url_row.set_visible(True)
+             self.headers_group.set_visible(True)
+             self.routing_rules_group.set_visible(True)
+             self.default_backend_group.set_visible(True)
+             self.overrides_group.set_visible(False)
+             self.path_match_group.set_visible(False)
+
+        # App Backend: Host URL, Headers ONLY
+        elif selected_type == ProviderType.APP_BACKEND:
+             self.url_row.set_visible(True)
+             self.headers_group.set_visible(True)
+             self.routing_rules_group.set_visible(False)
+             self.default_backend_group.set_visible(False)
+             self.overrides_group.set_visible(False)
+             self.path_match_group.set_visible(False)
+
         else:
-            self.routing_rules_group.set_visible(False)
-            self.default_backend_group.set_visible(False)
+             # Fallback
+             self.url_row.set_visible(True)
+             self.headers_group.set_visible(True)
+             self.routing_rules_group.set_visible(False)
+             self.default_backend_group.set_visible(False)
+             self.overrides_group.set_visible(False)
+             self.path_match_group.set_visible(False)
 
         # Clear provider model (Gtk.StringList doesn't have clear, so we create new or splice)
         # Splicing is cleaner
