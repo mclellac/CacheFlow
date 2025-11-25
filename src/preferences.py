@@ -287,24 +287,20 @@ class ConfigManager:
                     "as", l_data.get("path_match_only", [])
                 ),
                 "origin_rules": GLib.Variant(
-                    "aa{sv}",
+                    "a{sv}",
                     [
-                        [
-                            {
-                                "origin_host": GLib.Variant(
-                                    "s", r.get("origin_host", "")
-                                ),
-                                "origin_host_header": GLib.Variant(
-                                    "s", r.get("origin_host_header", "")
-                                ),
-                                "path_matches": GLib.Variant(
-                                    "as", r.get("path_matches", [])
-                                ),
-                                "domain_matches": GLib.Variant(
-                                    "as", r.get("domain_matches", [])
-                                ),
-                            }
-                        ]
+                        {
+                            "origin_host": GLib.Variant("s", r.get("origin_host", "")),
+                            "origin_host_header": GLib.Variant(
+                                "s", r.get("origin_host_header", "")
+                            ),
+                            "path_matches": GLib.Variant(
+                                "as", r.get("path_matches", [])
+                            ),
+                            "domain_matches": GLib.Variant(
+                                "as", r.get("domain_matches", [])
+                            ),
+                        }
                         for r in l_data.get("origin_rules", [])
                     ],
                 ),
