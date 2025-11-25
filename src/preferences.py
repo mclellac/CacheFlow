@@ -121,23 +121,20 @@ class ConfigManager:
             return [
                 {"id": default_id, "name": "Example Domain", "layers": DEFAULT_LAYERS}
             ]
-            self._save_configs(
-                [default_config_dict]
-            )  # Save will handle packing correctly
-            self.settings.set_string("active-config-id", default_id)
-            return [default_config_dict]
 
         # Data migration: Check for old a{sv} format vs new aa{sv}
-        if isinstance(configs_list[0], dict):
-            configs = configs_list  # Old format: the list is the config list
+        configs = []
+        configs_updated = False
+        if configs_list and isinstance(configs_list[0], dict):
+            # This is the old format, a{sv}, which unpacks to a list of dicts.
+            configs = configs_list
             configs_updated = True
-        elif isinstance(configs_list[0], list):
-            configs = configs_list[
-                0
-            ]  # New format: the first element is the config list
-        else:  # Corrupted data
-            configs = []
-            configs_updated = True  # Force a re-save to default
+        elif configs_list and isinstance(configs_list[0], list):
+            # This is the new format, aa{sv}, which unpacks to a list containing one list of dicts.
+            configs = configs_list[0]
+        else:
+            # The configuration is empty or corrupted.
+            configs_updated = True # Force a re-save to default
 
         if not configs:
             # Handle case where configs is `[[]]` or corrupted
@@ -154,10 +151,7 @@ class ConfigManager:
         # Unpack layers recursively
         unpacked_configs = []
         for c in configs:
-            c_dict = {
-                k: v.unpack() if isinstance(v, GLib.Variant) else v
-                for k, v in c.items()
-            }
+            c_dict = {k: v for k, v in c.items()}
             layers_variant = c_dict.get("layers")
             if isinstance(layers_variant, GLib.Variant):
                 layers = layers_variant.unpack()
@@ -260,28 +254,13 @@ class ConfigManager:
             self.settings.set_value(
                 "configurations", GLib.Variant("aa{sv}", [variant_data])
             )
-        except Exception as e:
-            log.error("Error saving configurations: %s", e)
+        except GLib.Error as e:
+            log.error("Error saving configurations to GSettings: %s", e)
 
     def _pack_layers(self, layers_data):
         """Packs list of layer dicts into Variant."""
         variant_data = []
         for l_data in layers_data:
-            # Handle nested aa{sv} for origin_rules
-            packed_origin_rules = []
-            for rule in l_data.get("origin_rules", []):
-                packed_rule = {
-                    "origin_host": GLib.Variant("s", rule.get("origin_host", "")),
-                    "origin_host_header": GLib.Variant(
-                        "s", rule.get("origin_host_header", "")
-                    ),
-                    "path_matches": GLib.Variant("as", rule.get("path_matches", [])),
-                    "domain_matches": GLib.Variant(
-                        "as", rule.get("domain_matches", [])
-                    ),
-                }
-                packed_origin_rules.append(packed_rule)
-
             layer_dict = {
                 "name": GLib.Variant("s", l_data.get("name", "")),
                 "description": GLib.Variant("s", l_data.get("description", "")),
@@ -307,7 +286,7 @@ class ConfigManager:
                 "path_match_only": GLib.Variant(
                     "as", l_data.get("path_match_only", [])
                 ),
-                "origin_rules": GLib.Variant("a{sv}", packed_origin_rules),
+                "origin_rules": GLib.Variant("a{sv}", l_data.get("origin_rules", [])),
                 "varnish_backends": GLib.Variant(
                     "aa{sv}", l_data.get("varnish_backends", [])
                 ),
