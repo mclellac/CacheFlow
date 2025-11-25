@@ -152,7 +152,6 @@ class ConfigManager:
             return [default_config_dict]
 
         # Unpack layers recursively
-        configs = configs_list[0]  # The actual list of configs is the first element
         unpacked_configs = []
         for c in configs:
             c_dict = {
