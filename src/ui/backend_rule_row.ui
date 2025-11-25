@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="adw" version="1.0"/>
+  <template class="BackendRuleRow" parent="AdwExpanderRow">
+    <property name="title">Backend: (Not Set)</property>
+    <property name="subtitle">0 Paths</property>
+
+    <child type="suffix">
+      <object class="GtkButton" id="delete_btn">
+        <property name="icon-name">user-trash-symbolic</property>
+        <property name="valign">center</property>
+        <property name="has-frame">False</property>
+        <property name="tooltip-text">Delete Backend Rule</property>
+        <style>
+          <class name="destructive-action"/>
+        </style>
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwEntryRow" id="host_entry">
+        <property name="title">Backend Host</property>
+        <property name="text">localhost</property>
+      </object>
+    </child>
+    <child>
+      <object class="AdwEntryRow" id="host_header_entry">
+        <property name="title">Host Header</property>
+        <property name="placeholder-text">Optional: uses Backend Host if empty</property>
+      </object>
+    </child>
+    <child>
+      <object class="AdwEntryRow" id="rewrite_entry">
+        <property name="title">Path Rewrite</property>
+        <property name="placeholder-text">Optional: e.g. s|^/old|/new|</property>
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwPreferencesGroup" id="path_match_group">
+        <property name="title">Path Matches</property>
+        <property name="description">Requests matching any of these paths will be sent to this backend.</property>
+
+        <child>
+            <object class="AdwActionRow">
+                <property name="activatable">True</property>
+                <property name="title">Add New Path</property>
+                <property name="icon-name">list-add-symbolic</property>
+                <property name="activatable-widget">add_path_btn</property>
+                <child type="suffix">
+                    <object class="GtkButton" id="add_path_btn">
+                        <property name="icon-name">list-add-symbolic</property>
+                        <property name="valign">center</property>
+                        <property name="has-frame">False</property>
+                        <property name="tooltip-text">Add Path Match</property>
+                    </object>
+                </child>
+            </object>
+        </child>
+
+      </object>
+    </child>
+  </template>
+</interface>
