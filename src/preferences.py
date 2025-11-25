@@ -281,7 +281,7 @@ class ConfigManager:
                     "a{ss}", l_data.get("custom_headers", {})
                 ),
                 "host_overrides": GLib.Variant(
-                    "aa{ss}", l_data.get("host_overrides", [])
+                    "a{ss}", l_data.get("host_overrides", [])
                 ),
                 "path_match_only": GLib.Variant(
                     "as", l_data.get("path_match_only", [])
