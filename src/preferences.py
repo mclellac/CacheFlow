@@ -40,6 +40,20 @@ def rgba_to_setting(gdk_rgba, _user_data=None):
     return None
 
 
+def _pack_as_variant(data):
+    """Recursively packs a dict into a GLib.Variant."""
+    variant_dict = {}
+    for key, value in data.items():
+        if isinstance(value, dict):
+            variant_dict[key] = GLib.Variant('a{sv}', _pack_as_variant(value))
+        elif isinstance(value, list):
+            # Assuming list of strings for now
+            variant_dict[key] = GLib.Variant('as', value)
+        else:
+            variant_dict[key] = GLib.Variant('s', str(value))
+    return variant_dict
+
+
 DEFAULT_LAYERS = [
     {
         "name": "CDN_Edge",
@@ -92,12 +106,18 @@ class ConfigManager:
         """Returns the list of configurations (list of dicts)."""
         val = self.settings.get_value('configurations')
         configs_list = val.unpack()
-        configs_updated = False  # Migration flag
-
-        if not configs_list:
-            # If settings is completely empty, create and return a default config.
+        if not configs_list or not configs_list[0]:
+            # If empty, create a default one
             default_id = str(uuid.uuid4())
-            default_config_dict = {
+            default_config = {
+                'id': GLib.Variant('s', default_id),
+                'name': GLib.Variant('s', 'Example Domain'),
+                'layers': self._pack_layers(DEFAULT_LAYERS)
+            }
+            # The schema is aa{sv}, so we wrap our list of configs in another list
+            self.settings.set_value('configurations', GLib.Variant('aa{sv}', [[default_config]]))
+            self.settings.set_string('active-config-id', default_id)
+            return [{
                 'id': default_id,
                 'name': 'Example Domain',
                 'layers': DEFAULT_LAYERS
@@ -126,17 +146,10 @@ class ConfigManager:
 
 
         # Unpack layers recursively
+        configs = configs_list[0] # The actual list of configs is the first element
         unpacked_configs = []
         for c in configs:
-            # Robustly unpack variants from the dictionary
-            c_dict = {}
-            if not isinstance(c, dict): continue # Skip corrupted entries
-            for k, v in c.items():
-                if isinstance(v, GLib.Variant):
-                    c_dict[k] = v.unpack()
-                else:
-                    c_dict[k] = v
-
+            c_dict = {k: v.unpack() if isinstance(v, GLib.Variant) else v for k, v in c.items()}
             layers_variant = c_dict.get('layers')
             if isinstance(layers_variant, GLib.Variant):
                 layers = layers_variant.unpack()
@@ -240,6 +253,17 @@ class ConfigManager:
         """Packs list of layer dicts into Variant."""
         variant_data = []
         for l_data in layers_data:
+            # Handle nested aa{sv} for origin_rules
+            packed_origin_rules = []
+            for rule in l_data.get('origin_rules', []):
+                packed_rule = {
+                    'origin_host': GLib.Variant('s', rule.get('origin_host', '')),
+                    'origin_host_header': GLib.Variant('s', rule.get('origin_host_header', '')),
+                    'path_matches': GLib.Variant('as', rule.get('path_matches', [])),
+                    'domain_matches': GLib.Variant('as', rule.get('domain_matches', []))
+                }
+                packed_origin_rules.append(packed_rule)
+
             layer_dict = {
                 'name': GLib.Variant('s', l_data.get('name', '')),
                 'description': GLib.Variant('s', l_data.get('description', '')),
@@ -255,8 +279,8 @@ class ConfigManager:
                 'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
                 'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
                 'path_match_only': GLib.Variant('as', l_data.get('path_match_only', [])),
-                'origin_rules': GLib.Variant('a{sv}', l_data.get('origin_rules', [])),
-                'varnish_backends': GLib.Variant('a{ss}', l_data.get('varnish_backends', []))
+                'origin_rules': GLib.Variant('a{sv}', packed_origin_rules),
+                'varnish_backends': GLib.Variant('aa{sv}', l_data.get('varnish_backends', []))
             }
             variant_data.append(layer_dict)
 
