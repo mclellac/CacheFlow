@@ -119,10 +119,11 @@ class ConfigManager:
             else:
                 layers = layers_variant if layers_variant else []
 
+            # entry_point is deprecated/removed, use name (Domain Name)
             unpacked_configs.append({
                 'id': c_dict.get('id', ''),
                 'name': c_dict.get('name', ''),
-                'entry_point': c_dict.get('entry_point', ''),
+                'entry_point': c_dict.get('name', ''),
                 'layers': layers
             })
         return unpacked_configs
@@ -171,7 +172,7 @@ class ConfigManager:
             c_dict = {
                 'id': GLib.Variant('s', c['id']),
                 'name': GLib.Variant('s', c['name']),
-                'entry_point': GLib.Variant('s', c['entry_point']),
+                # entry_point is duplicate of name (Domain Name), so we don't save it anymore
                 'layers': self._pack_layers(c['layers'])
             }
             variant_data.append(c_dict)

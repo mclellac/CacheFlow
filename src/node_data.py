@@ -3,7 +3,7 @@ This module defines the NodeData class, which encapsulates the data structure
 for individual nodes in the inspection graph.
 """
 
-from typing import List, Tuple, Any
+from typing import List, Tuple, Any, Optional, Dict
 
 class NodeData:
     """Data class representing a node in the graph."""
@@ -26,6 +26,9 @@ class NodeData:
         self.request_url = kwargs.get('request_url', '')
         self.request_host = kwargs.get('request_host', '')
         self.request_method = kwargs.get('request_method', 'GET')
+        self.upstream_layer: Optional[Dict[str, Any]] = kwargs.get('upstream_layer', None)
+        self.provider: str = kwargs.get('provider', '')
+        self.layer_type: str = kwargs.get('layer_type', '')
 
     def get_property(self, name: str) -> Any:
         """
