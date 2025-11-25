@@ -19,9 +19,10 @@ python_sources = [
   'knowledge.py',
   'analyzer.py',
   'analysis_dialog.py',
-  'controller.py',
+  'inspection_controller.py',
   'routing.py',
   'models.py',
+  'config_manager.py',
 ]
 
 providers_sources = [

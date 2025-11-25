@@ -93,8 +93,13 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="inspect_button">
-                        <property name="label">Inspect</property>
                         <property name="css-classes">suggested-action</property>
+                        <child>
+                          <object class="AdwButtonContent">
+                            <property name="label">Inspect</property>
+                            <property name="icon-name">system-search-symbolic</property>
+                          </object>
+                        </child>
                       </object>
                     </child>
                     <child>
