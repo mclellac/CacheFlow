@@ -193,7 +193,46 @@ class ConfigManager:
                 'routing_rules': GLib.Variant('aa{ss}', l_data.get('routing_rules', []))
             }
             variant_data.append(layer_dict)
-        return GLib.Variant('aa{sv}', variant_data)
+
+        try:
+            variant = GLib.Variant('aa{sv}', variant_data)
+            self.settings.set_value(key, variant)
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            log.error("Error saving config for key '%s': %s", key, e)
+
+    def ensure_default_config(self, key):
+        """
+        If no configuration exists for a key, this creates one from the
+        default and saves it.
+        """
+        val = self.settings.get_value(key)
+        if not val.unpack():
+            variant_data = []
+            for l_data in DEFAULT_CONFIG:
+                layer_dict = {
+                    'name': GLib.Variant('s', l_data.get('name', '')),
+                    'description': GLib.Variant('s', l_data.get('description', '')),
+                    'layer_type': GLib.Variant('s', l_data.get('layer_type', 'CDN')),
+                    'provider': GLib.Variant('s', l_data.get('provider', 'Akamai')),
+                    'host_url': GLib.Variant('s', l_data.get('host_url', '')),
+                    'default_backend_host': GLib.Variant('s', l_data.get('default_backend_host', '')),
+                    'default_backend_host_header': GLib.Variant('s', l_data.get('default_backend_host_header', '')),
+                    'header_color': GLib.Variant('s', l_data.get('header_color', '')),
+                    'body_color': GLib.Variant('s', l_data.get('body_color', '')),
+                    'text_color': GLib.Variant('s', l_data.get('text_color', '')),
+                    'diff_text_color': GLib.Variant('s', l_data.get('diff_text_color', '')),
+                    'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
+                    'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
+                    'path_match_only': GLib.Variant('as', l_data.get('path_match_only', [])),
+                    'routing_rules': GLib.Variant('aa{ss}', l_data.get('routing_rules', []))
+                }
+                variant_data.append(layer_dict)
+            try:
+                variant = GLib.Variant('aa{sv}', variant_data)
+                self.settings.set_value(key, variant)
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                log.error("Error creating default config for key '%s': %s", key, e)
+            log.info("No config found for '%s'. Saved default configuration.", key)
 
 
 @Gtk.Template(filename='src/ui/preferences.ui')
