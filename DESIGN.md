@@ -20,6 +20,16 @@ The engine is responsible for executing the chain of HTTP requests.
 - **Header Management**: Captures headers at each hop.
 - **DNS Resolution**: Can resolve specific hostnames to target IPs (e.g., targeting a specific cache node while preserving the Host header).
 
+**Routing Logic (State Flow)**:
+1.  **Initialization**: Start with Entry Point URL.
+2.  **Layer Execution**: Request executed against current target.
+3.  **Next Hop Calculation**:
+    *   Check `Routing Rules` (glob match on path).
+    *   If Match: Update Target Host, Host Header, and Rewrite Path.
+    *   If No Match: Fallback to `Default Backend`.
+4.  **Iteration**: Update current target and proceed to next layer.
+5.  **Termination**: If next hop points to an unconfigured layer, a dynamic "Backend" node is generated.
+
 ### 3. Visualization (`src/node_graph.py`)
 A custom-drawn Node Graph (using Cairo) visualizes the request path.
 - **Nodes**: Represent layers.

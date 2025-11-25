@@ -38,12 +38,6 @@ class InspectionController:
             engine = CacheFlowEngine(config)
             results = engine.run_inspection(test_path=path)
 
-            # Process results into NodeData here?
-            # Or pass raw results back to UI?
-            # Passing raw results and letting UI decide presentation might be more flexible,
-            # but processing here keeps Window cleaner.
-            # Let's process here.
-
             processed_nodes = self._process_results(results, config['layers'])
 
             GLib.idle_add(
@@ -83,6 +77,15 @@ class InspectionController:
         else:
             headers_list = self._compare_headers(result, index, all_results)
 
+        upstream_layer = None
+        if index < len(all_results) - 1:
+            upstream_result = all_results[index+1]
+            if 'headers' in upstream_result:
+                upstream_layer = {
+                    'name': upstream_result['name'],
+                    'headers': upstream_result['headers']
+                }
+
         return NodeData(
             name=result['name'],
             headers=headers_list,
@@ -92,7 +95,10 @@ class InspectionController:
             diff_text_color=original_layer.get('diff_text_color', ''),
             request_url=result.get('url'),
             request_host=result.get('sent_host_header'),
-            request_method=result.get('method', 'GET')
+            request_method=result.get('method', 'GET'),
+            upstream_layer=upstream_layer,
+            provider=result.get('provider', original_layer.get('provider', '')),
+            layer_type=result.get('layer_type', original_layer.get('layer_type', ''))
         )
 
     def _compare_headers(self, result: Dict[str, Any], index: int,

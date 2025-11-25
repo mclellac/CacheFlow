@@ -16,6 +16,7 @@ import dns.exception
 from urllib3.exceptions import InsecureRequestWarning
 
 from .dns_adapter import DNSAdapter
+from .routing import RouteCalculator
 
 warnings.simplefilter('ignore', InsecureRequestWarning)
 
@@ -155,7 +156,9 @@ class CacheFlowEngine:
                 else:
                     next_base = default_host
 
-                next_host_header = layer_config.get('default_backend_host_header')
+        next_base, next_path, next_host_header = RouteCalculator.calculate_next_hop(
+            layer_config, target_path
+        )
 
         return result, next_base, next_path, next_host_header
 
