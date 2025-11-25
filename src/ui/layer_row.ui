@@ -185,7 +185,6 @@
         <child>
             <object class="AdwEntryRow" id="default_backend_header_row">
                 <property name="title">Host Header</property>
-                <property name="placeholder-text">Optional: uses Host if empty</property>
             </object>
         </child>
       </object>
