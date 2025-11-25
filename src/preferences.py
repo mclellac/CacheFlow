@@ -281,19 +281,40 @@ class ConfigManager:
                     "a{ss}", l_data.get("custom_headers", {})
                 ),
                 "host_overrides": GLib.Variant(
-                    "aa{ss}", l_data.get("host_overrides", [])
+                    "a{ss}", l_data.get("host_overrides", [])
                 ),
                 "path_match_only": GLib.Variant(
                     "as", l_data.get("path_match_only", [])
                 ),
-                "origin_rules": GLib.Variant("a{sv}", l_data.get("origin_rules", [])),
+                "origin_rules": GLib.Variant(
+                    "aa{sv}",
+                    [
+                        [
+                            {
+                                "origin_host": GLib.Variant(
+                                    "s", r.get("origin_host", "")
+                                ),
+                                "origin_host_header": GLib.Variant(
+                                    "s", r.get("origin_host_header", "")
+                                ),
+                                "path_matches": GLib.Variant(
+                                    "as", r.get("path_matches", [])
+                                ),
+                                "domain_matches": GLib.Variant(
+                                    "as", r.get("domain_matches", [])
+                                ),
+                            }
+                        ]
+                        for r in l_data.get("origin_rules", [])
+                    ],
+                ),
                 "varnish_backends": GLib.Variant(
                     "aa{sv}", l_data.get("varnish_backends", [])
                 ),
             }
             variant_data.append(layer_dict)
 
-        return GLib.Variant("aa{sv}", variant_data)
+        return GLib.Variant("a{sv}", variant_data)
 
     def ensure_default_config(self, key):
         """
