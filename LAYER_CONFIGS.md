@@ -7,7 +7,7 @@ This document details the configuration options available for each layer type in
 The CDN layer is the entry point for requests in most configurations.
 
 **Configuration Options:**
-*   **Host URL**: The domain name (e.g., `www.example.com`).
+*   **Host URL**: The CNAME or edge hostname where the request should be sent (e.g., `www.example.com.edgekey.net`).
 *   **Custom Headers**: Specific headers to enable debugging or control behavior (e.g., Pragma headers for Akamai).
 *   **Routing Rules**: (Optional) If the CDN performs path-based routing to different origins.
 *   **Default Backend**: (Optional) Fallback origin if no routing rules match.
