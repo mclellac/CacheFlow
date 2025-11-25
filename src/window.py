@@ -44,6 +44,7 @@ class Window(Adw.ApplicationWindow):
             on_success=self.on_inspection_succeeded,
             on_error=self.on_inspection_failed
         )
+        log.debug("Window components initialized.")
 
         self.setup_actions()
         self.setup_config_switcher()
@@ -134,14 +135,17 @@ class Window(Adw.ApplicationWindow):
 
     def setup_config_switcher(self):
         """Sets up the configuration switcher dropdown."""
+        log.debug("Setting up configuration switcher.")
         configs = self.config_manager.get_configurations()
         self.config_ids = [c['id'] for c in configs]
         names = [c['name'] for c in configs]
+        log.debug("Found %d configurations: %s", len(configs), names)
 
         self.config_model = Gtk.StringList.new(names)
         self.config_switcher.set_model(self.config_model)
 
         active_id = self.settings.get_string('active-config-id')
+        log.debug("Active config ID from settings: '%s'", active_id)
         if active_id in self.config_ids:
             idx = self.config_ids.index(active_id)
             self.config_switcher.set_selected(idx)
@@ -152,9 +156,11 @@ class Window(Adw.ApplicationWindow):
 
         self.update_env_label(active_id)
         self.config_switcher.connect('notify::selected', self.on_config_selected)
+        log.debug("Config switcher setup complete.")
 
     def on_configurations_changed(self, _settings, _key):
         """Callback when configurations change in GSettings."""
+        log.info("Configurations changed in GSettings, re-running switcher setup.")
         # Re-setup switcher
         # We need to preserve selection if possible or respect new active ID
         # For simplicity, just re-run setup
@@ -167,6 +173,7 @@ class Window(Adw.ApplicationWindow):
             return
 
         new_id = self.config_ids[idx]
+        log.debug("Configuration selection changed. Index: %d, New ID: %s", idx, new_id)
         self.settings.set_string('active-config-id', new_id)
         self.node_graph.set_data([])
         self.content_stack.set_visible_child_name("empty")
@@ -174,10 +181,14 @@ class Window(Adw.ApplicationWindow):
 
     def update_env_label(self, config_id):
         """Updates the environment label with the entry point."""
+        log.debug("Updating env label for config ID: %s", config_id)
         config = self.config_manager.get_configuration(config_id)
         if config:
-            self.env_label.set_text(config.get('entry_point', 'No Host Configured'))
+            entry_point = config.get('entry_point', 'No Host Configured')
+            log.debug("Setting env label to: %s", entry_point)
+            self.env_label.set_text(entry_point)
         else:
+            log.warning("Could not find config for ID '%s' to update env label.", config_id)
             self.env_label.set_text("No Host Configured")
 
     def on_inspect_clicked(self, *_):
@@ -195,9 +206,11 @@ class Window(Adw.ApplicationWindow):
             self.set_inspection_in_progress(False)
             return
 
+        log.debug("Saving test path '%s' to settings.", path)
         self.settings.set_string('test-path', path)
 
         active_id = self.settings.get_string('active-config-id')
+        log.debug("Starting inspection with active config ID: %s", active_id)
         config_data = self.config_manager.get_configuration(active_id)
 
         if not config_data or not config_data.get('layers'):
@@ -218,13 +231,15 @@ class Window(Adw.ApplicationWindow):
             'verify_ssl': self.settings.get_boolean('verify-ssl')
         }
 
+        log.debug("Passing config to controller: %s", config)
         self.controller.start_inspection(config, path)
 
     def on_inspection_succeeded(self, processed_nodes: List[NodeData]) -> bool:
         """Callback when inspection succeeds."""
-        log.debug("Inspection succeeded, displaying results.")
+        log.info("Inspection succeeded. Received %d processed nodes.", len(processed_nodes))
 
         if not processed_nodes:
+            log.debug("No nodes to display, showing empty state.")
             self.node_graph.set_data([])
             self.content_stack.set_visible_child_name("empty")
         else:
