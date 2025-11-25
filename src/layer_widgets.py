@@ -2,10 +2,12 @@
 This module defines custom widgets used in the Layer configuration UI,
 including the LayerRow for editing layer details.
 """
-
+import logging
 from gi.repository import Gtk, Adw, Gdk, GObject
 from .providers.base import ProviderType
 from .providers import get_providers_by_type
+
+log = logging.getLogger(__name__)
 
 
 class ConfigRowMixin:
@@ -162,6 +164,8 @@ class LayerRow(Adw.ExpanderRow):
 
     def __init__(self, layer_data=None, on_delete=None, on_change=None):
         super().__init__()
+        log.debug("Initializing LayerRow for layer: %s",
+                  layer_data.get('name') if layer_data else "New Layer")
         self._loading = True
 
         self.on_delete_callback = on_delete
@@ -219,6 +223,8 @@ class LayerRow(Adw.ExpanderRow):
                 button.set_rgba(Gdk.RGBA(0, 0, 0, 0))
 
         self._loading = False
+        log.debug("LayerRow for '%s' initialized.", self.name_row.get_text())
+
 
     def on_type_changed(self, _row, _param):
         """Updates the provider list based on the selected type."""
@@ -227,6 +233,7 @@ class LayerRow(Adw.ExpanderRow):
             return
 
         selected_type = self.types_list[selected_idx]
+        log.debug("Layer type changed to: %s", selected_type.value)
 
         # Configure Visibility and Labels based on Type
         if selected_type == ProviderType.CDN:
@@ -253,6 +260,7 @@ class LayerRow(Adw.ExpanderRow):
             self.provider_model.splice(0, n_items, [])
 
         self.current_providers = get_providers_by_type(selected_type)
+        log.debug("Populating providers for type %s: %s", selected_type.value, [p.name for p in self.current_providers])
 
         for prov in self.current_providers:
             self.provider_model.append(prov.name)
@@ -264,13 +272,13 @@ class LayerRow(Adw.ExpanderRow):
 
     def on_provider_changed(self, _row, _param):
         """Callback when provider changes."""
-        # Update custom headers with debug headers for this provider if empty
         if self._loading:
             return
 
         prov_idx = self.provider_row.get_selected()
         if 0 <= prov_idx < len(self.current_providers):
             selected_provider_cls = self.current_providers[prov_idx]
+            log.debug("Provider changed to: %s", selected_provider_cls.name)
 
             if selected_provider_cls.name == "Varnish":
                 self.varnish_backend_group.set_visible(True)
@@ -283,6 +291,7 @@ class LayerRow(Adw.ExpanderRow):
 
             # If headers are empty, populate them.
             if not self.header_rows and debug_headers:
+                log.debug("No custom headers, populating with debug headers for %s", selected_provider_cls.name)
                 for key, value in debug_headers.items():
                     self.add_header_row(key, value)
 
@@ -290,6 +299,7 @@ class LayerRow(Adw.ExpanderRow):
 
     def load_data(self, data):
         """Loads layer data into the UI widgets."""
+        log.debug("Loading data into LayerRow UI for layer '%s': %s", data.get('name'), data)
         self.name_row.set_text(data.get('name', ''))
         self.desc_row.set_text(data.get('description', ''))
         self.url_row.set_text(data.get('host_url', ''))
@@ -371,21 +381,25 @@ class LayerRow(Adw.ExpanderRow):
         if varnish_backends:
             for backend_data in varnish_backends:
                 self.add_varnish_backend_row(backend_data)
+        log.debug("Finished loading data for LayerRow '%s'", data.get('name'))
 
     def on_changed(self, *_args):
         """Callback when any data in the layer row changes."""
         if self._loading:
             return
         if self.on_change_callback:
+            log.debug("'%s' LayerRow data changed, firing callback.", self.name_row.get_text())
             self.on_change_callback()
 
     def on_delete_clicked(self, _btn):
         """Callback for the delete button."""
         if self.on_delete_callback:
+            log.debug("Delete button clicked for layer '%s'.", self.name_row.get_text())
             self.on_delete_callback(self)
 
     def on_add_header(self, _btn):
         """Callback to add a new header row."""
+        log.debug("Adding new header row.")
         self.add_header_row()
         self.on_changed()
 
@@ -401,12 +415,14 @@ class LayerRow(Adw.ExpanderRow):
 
     def remove_header_row(self, row):
         """Removes a header entry row."""
+        log.debug("Removing header row.")
         self.headers_group.remove(row)
         self.header_rows.remove(row)
         self.on_changed()
 
     def on_add_override(self, _btn):
         """Callback to add a new override row."""
+        log.debug("Adding new override row.")
         self.add_override_row()
         self.on_changed()
 
@@ -422,12 +438,14 @@ class LayerRow(Adw.ExpanderRow):
 
     def remove_override_row(self, row):
         """Removes an override entry row."""
+        log.debug("Removing override row.")
         self.overrides_group.remove(row)
         self.override_rows.remove(row)
         self.on_changed()
 
     def on_add_path_match(self, _btn):
         """Callback to add a new path match row."""
+        log.debug("Adding new path match row.")
         self.add_path_match_row()
         self.on_changed()
 
@@ -443,12 +461,14 @@ class LayerRow(Adw.ExpanderRow):
 
     def remove_path_match_row(self, row):
         """Removes a path match entry row."""
+        log.debug("Removing path match row.")
         self.path_match_group.remove(row)
         self.path_match_rows.remove(row)
         self.on_changed()
 
     def on_add_origin_rule(self, _btn):
         """Callback to add a new backend rule row."""
+        log.debug("Adding new origin rule row.")
         self.add_origin_rule_row()
         self.on_changed()
 
@@ -464,12 +484,14 @@ class LayerRow(Adw.ExpanderRow):
 
     def remove_origin_rule_row(self, row):
         """Removes an origin rule entry row."""
+        log.debug("Removing origin rule row.")
         self.origin_rules_group.remove(row)
         self.origin_rule_rows.remove(row)
         self.on_changed()
 
     def on_add_varnish_backend(self, _btn):
         """Callback to add a new Varnish backend row."""
+        log.debug("Adding new varnish backend row.")
         self.add_varnish_backend_row()
         self.on_changed()
 
@@ -485,12 +507,14 @@ class LayerRow(Adw.ExpanderRow):
 
     def remove_varnish_backend_row(self, row):
         """Removes a Varnish backend entry row."""
+        log.debug("Removing varnish backend row.")
         self.varnish_backend_group.remove(row)
         self.varnish_backend_rows.remove(row)
         self.on_changed()
 
     def get_data(self):
         """Collects and returns the layer configuration data."""
+        log.debug("Getting data from LayerRow '%s'.", self.name_row.get_text())
 
         # Get selected Type
         type_idx = self.type_row.get_selected()
@@ -521,7 +545,8 @@ class LayerRow(Adw.ExpanderRow):
             'custom_headers': {},
             'host_overrides': [],
             'path_match_only': [],
-            'origin_rules': []
+            'origin_rules': [],
+            'varnish_backends': []
         }
 
         for row in self.header_rows:
@@ -550,6 +575,7 @@ class LayerRow(Adw.ExpanderRow):
             if backend_data['name']:
                 data['varnish_backends'].append(backend_data)
 
+        log.debug("Returning data for layer '%s': %s", data['name'], data)
         return data
 
 

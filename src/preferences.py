@@ -103,10 +103,13 @@ class ConfigManager:
 
     def get_configurations(self):
         """Returns the list of configurations (list of dicts)."""
+        log.debug("Getting all configurations from GSettings.")
         val = self.settings.get_value("configurations")
         configs_list = val.unpack()
+        log.debug("Unpacked GSettings variant: %s", configs_list)
         if not configs_list or not configs_list[0]:
             # If empty, create a default one
+            log.info("No configurations found, creating and saving a default set.")
             default_id = str(uuid.uuid4())
             default_config = {
                 "id": GLib.Variant("s", default_id),
@@ -127,17 +130,21 @@ class ConfigManager:
         configs_updated = False
         if configs_list and isinstance(configs_list[0], dict):
             # This is the old format, a{sv}, which unpacks to a list of dicts.
+            log.debug("Detected old configuration format (a{sv}). Preparing for migration.")
             configs = configs_list
             configs_updated = True
         elif configs_list and isinstance(configs_list[0], list):
             # This is the new format, aa{sv}, which unpacks to a list containing one list of dicts.
+            log.debug("Detected new configuration format (aa{sv}).")
             configs = configs_list[0]
         else:
             # The configuration is empty or corrupted.
+            log.warning("Configuration list is empty or in an unknown format. Forcing default.")
             configs_updated = True # Force a re-save to default
 
         if not configs:
             # Handle case where configs is `[[]]` or corrupted
+            log.warning("No valid configuration dictionaries found. Creating default.")
             default_id = str(uuid.uuid4())
             default_config_dict = {
                 "id": default_id,
@@ -161,6 +168,7 @@ class ConfigManager:
             # Data migration from routing_rules to origin_rules
             for layer in layers:
                 if "routing_rules" in layer:
+                    log.info("Migrating legacy 'routing_rules' to 'origin_rules' for layer '%s'.", layer.get('name'))
                     configs_updated = True
                     routing_rules = layer.pop("routing_rules")
                     layer["origin_rules"] = []
@@ -196,16 +204,20 @@ class ConfigManager:
             )
 
         if configs_updated:
+            log.info("Configurations were migrated. Saving updated list to GSettings.")
             self._save_configs(unpacked_configs)
 
+        log.debug("Finished getting configurations.")
         return unpacked_configs
 
     def get_configuration(self, conf_id):
         """Returns a single configuration by ID."""
+        log.debug("Getting single configuration with ID: %s", conf_id)
         configs = self.get_configurations()
         for c in configs:
             if c["id"] == conf_id:
                 return c
+        log.warning("Configuration with ID '%s' not found.", conf_id)
         return None
 
     def add_configuration(self, name, entry_point, layers=None):
@@ -219,17 +231,20 @@ class ConfigManager:
             "layers": layers if layers else [],
         }
         configs.append(new_conf)
+        log.debug("Adding new configuration: %s", new_conf)
         self._save_configs(configs)
         return new_id
 
     def delete_configuration(self, conf_id):
         """Deletes a configuration."""
+        log.debug("Deleting configuration with ID: %s", conf_id)
         configs = self.get_configurations()
         configs = [c for c in configs if c["id"] != conf_id]
         self._save_configs(configs)
 
     def save_configuration(self, conf_id, data):
         """Updates a configuration."""
+        log.debug("Saving configuration for ID: %s with data: %s", conf_id, data)
         configs = self.get_configurations()
         for i, c in enumerate(configs):
             if c["id"] == conf_id:
@@ -239,8 +254,10 @@ class ConfigManager:
 
     def _save_configs(self, configs):
         """packs and saves list of configs to GSettings."""
+        log.debug("Packing and saving %d configurations to GSettings.", len(configs))
         variant_data = []
         for c in configs:
+            log.debug("Packing config: %s", c.get('name'))
             c_dict = {
                 "id": GLib.Variant("s", c["id"]),
                 "name": GLib.Variant("s", c["name"]),
@@ -260,7 +277,9 @@ class ConfigManager:
     def _pack_layers(self, layers_data):
         """Packs list of layer dicts into Variant."""
         variant_data = []
-        for l_data in layers_data:
+        log.debug("Packing %d layers into GLib.Variant.", len(layers_data))
+        for i, l_data in enumerate(layers_data):
+            log.debug("Packing layer #%d: %s", i, l_data.get('name'))
             layer_dict = {
                 "name": GLib.Variant("s", l_data.get("name", "")),
                 "description": GLib.Variant("s", l_data.get("description", "")),
@@ -422,6 +441,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.exporter = ConfigExporter(self)
         self._layer_rows = []
         self._loading = True
+        log.debug("PreferencesWindow __init__ complete.")
         self.current_config_id = None
 
         self.settings.bind(
@@ -493,8 +513,10 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     def refresh_config_list(self):
         """Refreshes the config selector model."""
+        log.debug("Refreshing configuration list in preferences UI.")
         self._loading = True
         configs = self.config_manager.get_configurations()
+        log.debug("Loaded %d configurations for UI refresh.", len(configs))
 
         # Keep track of IDs in order
         self.config_ids = [c["id"] for c in configs]
@@ -509,19 +531,24 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
         # Select active
         active_id = self.settings.get_string("active-config-id")
+        log.debug("Active config ID from settings is '%s'.", active_id)
         if active_id in self.config_ids:
             idx = self.config_ids.index(active_id)
+            log.debug("Found active config at index %d. Selecting it.", idx)
             self.config_selector.set_selected(idx)
         elif configs:
+            log.warning("Active config ID not found, selecting first item as fallback.")
             self.config_selector.set_selected(0)
             self.settings.set_string("active-config-id", configs[0]["id"])
 
         self._loading = False
+        log.debug("Configuration list refresh complete. Manually triggering on_config_selected.")
         self.on_config_selected(self.config_selector, None)
 
     def on_config_selected(self, _row, _param):
         """Callback when a configuration is selected."""
         if self._loading:
+            log.debug("on_config_selected callback skipped while loading.")
             return
 
         idx = self.config_selector.get_selected()
@@ -529,24 +556,31 @@ class PreferencesWindow(Adw.PreferencesWindow):
             return
 
         self.current_config_id = self.config_ids[idx]
+        log.debug("Configuration selected. Index: %d, ID: %s", idx, self.current_config_id)
         self.settings.set_string("active-config-id", self.current_config_id)
 
         config = self.config_manager.get_configuration(self.current_config_id)
         if config:
+            log.debug("Loading UI for configuration: %s", config.get('name'))
             self.load_config_ui(config)
+        else:
+            log.error("Could not find configuration data for ID: %s", self.current_config_id)
 
     def load_config_ui(self, config):
         """Loads configuration into the UI fields."""
+        log.debug("Loading config into UI: %s", config)
         self._loading = True
         self.domain_name_row.set_text(config.get("name", ""))
 
         # Clear existing layers
+        log.debug("Clearing %d existing layer rows from UI.", len(self._layer_rows))
         for row in self._layer_rows:
             self.layers_group.remove(row)
         self._layer_rows = []
 
         # Load layers
         layers = config.get("layers", [])
+        log.debug("Creating UI rows for %d layers.", len(layers))
         for layer_data in layers:
             self.create_layer_row(layer_data)
 
@@ -573,14 +607,17 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
         # Update name in list if changed
         new_name = self.domain_name_row.get_text()
+        log.debug("Details changed for config '%s'. New name: %s", self.current_config_id, new_name)
         # We can try to update the GtkStringList but it's easier to wait for refresh or save.
         self.save_current_config()
 
     def save_current_config(self):
         """Saves the current UI state to the configuration."""
         if self._loading or not self.current_config_id:
+            log.debug("Save skipped: loading=%s, no current_config_id.", self._loading)
             return
 
+        log.debug("Saving current config UI state for ID: %s", self.current_config_id)
         layers_data = [row.get_data() for row in self._layer_rows]
         data = {
             "id": self.current_config_id,
@@ -589,14 +626,17 @@ class PreferencesWindow(Adw.PreferencesWindow):
             "layers": layers_data,
         }
         self.config_manager.save_configuration(self.current_config_id, data)
+        log.debug("Config saved.")
 
     def on_add_config(self, _btn):
         """Adds a new configuration."""
+        log.debug("Add config button clicked, showing dialog.")
         dialog = AddConfigDialog(self, self.do_add_config)
         dialog.present()
 
     def do_add_config(self, domain):
         """Actually adds the config after dialog confirms."""
+        log.info("Adding new configuration for domain: %s", domain)
         # Create default CDN layer
         default_cdn_layer = {
             "name": "CDN",
@@ -623,14 +663,17 @@ class PreferencesWindow(Adw.PreferencesWindow):
     def on_delete_config(self, _btn):
         """Deletes the current configuration."""
         if not self.current_config_id:
+            log.warning("Delete config clicked, but no config is selected.")
             return
 
+        log.info("Deleting configuration ID: %s", self.current_config_id)
         self.config_manager.delete_configuration(self.current_config_id)
         # The refresh will pick a new one or default
         self.refresh_config_list()
 
     def add_layer(self, _row):
         """Adds a new layer to the current config."""
+        log.debug("Adding a new layer to the current configuration.")
         new_data = {
             "name": "New Layer",
             "description": "",
@@ -649,6 +692,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     def remove_layer(self, row):
         """Removes a layer."""
+        log.debug("Removing layer: %s", row.get_data().get('name'))
         self.layers_group.remove(row)
         self._layer_rows.remove(row)
         self.save_current_config()
