@@ -47,11 +47,14 @@ DEFAULT_LAYERS = [
         "layer_type": "CDN",
         "provider": "Akamai",
         "host_url": "https://www.example.com",
+        "default_backend_host": "cache.examplefarm.com",
+        "default_backend_host_header": "origin.example.com",
         "custom_headers": {
             "Pragma": "akamai-x-get-request-id, akamai-x-cache-on, akamai-x-cache-key"
         },
         "host_overrides": [],
-        "path_match_only": []
+        "path_match_only": [],
+        "routing_rules": []
     },
     {
         "name": "Infra_Cache",
@@ -59,6 +62,8 @@ DEFAULT_LAYERS = [
         "layer_type": "Cache Proxy",
         "provider": "Varnish",
         "host_url": "http://cache.examplefarm.com",
+        "default_backend_host": "",
+        "default_backend_host_header": "",
         "custom_headers": {
             "X-Varnish-Debug": "true",
             "X-Origin-Auth": "secret-token-123"
@@ -69,7 +74,8 @@ DEFAULT_LAYERS = [
                 "host_header": "api-internal.example.com"
             }
         ],
-        "path_match_only": []
+        "path_match_only": [],
+        "routing_rules": []
     }
 ]
 
@@ -241,7 +247,6 @@ class AddConfigDialog(Adw.Window):
     __gtype_name__ = 'AddConfigDialog'
 
     domain_name_entry = Gtk.Template.Child()
-    cname_entry = Gtk.Template.Child()
     add_btn = Gtk.Template.Child()
     cancel_btn = Gtk.Template.Child()
 
@@ -254,9 +259,8 @@ class AddConfigDialog(Adw.Window):
     def on_add_clicked(self, _btn):
         """Callback when Add is clicked."""
         domain = self.domain_name_entry.get_text()
-        cname = self.cname_entry.get_text()
-        if domain and cname:
-            self.on_add(domain, cname)
+        if domain:
+            self.on_add(domain)
             self.close()
 
 
@@ -276,7 +280,6 @@ class PreferencesWindow(Adw.PreferencesWindow):
     delete_config_btn = Gtk.Template.Child()
 
     domain_name_row = Gtk.Template.Child()
-    entry_point_row = Gtk.Template.Child()
 
     layers_group = Gtk.Template.Child()
     add_layer_row = Gtk.Template.Child()
@@ -313,7 +316,6 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.delete_config_btn.connect('clicked', self.on_delete_config)
 
         self.domain_name_row.connect('notify::text', self.on_details_changed)
-        self.entry_point_row.connect('notify::text', self.on_details_changed)
 
         self.add_layer_row.connect('activated', self.add_layer)
 
@@ -406,7 +408,6 @@ class PreferencesWindow(Adw.PreferencesWindow):
         """Loads configuration into the UI fields."""
         self._loading = True
         self.domain_name_row.set_text(config.get('name', ''))
-        self.entry_point_row.set_text(config.get('entry_point', ''))
 
         # Clear existing layers
         for row in self._layer_rows:
@@ -453,7 +454,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         data = {
             'id': self.current_config_id,
             'name': self.domain_name_row.get_text(),
-            'entry_point': self.entry_point_row.get_text(),
+            'entry_point': self.domain_name_row.get_text(),
             'layers': layers_data
         }
         self.config_manager.save_configuration(self.current_config_id, data)
@@ -463,7 +464,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         dialog = AddConfigDialog(self, self.do_add_config)
         dialog.present()
 
-    def do_add_config(self, domain, cname):
+    def do_add_config(self, domain):
         """Actually adds the config after dialog confirms."""
         # Create default CDN layer
         default_cdn_layer = {
@@ -471,14 +472,14 @@ class PreferencesWindow(Adw.PreferencesWindow):
             "description": "CDN Layer for " + domain,
             "layer_type": "CDN",
             "provider": "Akamai", # Default provider
-            "host_url": cname,
+            "host_url": domain, # Use domain as host URL for CDN (first request)
             "custom_headers": {},
             "host_overrides": [],
             "path_match_only": [],
             "routing_rules": []
         }
 
-        new_id = self.config_manager.add_configuration(domain, cname, layers=[default_cdn_layer])
+        new_id = self.config_manager.add_configuration(domain, domain, layers=[default_cdn_layer])
 
         # Refresh first
         self.refresh_config_list()
