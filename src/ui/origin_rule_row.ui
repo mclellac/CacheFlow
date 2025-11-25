@@ -2,16 +2,16 @@
 <interface>
   <requires lib="gtk" version="4.0"/>
   <requires lib="adw" version="1.0"/>
-  <template class="BackendRuleRow" parent="AdwExpanderRow">
-    <property name="title">Backend: (Not Set)</property>
-    <property name="subtitle">0 Paths</property>
+  <template class="OriginRuleRow" parent="AdwExpanderRow">
+    <property name="title">Origin: (Not Set)</property>
+    <property name="subtitle">0 Paths, 0 Domains</property>
 
     <child type="suffix">
       <object class="GtkButton" id="delete_btn">
         <property name="icon-name">user-trash-symbolic</property>
         <property name="valign">center</property>
         <property name="has-frame">False</property>
-        <property name="tooltip-text">Delete Backend Rule</property>
+        <property name="tooltip-text">Delete Origin Rule</property>
         <style>
           <class name="destructive-action"/>
         </style>
@@ -20,7 +20,7 @@
 
     <child>
       <object class="AdwEntryRow" id="host_entry">
-        <property name="title">Backend Host</property>
+        <property name="title">Origin Host</property>
         <property name="text">localhost</property>
       </object>
     </child>
@@ -29,17 +29,11 @@
         <property name="title">Host Header</property>
       </object>
     </child>
-    <child>
-      <object class="AdwEntryRow" id="rewrite_entry">
-        <property name="title">Path Rewrite</property>
-      </object>
-    </child>
 
     <child>
       <object class="AdwPreferencesGroup" id="path_match_group">
         <property name="title">Path Matches</property>
-        <property name="description">Requests matching any of these paths will be sent to this backend.</property>
-
+        <property name="description">Requests matching any of these paths will be sent to this origin.</property>
         <child>
             <object class="AdwActionRow">
                 <property name="activatable">True</property>
@@ -56,7 +50,28 @@
                 </child>
             </object>
         </child>
-
+      </object>
+    </child>
+    <child>
+      <object class="AdwPreferencesGroup" id="domain_match_group">
+        <property name="title">Domain Matches</property>
+        <property name="description">Requests matching any of these domains will be sent to this origin.</property>
+        <child>
+            <object class="AdwActionRow">
+                <property name="activatable">True</property>
+                <property name="title">Add New Domain</property>
+                <property name="icon-name">list-add-symbolic</property>
+                <property name="activatable-widget">add_domain_btn</property>
+                <child type="suffix">
+                    <object class="GtkButton" id="add_domain_btn">
+                        <property name="icon-name">list-add-symbolic</property>
+                        <property name="valign">center</property>
+                        <property name="has-frame">False</property>
+                        <property name="tooltip-text">Add Domain Match</property>
+                    </object>
+                </child>
+            </object>
+        </child>
       </object>
     </child>
   </template>

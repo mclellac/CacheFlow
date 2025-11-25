@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="adw" version="1.0"/>
+  <template class="DomainMatchRow" parent="Adw.PreferencesRow">
+    <property name="activatable">False</property>
+    <child>
+      <object class="GtkEntry" id="pat_entry">
+        <property name="hexpand">True</property>
+      </object>
+    </child>
+    <child type="suffix">
+      <object class="GtkButton" id="delete_btn">
+        <property name="icon-name">user-trash-symbolic</property>
+        <property name="valign">center</property>
+        <property name="has-frame">False</property>
+        <property name="tooltip-text">Delete Domain Match</property>
+        <style>
+          <class name="destructive-action"/>
+        </style>
+      </object>
+    </child>
+  </template>
+</interface>

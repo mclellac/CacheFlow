@@ -99,6 +99,26 @@ class PathMatchRow(ConfigRowMixin, Adw.PreferencesRow):
         return [self.pat_entry.get_text()]
 
 
+@Gtk.Template(filename='src/ui/domain_match_row.ui')
+class DomainMatchRow(ConfigRowMixin, Adw.PreferencesRow):
+    """Row for editing a domain match pattern."""
+    __gtype_name__ = 'DomainMatchRow'
+
+    pat_entry = Gtk.Template.Child()
+    delete_btn = Gtk.Template.Child()
+
+    def __init__(self, pattern='', on_change=None, on_delete=None, **kwargs):
+        super().__init__(**kwargs)
+        self.setup_mixin(on_change, on_delete)
+
+        self.pat_entry.set_text(pattern)
+        self.pat_entry.connect('changed', self.notify_change)
+
+    def get_texts(self):
+        """Returns [pattern] list."""
+        return [self.pat_entry.get_text()]
+
+
 @Gtk.Template(filename='src/ui/layer_row.ui')
 class LayerRow(Adw.ExpanderRow):
     """
@@ -128,8 +148,11 @@ class LayerRow(Adw.ExpanderRow):
     path_match_group = Gtk.Template.Child()
     add_path_match_btn = Gtk.Template.Child()
 
-    routing_rules_group = Gtk.Template.Child()
-    add_routing_rule_btn = Gtk.Template.Child()
+    origin_rules_group = Gtk.Template.Child()
+    add_origin_rule_btn = Gtk.Template.Child()
+
+    varnish_backend_group = Gtk.Template.Child()
+    add_varnish_backend_btn = Gtk.Template.Child()
 
     default_backend_group = Gtk.Template.Child()
     default_backend_host_row = Gtk.Template.Child()
@@ -147,7 +170,8 @@ class LayerRow(Adw.ExpanderRow):
         self.header_rows = []
         self.override_rows = []
         self.path_match_rows = []
-        self.backend_rule_rows = []
+        self.origin_rule_rows = []
+        self.varnish_backend_rows = []
 
         # Setup Models for Type and Provider
         self.type_model = Gtk.StringList()
@@ -179,7 +203,8 @@ class LayerRow(Adw.ExpanderRow):
         self.add_header_btn.connect('clicked', self.on_add_header)
         self.add_override_btn.connect('clicked', self.on_add_override)
         self.add_path_match_btn.connect('clicked', self.on_add_path_match)
-        self.add_routing_rule_btn.connect('clicked', self.on_add_routing_rule)
+        self.add_origin_rule_btn.connect('clicked', self.on_add_origin_rule)
+        self.add_varnish_backend_btn.connect('clicked', self.on_add_varnish_backend)
 
         if layer_data:
             self.load_data(layer_data)
@@ -208,25 +233,19 @@ class LayerRow(Adw.ExpanderRow):
             self.url_row.set_visible(False)
             self.default_backend_group.set_visible(True)
             self.default_backend_group.set_title("Default Origin")
-            self.routing_rules_group.set_visible(True)
-            self.routing_rules_group.set_title("Routing Rules")
+            self.origin_rules_group.set_visible(True)
+            self.origin_rules_group.set_title("Origin Rules")
             self.overrides_group.set_visible(False)
             self.path_match_group.set_visible(False)
 
         elif selected_type in (ProviderType.CACHE_PROXY, ProviderType.LOAD_BALANCER):
             self.url_row.set_visible(True)
             self.default_backend_group.set_visible(False) # No default backend, falls through or routed
-            self.routing_rules_group.set_visible(True)
-            self.routing_rules_group.set_title("Routing Rules")
+            self.origin_rules_group.set_visible(True)
+            self.origin_rules_group.set_title("Routing Rules")
             self.overrides_group.set_visible(True)
             self.path_match_group.set_visible(True)
-
-        elif selected_type == ProviderType.APP_BACKEND:
-            self.url_row.set_visible(False) # Backend location determined by previous layer
-            self.default_backend_group.set_visible(False)
-            self.routing_rules_group.set_visible(False)
-            self.overrides_group.set_visible(False)
-            self.path_match_group.set_visible(False)
+            self.varnish_backend_group.set_visible(False)
 
         # Clear provider model
         n_items = self.provider_model.get_n_items()
@@ -252,6 +271,12 @@ class LayerRow(Adw.ExpanderRow):
         prov_idx = self.provider_row.get_selected()
         if 0 <= prov_idx < len(self.current_providers):
             selected_provider_cls = self.current_providers[prov_idx]
+
+            if selected_provider_cls.name == "Varnish":
+                self.varnish_backend_group.set_visible(True)
+            else:
+                self.varnish_backend_group.set_visible(False)
+
             # Instantiate provider to get debug headers
             provider = selected_provider_cls()
             debug_headers = provider.get_debug_headers()
@@ -337,27 +362,15 @@ class LayerRow(Adw.ExpanderRow):
             for pattern in path_matches:
                 self.add_path_match_row(pattern)
 
-        routing_rules = data.get('routing_rules', [])
-        if routing_rules:
-            # Group rules by backend host, header, and rewrite
-            grouped_backends = {}
-            for rule in routing_rules:
-                backend_key = (
-                    rule.get('backend_host', ''),
-                    rule.get('backend_host_header', ''),
-                    rule.get('path_rewrite', '')
-                )
-                if backend_key not in grouped_backends:
-                    grouped_backends[backend_key] = {
-                        'backend_host': backend_key[0],
-                        'backend_host_header': backend_key[1],
-                        'path_rewrite': backend_key[2],
-                        'path_matches': []
-                    }
-                grouped_backends[backend_key]['path_matches'].append(rule.get('path_match', ''))
+        origin_rules = data.get('origin_rules', [])
+        if origin_rules:
+            for origin_data in origin_rules:
+                self.add_origin_rule_row(origin_data)
 
-            for backend_data in grouped_backends.values():
-                self.add_backend_rule_row(backend_data)
+        varnish_backends = data.get('varnish_backends', [])
+        if varnish_backends:
+            for backend_data in varnish_backends:
+                self.add_varnish_backend_row(backend_data)
 
     def on_changed(self, *_args):
         """Callback when any data in the layer row changes."""
@@ -434,25 +447,46 @@ class LayerRow(Adw.ExpanderRow):
         self.path_match_rows.remove(row)
         self.on_changed()
 
-    def on_add_routing_rule(self, _btn):
+    def on_add_origin_rule(self, _btn):
         """Callback to add a new backend rule row."""
-        self.add_backend_rule_row()
+        self.add_origin_rule_row()
         self.on_changed()
 
-    def add_backend_rule_row(self, backend_data=None):
-        """Adds a backend rule entry row."""
-        row = BackendRuleRow(
+    def add_origin_rule_row(self, origin_data=None):
+        """Adds an origin rule entry row."""
+        row = OriginRuleRow(
+            origin_data=origin_data,
+            on_change=self.on_changed,
+            on_delete=self.remove_origin_rule_row
+        )
+        self.origin_rules_group.add(row)
+        self.origin_rule_rows.append(row)
+
+    def remove_origin_rule_row(self, row):
+        """Removes an origin rule entry row."""
+        self.origin_rules_group.remove(row)
+        self.origin_rule_rows.remove(row)
+        self.on_changed()
+
+    def on_add_varnish_backend(self, _btn):
+        """Callback to add a new Varnish backend row."""
+        self.add_varnish_backend_row()
+        self.on_changed()
+
+    def add_varnish_backend_row(self, backend_data=None):
+        """Adds a Varnish backend entry row."""
+        row = VarnishBackendRow(
             backend_data=backend_data,
             on_change=self.on_changed,
-            on_delete=self.remove_backend_rule_row
+            on_delete=self.remove_varnish_backend_row
         )
-        self.routing_rules_group.add(row)
-        self.backend_rule_rows.append(row)
+        self.varnish_backend_group.add(row)
+        self.varnish_backend_rows.append(row)
 
-    def remove_backend_rule_row(self, row):
-        """Removes a backend rule entry row."""
-        self.routing_rules_group.remove(row)
-        self.backend_rule_rows.remove(row)
+    def remove_varnish_backend_row(self, row):
+        """Removes a Varnish backend entry row."""
+        self.varnish_backend_group.remove(row)
+        self.varnish_backend_rows.remove(row)
         self.on_changed()
 
     def get_data(self):
@@ -487,7 +521,7 @@ class LayerRow(Adw.ExpanderRow):
             'custom_headers': {},
             'host_overrides': [],
             'path_match_only': [],
-            'routing_rules': []
+            'origin_rules': []
         }
 
         for row in self.header_rows:
@@ -505,31 +539,28 @@ class LayerRow(Adw.ExpanderRow):
             if p:
                 data['path_match_only'].append(p)
 
-        # Flatten routing rules from backend rows
-        for backend_row in self.backend_rule_rows:
+        # Flatten origin rules from origin rows
+        for origin_row in self.origin_rule_rows:
+            origin_data = origin_row.get_data()
+            if origin_data['origin_host']:
+                data['origin_rules'].append(origin_data)
+
+        for backend_row in self.varnish_backend_rows:
             backend_data = backend_row.get_data()
-            if backend_data['backend_host']:
-                for path_match in backend_data['path_matches']:
-                    data['routing_rules'].append({
-                        'path_match': path_match,
-                        'backend_host': backend_data['backend_host'],
-                        'backend_host_header': backend_data['backend_host_header'],
-                        'path_rewrite': backend_data['path_rewrite']
-                    })
+            if backend_data['name']:
+                data['varnish_backends'].append(backend_data)
 
         return data
 
 
-@Gtk.Template(filename='src/ui/backend_rule_row.ui')
-class BackendRuleRow(ConfigRowMixin, Adw.ExpanderRow):
-    """Row for editing a backend destination and its associated path matches."""
-    __gtype_name__ = 'BackendRuleRow'
+@Gtk.Template(filename='src/ui/varnish_backend_row.ui')
+class VarnishBackendRow(ConfigRowMixin, Adw.ExpanderRow):
+    """Row for editing a Varnish backend."""
+    __gtype_name__ = 'VarnishBackendRow'
 
-    host_entry = Gtk.Template.Child()
-    host_header_entry = Gtk.Template.Child()
-    rewrite_entry = Gtk.Template.Child()
-    path_match_group = Gtk.Template.Child()
-    add_path_btn = Gtk.Template.Child()
+    name_row = Gtk.Template.Child()
+    type_row = Gtk.Template.Child()
+    color_button = Gtk.Template.Child()
     delete_btn = Gtk.Template.Child()
 
     def __init__(self, backend_data=None, on_change=None, on_delete=None, **kwargs):
@@ -537,36 +568,112 @@ class BackendRuleRow(ConfigRowMixin, Adw.ExpanderRow):
         self.setup_mixin(on_change, on_delete)
         self._loading = True
 
-        self.path_match_rows = []
+        self.type_model = Gtk.StringList()
+        self.type_model.append("OpenShift")
+        self.type_model.append("VMware")
+        self.type_model.append("AWS")
+        self.type_model.append("Google Cloud")
+        self.type_model.append("Azure")
+        self.type_row.set_model(self.type_model)
 
-        self.host_entry.connect('changed', self.on_backend_host_changed)
-        self.host_header_entry.connect('changed', self.notify_change)
-        self.rewrite_entry.connect('changed', self.notify_change)
-        self.add_path_btn.connect('clicked', self.on_add_path_clicked)
+        self.name_row.connect('notify::text', self.on_name_changed)
+        self.type_row.connect('notify::selected', self.notify_change)
+        self.color_button.connect('color-set', self.notify_change)
 
         if backend_data:
             self.load_data(backend_data)
         else:
-            # Set initial title for new rows
-            self.on_backend_host_changed(self.host_entry)
+            self.on_name_changed(self.name_row)
 
         self._loading = False
 
-    def on_backend_host_changed(self, entry):
+    def on_name_changed(self, entry):
         """Updates the row title and notifies of change."""
-        host = entry.get_text()
-        self.set_title(f"Backend: {host}" if host else "Backend: (Not Set)")
+        name = entry.get_text()
+        self.set_title(f"Backend: {name}" if name else "Backend: (Not Set)")
         self.notify_change()
 
     def load_data(self, data):
         """Loads backend data into the UI."""
-        self.host_entry.set_text(data.get('backend_host', ''))
-        self.host_header_entry.set_text(data.get('backend_host_header', ''))
-        self.rewrite_entry.set_text(data.get('path_rewrite', ''))
-        self.on_backend_host_changed(self.host_entry) # Update title
+        self.name_row.set_text(data.get('name', ''))
+        self.on_name_changed(self.name_row)
+
+        type_str = data.get('type', 'OpenShift')
+        items = self.type_model.get_n_items()
+        for i in range(items):
+            if self.type_model.get_string(i) == type_str:
+                self.type_row.set_selected(i)
+                break
+
+        color = Gdk.RGBA()
+        if not (data.get('color') and color.parse(data['color'])):
+            color.parse('rgba(0,0,0,0)')
+        self.color_button.set_rgba(color)
+
+    def get_data(self):
+        """Returns the backend data."""
+        selected_idx = self.type_row.get_selected()
+        type_str = "OpenShift"
+        if selected_idx >= 0:
+            type_str = self.type_model.get_string(selected_idx)
+
+        return {
+            'name': self.name_row.get_text(),
+            'type': type_str,
+            'color': self.color_button.get_rgba().to_string()
+        }
+
+
+@Gtk.Template(filename='src/ui/origin_rule_row.ui')
+class OriginRuleRow(ConfigRowMixin, Adw.ExpanderRow):
+    """Row for editing an origin and its associated path/domain matches."""
+    __gtype_name__ = 'OriginRuleRow'
+
+    host_entry = Gtk.Template.Child()
+    host_header_entry = Gtk.Template.Child()
+    path_match_group = Gtk.Template.Child()
+    add_path_btn = Gtk.Template.Child()
+    domain_match_group = Gtk.Template.Child()
+    add_domain_btn = Gtk.Template.Child()
+    delete_btn = Gtk.Template.Child()
+
+    def __init__(self, origin_data=None, on_change=None, on_delete=None, **kwargs):
+        super().__init__(**kwargs)
+        self.setup_mixin(on_change, on_delete)
+        self._loading = True
+
+        self.path_match_rows = []
+        self.domain_match_rows = []
+
+        self.host_entry.connect('changed', self.on_origin_host_changed)
+        self.host_header_entry.connect('changed', self.notify_change)
+        self.add_path_btn.connect('clicked', self.on_add_path_clicked)
+        self.add_domain_btn.connect('clicked', self.on_add_domain_clicked)
+
+        if origin_data:
+            self.load_data(origin_data)
+        else:
+            self.on_origin_host_changed(self.host_entry)
+
+        self._loading = False
+
+    def on_origin_host_changed(self, entry):
+        """Updates the row title and notifies of change."""
+        host = entry.get_text()
+        self.set_title(f"Origin: {host}" if host else "Origin: (Not Set)")
+        self.notify_change()
+
+    def load_data(self, data):
+        """Loads origin data into the UI."""
+        self.host_entry.set_text(data.get('origin_host', ''))
+        self.host_header_entry.set_text(data.get('origin_host_header', ''))
+        self.on_origin_host_changed(self.host_entry)
 
         for path in data.get('path_matches', []):
             self.add_path_match_row(pattern=path)
+
+        for domain in data.get('domain_matches', []):
+            self.add_domain_match_row(pattern=domain)
 
         self.update_subtitle()
 
@@ -593,16 +700,40 @@ class BackendRuleRow(ConfigRowMixin, Adw.ExpanderRow):
         self.notify_change()
         self.update_subtitle()
 
+    def on_add_domain_clicked(self, _btn):
+        """Callback to add a new domain match row."""
+        self.add_domain_match_row()
+        self.notify_change()
+
+    def add_domain_match_row(self, pattern=''):
+        """Adds a domain match entry row."""
+        row = DomainMatchRow(
+            pattern=pattern,
+            on_change=self.notify_change,
+            on_delete=self.remove_domain_match_row
+        )
+        self.domain_match_group.add(row)
+        self.domain_match_rows.append(row)
+        self.update_subtitle()
+
+    def remove_domain_match_row(self, row):
+        """Removes a domain match entry row."""
+        self.domain_match_group.remove(row)
+        self.domain_match_rows.remove(row)
+        self.notify_change()
+        self.update_subtitle()
+
     def update_subtitle(self):
-        """Updates the subtitle with the number of paths."""
-        count = len(self.path_match_rows)
-        self.set_subtitle(f"{count} Path{'s' if count != 1 else ''}")
+        """Updates the subtitle with the number of paths and domains."""
+        path_count = len(self.path_match_rows)
+        domain_count = len(self.domain_match_rows)
+        self.set_subtitle(f"{path_count} Path{'s' if path_count != 1 else ''}, {domain_count} Domain{'s' if domain_count != 1 else ''}")
 
     def get_data(self):
-        """Returns the backend and path data."""
+        """Returns the origin and match data."""
         return {
-            'backend_host': self.host_entry.get_text(),
-            'backend_host_header': self.host_header_entry.get_text(),
-            'path_rewrite': self.rewrite_entry.get_text(),
-            'path_matches': [row.get_texts()[0] for row in self.path_match_rows if row.get_texts()[0]]
+            'origin_host': self.host_entry.get_text(),
+            'origin_host_header': self.host_header_entry.get_text(),
+            'path_matches': [row.get_texts()[0] for row in self.path_match_rows if row.get_texts()[0]],
+            'domain_matches': [row.get_texts()[0] for row in self.domain_match_rows if row.get_texts()[0]]
         }
