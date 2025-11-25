@@ -7,7 +7,7 @@
     <file preprocess="xml-stripblanks" alias="ui/header_row.ui">ui/header_row.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/override_row.ui">ui/override_row.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/path_match_row.ui">ui/path_match_row.ui</file>
-    <file preprocess="xml-stripblanks" alias="ui/routing_rule_row.ui">ui/routing_rule_row.ui</file>
+    <file preprocess="xml-stripblanks" alias="ui/backend_rule_row.ui">ui/backend_rule_row.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/add_config_dialog.ui">ui/add_config_dialog.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/header_dialog.ui">ui/header_dialog.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/analysis_dialog.ui">ui/analysis_dialog.ui</file>

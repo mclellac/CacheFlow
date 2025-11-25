@@ -38,7 +38,6 @@
             <child>
                <object class="AdwSwitchRow" id="ssl_row">
                  <property name="title">Verify SSL</property>
-                 <property name="subtitle">Enforce certificate validation</property>
                </object>
             </child>
             <child>
@@ -70,42 +69,45 @@
         <property name="icon-name">network-workgroup-symbolic</property>
 
         <child>
-            <object class="AdwPreferencesGroup">
-                <property name="title">Select Configuration</property>
-                <child>
-                    <object class="AdwComboRow" id="config_selector">
-                        <property name="title">Domain</property>
-                        <property name="subtitle">Select a domain configuration to edit</property>
-                        <property name="model">
-                           <object class="GtkStringList"/>
-                        </property>
-                        <child type="suffix">
-                           <object class="GtkButton" id="add_config_btn">
-                               <property name="icon-name">list-add-symbolic</property>
-                               <property name="valign">center</property>
-                               <property name="has-frame">False</property>
-                               <property name="tooltip-text">Add New Configuration</property>
-                           </object>
+          <object class="AdwPreferencesGroup" id="configurations_group">
+            <property name="title">Domain Configurations</property>
+            <property name="description">Manage sets of layer configurations for different domains.</property>
+            <child>
+                <object class="AdwComboRow" id="config_selector">
+                    <property name="title">Active Configuration</property>
+                </object>
+            </child>
+            <child>
+                <object class="AdwActionRow" id="config_actions_row">
+                    <property name="title">Manage Configurations</property>
+                    <child type="suffix">
+                      <object class="GtkBox">
+                        <property name="spacing">6</property>
+                        <child>
+                          <object class="GtkButton" id="add_config_btn">
+                              <property name="icon-name">list-add-symbolic</property>
+                              <property name="tooltip-text">Add New Domain</property>
+                          </object>
                         </child>
-                         <child type="suffix">
-                           <object class="GtkButton" id="delete_config_btn">
-                               <property name="icon-name">user-trash-symbolic</property>
-                               <property name="valign">center</property>
-                               <property name="has-frame">False</property>
-                               <property name="tooltip-text">Delete Configuration</property>
-                               <style>
-                                   <class name="destructive-action"/>
-                               </style>
-                           </object>
+                        <child>
+                          <object class="GtkButton" id="delete_config_btn">
+                              <property name="icon-name">user-trash-symbolic</property>
+                              <property name="tooltip-text">Delete Selected Domain</property>
+                              <style>
+                                  <class name="destructive-action"/>
+                              </style>
+                          </object>
                         </child>
-                    </object>
-                </child>
-            </object>
+                      </object>
+                    </child>
+                </object>
+            </child>
+          </object>
         </child>
-
         <child>
-            <object class="AdwPreferencesGroup">
+            <object class="AdwPreferencesGroup" id="details_group">
                 <property name="title">Domain Details</property>
+                <property name="description">The primary domain for this configuration (e.g., www.example.com)</property>
                 <child>
                     <object class="AdwEntryRow" id="domain_name_row">
                         <property name="title">Domain Name</property>
@@ -113,51 +115,38 @@
                 </child>
             </object>
         </child>
-
         <child>
-          <object class="AdwPreferencesGroup" id="layers_group">
-            <property name="title">Layers</property>
-            <property name="description">Define layers for this domain.</property>
-            <child>
-               <object class="AdwActionRow" id="add_layer_row">
-                   <property name="title">Add New Layer</property>
-                   <property name="activatable">True</property>
-                   <child type="prefix">
-                        <object class="GtkImage">
-                            <property name="icon-name">list-add-symbolic</property>
-                        </object>
-                   </child>
-               </object>
-            </child>
-          </object>
+            <object class="AdwPreferencesGroup" id="layers_group">
+                <property name="title">Infrastructure Layers</property>
+                <property name="description">Define the layers of your infrastructure, from CDN to Backend.</property>
+                <child>
+                    <object class="AdwActionRow" id="add_layer_row">
+                        <property name="title">Add New Layer</property>
+                        <property name="icon-name">list-add-symbolic</property>
+                        <property name="activatable">True</property>
+                    </object>
+                </child>
+            </object>
         </child>
-
         <child>
-          <object class="AdwPreferencesGroup">
-            <property name="title">Actions</property>
-            <child>
-               <object class="AdwActionRow" id="export_row">
-                   <property name="title">Export to YAML</property>
-                   <property name="activatable">True</property>
-                   <child type="prefix">
-                        <object class="GtkImage">
-                            <property name="icon-name">document-save-symbolic</property>
-                        </object>
-                   </child>
-               </object>
-            </child>
-            <child>
-               <object class="AdwActionRow" id="import_row">
-                   <property name="title">Import from YAML</property>
-                   <property name="activatable">True</property>
-                   <child type="prefix">
-                        <object class="GtkImage">
-                            <property name="icon-name">document-open-symbolic</property>
-                        </object>
-                   </child>
-               </object>
-            </child>
-          </object>
+            <object class="AdwPreferencesGroup" id="import_export_group">
+                <property name="title">Configuration Data</property>
+                <property name="description">Save or replace the layers of the current domain to a YAML file.</property>
+                <child>
+                    <object class="AdwActionRow" id="export_row">
+                        <property name="title">Export Layers</property>
+                        <property name="icon-name">document-save-as-symbolic</property>
+                        <property name="activatable">True</property>
+                    </object>
+                </child>
+                <child>
+                    <object class="AdwActionRow" id="import_row">
+                        <property name="title">Import Layers</property>
+                        <property name="icon-name">document-open-symbolic</property>
+                        <property name="activatable">True</property>
+                    </object>
+                </child>
+            </object>
         </child>
       </object>
     </child>
