@@ -79,16 +79,46 @@
       </object>
     </child>
     <child>
-      <object class="AdwActionRow" id="diff_text_color_row">
-        <property name="title">Diff Text Color</property>
+      <object class="AdwActionRow" id="unchanged_text_color_row">
+        <property name="title">Unchanged Text Color</property>
         <child type="suffix">
-          <object class="GtkColorButton" id="diff_text_color_button">
+          <object class="GtkColorButton" id="unchanged_text_color_button">
             <property name="valign">center</property>
           </object>
         </child>
       </object>
     </child>
- <child>
+    <child>
+      <object class="AdwActionRow" id="added_text_color_row">
+        <property name="title">Added Text Color</property>
+        <child type="suffix">
+          <object class="GtkColorButton" id="added_text_color_button">
+            <property name="valign">center</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="AdwActionRow" id="removed_text_color_row">
+        <property name="title">Removed Text Color</property>
+        <child type="suffix">
+          <object class="GtkColorButton" id="removed_text_color_button">
+            <property name="valign">center</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="AdwActionRow" id="modified_text_color_row">
+        <property name="title">Modified Text Color</property>
+        <child type="suffix">
+          <object class="GtkColorButton" id="modified_text_color_button">
+            <property name="valign">center</property>
+          </object>
+        </child>
+      </object>
+    </child>
+    <child>
       <object class="AdwPreferencesGroup" id="headers_group">
         <property name="title">Custom Headers</property>
         <property name="description">Inject or override headers for requests to this layer.</property>

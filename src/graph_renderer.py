@@ -4,7 +4,7 @@ This module handles the rendering logic for the NodeGraph widget.
 
 import cairo
 from typing import List, Dict, Any
-from gi.repository import Adw, Pango, PangoCairo, GLib
+from gi.repository import Adw, Pango, PangoCairo, GLib, Gdk
 from .utils import get_accent_color
 from .graph_utils import get_color, rounded_rectangle, ConnectionPoints
 
@@ -146,8 +146,12 @@ class GraphRenderer:
         rounded_rectangle(cr, x + 2, y + 3, w, h, 10)
         cr.fill()
 
-        body_color = get_color(node['data'].body_color, is_dark,
-                               (0.8, 0.8, 0.85, 1), (0.2, 0.2, 0.25, 1))
+        body_rgba = Gdk.RGBA()
+        body_rgba.parse(node['data'].body_color)
+        if body_rgba.alpha == 0:
+            body_color = (0.8, 0.8, 0.85, 1) if not is_dark else (0.2, 0.2, 0.25, 1)
+        else:
+            body_color = (body_rgba.red, body_rgba.green, body_rgba.blue, body_rgba.alpha)
         cr.set_source_rgba(*body_color)
 
         rounded_rectangle(cr, x, y, w, h, 10)
@@ -158,8 +162,12 @@ class GraphRenderer:
         cr.set_line_width(1)
         cr.stroke()
 
-        header_color = get_color(node['data'].header_color, is_dark,
-                                 (0.7, 0.7, 0.75, 1), (0.3, 0.3, 0.35, 1))
+        header_rgba = Gdk.RGBA()
+        header_rgba.parse(node['data'].header_color)
+        if header_rgba.alpha == 0:
+            header_color = (0.7, 0.7, 0.75, 1) if not is_dark else (0.3, 0.3, 0.35, 1)
+        else:
+            header_color = (header_rgba.red, header_rgba.green, header_rgba.blue, header_rgba.alpha)
         cr.set_source_rgba(*header_color)
 
         rounded_rectangle(cr, x, y, w, NODE_HEADER_HEIGHT, 10,
@@ -207,7 +215,7 @@ class GraphRenderer:
             color = (0.1, 0.1, 0.1, 1)
 
             if change_type == 'UNCHANGED':
-                color = get_color(node['data'].text_color, is_dark,
+                color = get_color(node['data'].unchanged_text_color, is_dark,
                                   (0.1, 0.1, 0.1, 1), (0.9, 0.9, 0.9, 1))
             elif change_type == 'ADDED':
                 color = get_color(node['data'].added_text_color, is_dark,
@@ -218,6 +226,9 @@ class GraphRenderer:
             elif change_type == 'MODIFIED':
                 color = get_color(node['data'].modified_text_color, is_dark,
                                   (0.8, 0.5, 0, 1), (1.0, 0.8, 0.5, 1))
+            else:
+                color = get_color(node['data'].text_color, is_dark,
+                                  (0.1, 0.1, 0.1, 1), (0.9, 0.9, 0.9, 1))
 
             cr.set_source_rgba(*color)
 

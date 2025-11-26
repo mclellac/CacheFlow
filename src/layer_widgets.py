@@ -112,7 +112,10 @@ class LayerRow(Adw.ExpanderRow):
     body_color_button = Gtk.Template.Child()
 
     text_color_button = Gtk.Template.Child()
-    diff_text_color_button = Gtk.Template.Child()
+    unchanged_text_color_button = Gtk.Template.Child()
+    added_text_color_button = Gtk.Template.Child()
+    removed_text_color_button = Gtk.Template.Child()
+    modified_text_color_button = Gtk.Template.Child()
 
     headers_group = Gtk.Template.Child()
     add_header_btn = Gtk.Template.Child()
@@ -169,7 +172,10 @@ class LayerRow(Adw.ExpanderRow):
         self.header_color_button.connect('color-set', self.on_changed)
         self.body_color_button.connect('color-set', self.on_changed)
         self.text_color_button.connect('color-set', self.on_changed)
-        self.diff_text_color_button.connect('color-set', self.on_changed)
+        self.unchanged_text_color_button.connect('color-set', self.on_changed)
+        self.added_text_color_button.connect('color-set', self.on_changed)
+        self.removed_text_color_button.connect('color-set', self.on_changed)
+        self.modified_text_color_button.connect('color-set', self.on_changed)
 
         self.add_header_btn.connect('clicked', self.on_add_header)
         self.add_override_btn.connect('clicked', self.on_add_override)
@@ -311,10 +317,28 @@ class LayerRow(Adw.ExpanderRow):
         self.text_color_button.set_rgba(text_color)
 
         diff_text_color = Gdk.RGBA()
-        if not (data.get('diff_text_color') and
-                diff_text_color.parse(data['diff_text_color'])):
+        if not (data.get('unchanged_text_color') and
+                diff_text_color.parse(data['unchanged_text_color'])):
             diff_text_color.parse('rgba(0,0,0,0)')
-        self.diff_text_color_button.set_rgba(diff_text_color)
+        self.unchanged_text_color_button.set_rgba(diff_text_color)
+
+        added_text_color = Gdk.RGBA()
+        if not (data.get('added_text_color') and
+                added_text_color.parse(data['added_text_color'])):
+            added_text_color.parse('rgba(0,0,0,0)')
+        self.added_text_color_button.set_rgba(added_text_color)
+
+        removed_text_color = Gdk.RGBA()
+        if not (data.get('removed_text_color') and
+                removed_text_color.parse(data['removed_text_color'])):
+            removed_text_color.parse('rgba(0,0,0,0)')
+        self.removed_text_color_button.set_rgba(removed_text_color)
+
+        modified_text_color = Gdk.RGBA()
+        if not (data.get('modified_text_color') and
+                modified_text_color.parse(data['modified_text_color'])):
+            modified_text_color.parse('rgba(0,0,0,0)')
+        self.modified_text_color_button.set_rgba(modified_text_color)
 
         custom_headers = data.get('custom_headers', {})
         if custom_headers:
@@ -478,7 +502,10 @@ class LayerRow(Adw.ExpanderRow):
             'header_color': self.header_color_button.get_rgba().to_string(),
             'body_color': self.body_color_button.get_rgba().to_string(),
             'text_color': self.text_color_button.get_rgba().to_string(),
-            'diff_text_color': self.diff_text_color_button.get_rgba().to_string(),
+            'unchanged_text_color': self.unchanged_text_color_button.get_rgba().to_string(),
+            'added_text_color': self.added_text_color_button.get_rgba().to_string(),
+            'removed_text_color': self.removed_text_color_button.get_rgba().to_string(),
+            'modified_text_color': self.modified_text_color_button.get_rgba().to_string(),
             'custom_headers': {},
             'host_overrides': [],
             'path_match_only': [],
