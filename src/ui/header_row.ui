@@ -2,7 +2,7 @@
 <interface>
   <requires lib="gtk" version="4.0"/>
   <requires lib="adw" version="1.0"/>
-  <template class="HeaderRow" parent="AdwPreferencesRow">
+  <template class="HeaderRow" parent="BaseEntryRow">
     <property name="child">
       <object class="GtkBox">
         <property name="orientation">horizontal</property>
