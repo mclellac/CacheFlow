@@ -107,10 +107,6 @@ class HeaderDialog(Adw.Dialog):
         builder = Gtk.Builder()
         builder.add_from_resource("/com/github/mclellac/CacheFlow/ui/column_item_label.ui")
         label = builder.get_object("label")
-        # Ensure keys don't ellipsize if not desired, though template has it.
-        # Original code didn't set ellipsize, so let's unset it to be safe or keep it.
-        # "Key" is usually important to see fully, but it's a column view, so it might resize.
-        # Let's trust the template (ellipsize=end) is a reasonable default for columns.
         item.set_child(label)
 
     def _on_factory_bind_key(self, _factory, item):
@@ -141,11 +137,16 @@ class HeaderDialog(Adw.Dialog):
                 color = self.node_data.removed_text_color
             elif change_type == 'MODIFIED':
                 color = self.node_data.modified_text_color
+            elif change_type == 'UNCHANGED':
+                color = self.node_data.unchanged_text_color
+
 
         if color:
             rgba = Gdk.RGBA()
-            rgba.parse(color)
-            attrs.insert(Pango.attr_foreground_new(int(rgba.red * 65535), int(rgba.green * 65535), int(rgba.blue * 65535)))
+            if rgba.parse(color):
+                attrs.insert(Pango.attr_foreground_new(int(rgba.red * 65535),
+                                                       int(rgba.green * 65535),
+                                                       int(rgba.blue * 65535)))
 
         if change_type in ['ADDED', 'REMOVED', 'MODIFIED']:
             attrs.insert(Pango.attr_weight_new(Pango.Weight.BOLD))

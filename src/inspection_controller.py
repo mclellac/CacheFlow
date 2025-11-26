@@ -5,7 +5,7 @@ process in a separate thread to avoid blocking the UI.
 
 import logging
 import threading
-from typing import Callable, List
+from typing import Callable, List, Dict, Any
 
 from gi.repository import GLib
 
@@ -21,13 +21,16 @@ class InspectionController:
     Manages the inspection process in a separate thread.
     """
 
+
     def __init__(self, on_success: Callable, on_error: Callable):
         self.on_success = on_success
         self.on_error = on_error
         self.analyzer = HeaderAnalyzer()
+        self.config = None
 
     def start_inspection(self, config: dict, path: str):
         """Starts the inspection in a new thread."""
+        self.config = config # Store config for processing results
         thread = threading.Thread(target=self._run_inspection_thread,
                                   args=(config, path))
         thread.daemon = True
@@ -44,15 +47,16 @@ class InspectionController:
             log.exception("An error occurred during inspection.")
             GLib.idle_add(self.on_error, e)
 
-    def _process_results(self, results: List[dict]) -> List[NodeData]:
+    def _process_results(self, results: List[Dict[str, Any]]) -> List[NodeData]:
         """
         Processes the raw results from the engine into a list of NodeData objects,
-        including header analysis.
+        merging in configuration data (like colors) and performing header analysis.
         """
-        processed_nodes = []
-        upstream_layer_for_analysis = None  # Stores the dict format for the analyzer
+        processed_nodes: List[NodeData] = []
+        upstream_layer_for_analysis: Dict[str, Any] = None
+        config_layers: List[Dict[str, Any]] = self.config.get('layers', [])
 
-        for result in results:
+        for i, result in enumerate(results):
             # The analyzer needs the raw headers dict.
             current_layer_for_analysis = {
                 'name': result.get('name'),
@@ -66,7 +70,6 @@ class InspectionController:
             )
 
             # Convert the analysis report into the 4-tuple format required by NodeData.
-            # The change_type string is now passed directly.
             formatted_headers = [
                 (
                     item.key,
@@ -77,12 +80,30 @@ class InspectionController:
                 for item in report.items
             ]
 
-            # Update the result with the processed headers before creating NodeData.
-            result['headers'] = formatted_headers
-            if upstream_layer_for_analysis:
-                result['upstream_layer'] = upstream_layer_for_analysis
+            # Find the corresponding layer in the original config to get UI settings.
+            # This assumes the order of results matches the order of layers.
+            layer_config = config_layers[i] if i < len(config_layers) else {}
 
-            node_data = NodeData(**result)
+            # Create the final dictionary for NodeData, merging results and config.
+            node_args = {
+                'name': result.get('name'),
+                'headers': formatted_headers,
+                'request_url': result.get('request_url'),
+                'request_host': result.get('request_host'),
+                'request_method': result.get('request_method'),
+                'provider': result.get('provider'),
+                'layer_type': result.get('layer_type'),
+                'upstream_layer': upstream_layer_for_analysis,
+                # Merge color properties from the layer's configuration
+                'header_color': layer_config.get('header_color'),
+                'body_color': layer_config.get('body_color'),
+                'unchanged_text_color': layer_config.get('unchanged_text_color'),
+                'added_text_color': layer_config.get('added_text_color'),
+                'removed_text_color': layer_config.get('removed_text_color'),
+                'modified_text_color': layer_config.get('modified_text_color'),
+            }
+
+            node_data = NodeData(**node_args)
             processed_nodes.append(node_data)
 
             # The current layer becomes the upstream layer for the next iteration.
