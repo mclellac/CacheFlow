@@ -84,7 +84,7 @@ class Window(Adw.ApplicationWindow):
         dialog = HeaderDialog(
             headers=node.get_property('headers'),
             heading=node.get_property('name'),
-            transient_for=self
+            node_data=node
         )
         width = self.settings.get_int('header-dialog-width')
         height = self.settings.get_int('header-dialog-height')
