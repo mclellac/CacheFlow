@@ -53,32 +53,39 @@ class InspectionController:
         upstream_layer_for_analysis = None  # Stores the dict format for the analyzer
 
         for result in results:
-            raw_headers = result.get('headers', {})
+            # The analyzer needs the raw headers dict.
+            current_layer_for_analysis = {
+                'name': result.get('name'),
+                'headers': result.get('headers', {})
+            }
 
-            if upstream_layer_for_analysis:
-                # Compare with the previous layer to get diff-annotated headers.
-                comparison_layer = {
-                    'name': result.get('name'),
-                    'headers': raw_headers
-                }
-                formatted_headers = self.analyzer.compare_headers(
-                    upstream_layer_for_analysis,
-                    comparison_layer
+            # Analyze the headers against the previous (upstream) layer.
+            report = self.analyzer.analyze_layer(
+                current_layer=current_layer_for_analysis,
+                upstream_layer=upstream_layer_for_analysis
+            )
+
+            # Convert the analysis report into the 4-tuple format required by NodeData.
+            # An item is a diff if its change_type is not 'UNCHANGED'.
+            formatted_headers = [
+                (
+                    item.key,
+                    item.value,
+                    item.change_type != 'UNCHANGED',
+                    item.description  # Use the detailed description as the note.
                 )
-                result['upstream_layer'] = upstream_layer_for_analysis
-            else:
-                # First layer: just convert the raw dict to the standard tuple format.
-                formatted_headers = [(k, v, False, '') for k, v in raw_headers.items()]
+                for item in report.items
+            ]
 
             # Update the result with the processed headers before creating NodeData.
             result['headers'] = formatted_headers
+            if upstream_layer_for_analysis:
+                result['upstream_layer'] = upstream_layer_for_analysis
+
             node_data = NodeData(**result)
             processed_nodes.append(node_data)
 
-            # Prepare the upstream layer for the next iteration's analysis.
-            upstream_layer_for_analysis = {
-                'name': node_data.name,
-                'headers': raw_headers  # Use original raw headers for the next comparison.
-            }
+            # The current layer becomes the upstream layer for the next iteration.
+            upstream_layer_for_analysis = current_layer_for_analysis
 
         return processed_nodes

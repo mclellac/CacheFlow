@@ -56,7 +56,6 @@ cacheflow_conf.set('VERSION', meson.project_version())
 cacheflow_conf.set('pkgdatadir', get_option('prefix') / pkgdatadir)
 cacheflow_conf.set('pythondir', py_installation.get_install_dir())
 cacheflow_conf.set('localedir', get_option('prefix') / get_option('localedir'))
-cacheflow_conf.set('gi_typelib_path', libadwaita_typelib_dir)
 
 configure_file(
   input: 'cacheflow.in',
