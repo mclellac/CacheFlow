@@ -221,7 +221,7 @@ class GraphRenderer:
             color = (0.1, 0.1, 0.1, 1)
 
             if change_type == 'UNCHANGED':
-                color = get_color(node['data'].text_color, is_dark,
+                color = get_color(node['data'].unchanged_text_color, is_dark,
                                   (0.1, 0.1, 0.1, 1), (0.9, 0.9, 0.9, 1))
             elif change_type == 'ADDED':
                 color = get_color(node['data'].added_text_color, is_dark,

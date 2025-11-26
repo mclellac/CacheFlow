@@ -149,15 +149,9 @@ class ConfigManager:
         builder = GLib.VariantBuilder.new(GLib.VariantType.new('aa{sv}'))
         for c_data in configs:
             dict_builder = GLib.VariantBuilder.new(GLib.VariantType.new('a{sv}'))
-            dict_builder.add_value(
-                GLib.Variant('{sv}', ('id', GLib.Variant('s', c_data.get('id', str(uuid.uuid4())))))
-            )
-            dict_builder.add_value(
-                GLib.Variant('{sv}', ('name', GLib.Variant('s', c_data.get('name', ''))))
-            )
-            dict_builder.add_value(
-                GLib.Variant('{sv}', ('layers', self._pack_layers(c_data.get('layers', []))))
-            )
+            dict_builder.add_value(GLib.Variant('{sv}', ('id', GLib.Variant('s', c_data.get('id', str(uuid.uuid4()))))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('name', GLib.Variant('s', c_data.get('name', '')))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('layers', self._pack_layers(c_data.get('layers', [])))))
             builder.add_value(dict_builder.end())
 
         try:
@@ -177,39 +171,23 @@ class ConfigManager:
             dict_builder = GLib.VariantBuilder.new(GLib.VariantType.new('a{sv}'))
             # Pack all known keys, providing defaults for missing ones
             dict_builder.add_value(GLib.Variant('{sv}', ('name', GLib.Variant('s', l_data.get('name', '')))))
-            dict_builder.add_value(GLib.Variant('{sv}', ('description',
-                             GLib.Variant('s', l_data.get('description', '')))))
-            dict_builder.add_value(GLib.Variant('{sv}', ('layer_type',
-                             GLib.Variant('s', l_data.get('layer_type', 'CDN')))))
-            dict_builder.add_value(GLib.Variant('{sv}', ('provider',
-                             GLib.Variant('s', l_data.get('provider', 'Akamai')))))
-            dict_builder.add_value(GLib.Variant('{sv}', ('host_url',
-                             GLib.Variant('s', l_data.get('host_url', '')))))
-            dict_builder.add_value(GLib.Variant('{sv}', ('default_backend_host',
-                             GLib.Variant('s', l_data.get('default_backend_host', '')))))
-            dict_builder.add_value(GLib.Variant('{sv}', ('default_backend_host_header',
-                             GLib.Variant('s',
-                                          l_data.get('default_backend_host_header', '')))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('description', GLib.Variant('s', l_data.get('description', '')))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('layer_type', GLib.Variant('s', l_data.get('layer_type', 'CDN')))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('provider', GLib.Variant('s', l_data.get('provider', 'Akamai')))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('host_url', GLib.Variant('s', l_data.get('host_url', '')))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('default_backend_host', GLib.Variant('s', l_data.get('default_backend_host', '')))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('default_backend_host_header', GLib.Variant('s', l_data.get('default_backend_host_header', '')))))
 
             # Color settings
-            dict_builder.add_value(GLib.Variant('{sv}', ('header_color',
-                             GLib.Variant('s', l_data.get('header_color', 'rgba(0,0,0,0)')))))
-            dict_builder.add_value(GLib.Variant('{sv}', ('body_color',
-                             GLib.Variant('s', l_data.get('body_color', 'rgba(0,0,0,0)')))))
-            dict_builder.add_value(GLib.Variant('{sv}', ('text_color',
-                             GLib.Variant('s',
-                                          l_data.get('text_color', 'rgba(0,0,0,0)')))))
-            dict_builder.add_value(GLib.Variant('{sv}', ('added_text_color',
-                             GLib.Variant('s', l_data.get('added_text_color', 'rgba(0,0,0,0)')))))
-            dict_builder.add_value(GLib.Variant('{sv}', ('removed_text_color',
-                             GLib.Variant('s', l_data.get('removed_text_color', 'rgba(0,0,0,0)')))))
-            dict_builder.add_value(GLib.Variant('{sv}', ('modified_text_color',
-                             GLib.Variant('s',
-                                          l_data.get('modified_text_color', 'rgba(0,0,0,0)')))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('header_color', GLib.Variant('s', l_data.get('header_color', 'rgba(0,0,0,0)')))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('body_color', GLib.Variant('s', l_data.get('body_color', 'rgba(0,0,0,0)')))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('text_color', GLib.Variant('s', l_data.get('text_color', 'rgba(0,0,0,0)')))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('added_text_color', GLib.Variant('s', l_data.get('added_text_color', 'rgba(0,0,0,0)')))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('removed_text_color', GLib.Variant('s', l_data.get('removed_text_color', 'rgba(0,0,0,0)')))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('modified_text_color', GLib.Variant('s', l_data.get('modified_text_color', 'rgba(0,0,0,0)')))))
 
             # Complex types
-            dict_builder.add_value(GLib.Variant('{sv}', ('custom_headers',
-                             GLib.Variant('a{ss}', l_data.get('custom_headers', {})))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('custom_headers', GLib.Variant('a{ss}', l_data.get('custom_headers', {})))))
 
             # Build 'host_overrides' (aa{ss})
             overrides_builder = GLib.VariantBuilder.new(GLib.VariantType.new('aa{ss}'))
@@ -217,8 +195,7 @@ class ConfigManager:
                 overrides_builder.add_value(GLib.Variant('a{ss}', override))
             dict_builder.add_value(GLib.Variant('{sv}', ('host_overrides', overrides_builder.end())))
 
-            dict_builder.add_value(GLib.Variant('{sv}', ('path_match_only',
-                             GLib.Variant('as', l_data.get('path_match_only', [])))))
+            dict_builder.add_value(GLib.Variant('{sv}', ('path_match_only', GLib.Variant('as', l_data.get('path_match_only', [])))))
 
             # Build 'routing_rules' (aa{ss})
             rules_builder = GLib.VariantBuilder.new(GLib.VariantType.new('aa{ss}'))

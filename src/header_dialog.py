@@ -137,7 +137,7 @@ class HeaderDialog(Adw.ApplicationWindow):
             elif change_type == 'MODIFIED':
                 color = self.node_data.modified_text_color
             elif change_type == 'UNCHANGED':
-                color = self.node_data.unchanged_text_color
+                color = self.node_data.text_color
 
 
         if color:
