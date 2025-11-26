@@ -20,8 +20,6 @@ locale.bindtextdomain('cacheflow', localedir)
 locale.textdomain('cacheflow')
 gettext.install('cacheflow', localedir)
 
-os.environ['GI_TYPELIB_PATH'] = '@gi_typelib_path@'
-
 # This block must run first, before any other application modules are imported.
 # We import the necessary GTK libraries and load the application's resources.
 try:

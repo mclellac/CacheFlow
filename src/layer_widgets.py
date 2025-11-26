@@ -32,6 +32,7 @@ class ConfigRowMixin:
 
 class BaseEntryRow(ConfigRowMixin, Adw.PreferencesRow):
     """Base class for rows with text entries."""
+    __gtype_name__ = 'BaseEntryRow'
 
     def __init__(self, on_change=None, on_delete=None, **kwargs):
         super().__init__(**kwargs)
@@ -141,7 +142,7 @@ class LayerRow(Adw.ExpanderRow):
         self.header_rows = []
         self.override_rows = []
         self.path_match_rows = []
-        self.backend_rule_rows = []
+        self.origin_rule_rows = []
 
         # Setup Models for Type and Provider
         self.type_model = Gtk.StringList()
@@ -350,8 +351,8 @@ class LayerRow(Adw.ExpanderRow):
                     }
                 grouped_backends[backend_key]['path_matches'].append(rule.get('path_match', ''))
 
-            for backend_data in grouped_backends.values():
-                self.add_backend_rule_row(backend_data)
+            for origin_data in grouped_backends.values():
+                self.add_origin_rule_row(origin_data)
 
     def on_changed(self, *_args):
         """Callback when any data in the layer row changes."""
@@ -430,23 +431,23 @@ class LayerRow(Adw.ExpanderRow):
 
     def on_add_routing_rule(self, _btn):
         """Callback to add a new backend rule row."""
-        self.add_backend_rule_row()
+        self.add_origin_rule_row()
         self.on_changed()
 
-    def add_backend_rule_row(self, backend_data=None):
+    def add_origin_rule_row(self, origin_data=None):
         """Adds a backend rule entry row."""
-        row = BackendRuleRow(
-            backend_data=backend_data,
+        row = OriginRuleRow(
+            origin_data=origin_data,
             on_change=self.on_changed,
-            on_delete=self.remove_backend_rule_row
+            on_delete=self.remove_origin_rule_row
         )
         self.routing_rules_group.add(row)
-        self.backend_rule_rows.append(row)
+        self.origin_rule_rows.append(row)
 
-    def remove_backend_rule_row(self, row):
+    def remove_origin_rule_row(self, row):
         """Removes a backend rule entry row."""
         self.routing_rules_group.remove(row)
-        self.backend_rule_rows.remove(row)
+        self.origin_rule_rows.remove(row)
         self.on_changed()
 
     def get_data(self):
@@ -500,24 +501,24 @@ class LayerRow(Adw.ExpanderRow):
                 data['path_match_only'].append(p)
 
         # Flatten routing rules from backend rows
-        for backend_row in self.backend_rule_rows:
-            backend_data = backend_row.get_data()
-            if backend_data['backend_host']:
-                for path_match in backend_data['path_matches']:
+        for origin_row in self.origin_rule_rows:
+            origin_data = origin_row.get_data()
+            if origin_data['backend_host']:
+                for path_match in origin_data['path_matches']:
                     data['routing_rules'].append({
                         'path_match': path_match,
-                        'backend_host': backend_data['backend_host'],
-                        'backend_host_header': backend_data['backend_host_header'],
-                        'path_rewrite': backend_data['path_rewrite']
+                        'backend_host': origin_data['backend_host'],
+                        'backend_host_header': origin_data['backend_host_header'],
+                        'path_rewrite': origin_data['path_rewrite']
                     })
 
         return data
 
 
-@Gtk.Template(filename='src/ui/backend_rule_row.ui')
-class BackendRuleRow(ConfigRowMixin, Adw.ExpanderRow):
+@Gtk.Template(filename='src/ui/origin_rule_row.ui')
+class OriginRuleRow(ConfigRowMixin, Adw.ExpanderRow):
     """Row for editing a backend destination and its associated path matches."""
-    __gtype_name__ = 'BackendRuleRow'
+    __gtype_name__ = 'OriginRuleRow'
 
     host_entry = Gtk.Template.Child()
     host_header_entry = Gtk.Template.Child()
@@ -526,7 +527,7 @@ class BackendRuleRow(ConfigRowMixin, Adw.ExpanderRow):
     add_path_btn = Gtk.Template.Child()
     delete_btn = Gtk.Template.Child()
 
-    def __init__(self, backend_data=None, on_change=None, on_delete=None, **kwargs):
+    def __init__(self, origin_data=None, on_change=None, on_delete=None, **kwargs):
         super().__init__(**kwargs)
         self.setup_mixin(on_change, on_delete)
         self._loading = True
@@ -538,8 +539,8 @@ class BackendRuleRow(ConfigRowMixin, Adw.ExpanderRow):
         self.rewrite_entry.connect('changed', self.notify_change)
         self.add_path_btn.connect('clicked', self.on_add_path_clicked)
 
-        if backend_data:
-            self.load_data(backend_data)
+        if origin_data:
+            self.load_data(origin_data)
         else:
             # Set initial title for new rows
             self.on_backend_host_changed(self.host_entry)

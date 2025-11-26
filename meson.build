@@ -15,7 +15,6 @@ deps = [
   dependency('gtk4', version: '>= 4.8'),
   libadwaita_dep
 ]
-libadwaita_typelib_dir = libadwaita_dep.get_pkgconfig_variable('typelibdir')
 
 py_installation = python.find_installation('python3')
 
