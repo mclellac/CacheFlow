@@ -149,8 +149,8 @@ class ConfigManager:
         builder = GLib.VariantBuilder.new(GLib.VariantType.new('aa{sv}'))
         for c_data in configs:
             dict_builder = GLib.VariantBuilder.new(GLib.VariantType.new('a{sv}'))
-            dict_builder.add_value(
-                GLib.Variant('{sv}', ('id', GLib.Variant('s', c_data.get('id', str(uuid.uuid4())))))
+            dict_builder.add(
+                '{sv}', 'id', GLib.Variant('s', c_data.get('id', str(uuid.uuid4())))
             )
             dict_builder.add_value(
                 GLib.Variant('{sv}', ('name', GLib.Variant('s', c_data.get('name', ''))))
