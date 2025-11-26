@@ -83,6 +83,9 @@
               </object>
             </property>
           </object>
+          <packing>
+            <property name="name">empty</property>
+          </packing>
         </child>
       </object>
     </child>
