@@ -19,12 +19,16 @@ def setting_to_rgba(variant, _user_data=None):
     if variant:
         rgba_string = variant.get_string()
         if rgba_string and rgba.parse(rgba_string):
-            log.debug("Mapping GSettings string '%s' to Gdk.RGBA.", rgba_string)
+            log.debug(
+                "Mapping GSettings string '%s' to Gdk.RGBA.", rgba_string
+            )
             return GObject.Value(Gdk.RGBA, rgba)
 
-    log.warning("Failed to parse GSettings color string '%s'. Using default.",
-                variant.get_string() if variant else 'None')
-    rgba.parse('rgba(0,0,0,0)')
+    log.warning(
+        "Failed to parse GSettings color string '%s'. Using default.",
+        variant.get_string() if variant else "None",
+    )
+    rgba.parse("rgba(0,0,0,0)")
     return GObject.Value(Gdk.RGBA, rgba)
 
 
@@ -34,16 +38,19 @@ def rgba_to_setting(gdk_rgba, _user_data=None):
     Returning None tells the binding to NOT update the setting.
     """
     if gdk_rgba:
-        log.debug("Mapping Gdk.RGBA '%s' to GSettings string.", gdk_rgba.to_string())
-        return GLib.Variant('s', gdk_rgba.to_string())
+        log.debug(
+            "Mapping Gdk.RGBA '%s' to GSettings string.", gdk_rgba.to_string()
+        )
+        return GLib.Variant("s", gdk_rgba.to_string())
     log.debug("Widget provided a None RGBA. No setting will be saved.")
     return None
 
 
-@Gtk.Template(filename='src/ui/add_config_dialog.ui')
+@Gtk.Template(filename="src/ui/add_config_dialog.ui")
 class AddConfigDialog(Adw.Window):
     """Dialog to add a new domain configuration."""
-    __gtype_name__ = 'AddConfigDialog'
+
+    __gtype_name__ = "AddConfigDialog"
 
     domain_name_entry = Gtk.Template.Child()
     add_btn = Gtk.Template.Child()
@@ -52,8 +59,8 @@ class AddConfigDialog(Adw.Window):
     def __init__(self, parent_window, on_add_callback):
         super().__init__(transient_for=parent_window)
         self.on_add = on_add_callback
-        self.add_btn.connect('clicked', self.on_add_clicked)
-        self.cancel_btn.connect('clicked', lambda *_: self.close())
+        self.add_btn.connect("clicked", self.on_add_clicked)
+        self.cancel_btn.connect("clicked", lambda *_: self.close())
 
     def on_add_clicked(self, _btn):
         """Callback when Add is clicked."""
@@ -63,12 +70,13 @@ class AddConfigDialog(Adw.Window):
             self.close()
 
 
-@Gtk.Template(filename='src/ui/preferences.ui')
+@Gtk.Template(filename="src/ui/preferences.ui")
 class PreferencesWindow(Adw.PreferencesWindow):
     """
     A singleton window for managing application preferences and layer configurations.
     """
-    __gtype_name__ = 'PreferencesWindow'
+
+    __gtype_name__ = "PreferencesWindow"
 
     theme_row = Gtk.Template.Child()
     ssl_row = Gtk.Template.Child()
@@ -91,52 +99,58 @@ class PreferencesWindow(Adw.PreferencesWindow):
         super().__init__(**kwargs)
         log.debug("PreferencesWindow initializing.")
         self.set_destroy_with_parent(True)
-        self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
+        self.settings = Gio.Settings.new("com.github.mclellac.CacheFlow")
         self.config_manager = ConfigManager(self.settings)
         self.exporter = ConfigExporter(self)
         self._layer_rows = []
         self._loading = True
         self.current_config_id = None
 
-        self.settings.bind('dns-servers', self.dns_row, 'text',
-                           Gio.SettingsBindFlags.DEFAULT)
-        self.settings.bind('verify-ssl', self.ssl_row, 'active',
-                           Gio.SettingsBindFlags.DEFAULT)
+        self.settings.bind(
+            "dns-servers", self.dns_row, "text", Gio.SettingsBindFlags.DEFAULT
+        )
+        self.settings.bind(
+            "verify-ssl", self.ssl_row, "active", Gio.SettingsBindFlags.DEFAULT
+        )
 
-        self.theme_row.connect('notify::selected-item', self.on_theme_changed)
+        self.theme_row.connect("notify::selected-item", self.on_theme_changed)
         self.load_theme()
 
-        self.font_button.set_font(self.settings.get_string('node-font'))
-        self.font_button.connect('font-set', self.on_font_set)
+        self.font_button.set_font(self.settings.get_string("node-font"))
+        self.font_button.connect("font-set", self.on_font_set)
 
         # Setup Config Selector
         self.config_model = Gtk.StringList()
         self.config_selector.set_model(self.config_model)
-        self.config_selector.connect('notify::selected', self.on_config_selected)
+        self.config_selector.connect(
+            "notify::selected", self.on_config_selected
+        )
 
-        self.add_config_btn.connect('clicked', self.on_add_config)
-        self.delete_config_btn.connect('clicked', self.on_delete_config)
+        self.add_config_btn.connect("clicked", self.on_add_config)
+        self.delete_config_btn.connect("clicked", self.on_delete_config)
 
-        self.domain_name_row.connect('notify::text', self.on_details_changed)
+        self.domain_name_row.connect("notify::text", self.on_details_changed)
 
-        self.add_layer_row.connect('activated', self.add_layer)
+        self.add_layer_row.connect("activated", self.add_layer)
 
-        self.export_row.connect('activated', self.do_export_config)
-        self.import_row.connect('activated', self.do_import_config)
+        self.export_row.connect("activated", self.do_export_config)
+        self.import_row.connect("activated", self.do_import_config)
 
         self.refresh_config_list()
         self._loading = False
 
-        self.connect('close-request',
-                     lambda win: log.debug("PreferencesWindow close requested."))
+        self.connect(
+            "close-request",
+            lambda win: log.debug("PreferencesWindow close requested."),
+        )
 
     def load_theme(self):
         """Loads the current theme setting."""
         log.debug("Loading and applying theme preference.")
-        theme = self.settings.get_string('theme')
-        if theme == 'light':
+        theme = self.settings.get_string("theme")
+        if theme == "light":
             self.theme_row.set_selected(1)
-        elif theme == 'dark':
+        elif theme == "dark":
             self.theme_row.set_selected(2)
         else:
             self.theme_row.set_selected(0)
@@ -147,20 +161,20 @@ class PreferencesWindow(Adw.PreferencesWindow):
         selected = row.get_selected()
         style_manager = Adw.StyleManager.get_default()
         if selected == 1:
-            self.settings.set_string('theme', 'light')
+            self.settings.set_string("theme", "light")
             style_manager.set_color_scheme(Adw.ColorScheme.FORCE_LIGHT)
         elif selected == 2:
-            self.settings.set_string('theme', 'dark')
+            self.settings.set_string("theme", "dark")
             style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
         else:
-            self.settings.set_string('theme', 'system')
+            self.settings.set_string("theme", "system")
             style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
 
     def on_font_set(self, button):
         """Callback when the node font changes."""
         log.info("Node font changed.")
         font_string = button.get_font()
-        self.settings.set_string('node-font', font_string)
+        self.settings.set_string("node-font", font_string)
 
     def refresh_config_list(self):
         """Refreshes the config selector model."""
@@ -168,7 +182,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         configs = self.config_manager.get_configurations()
 
         # Keep track of IDs in order
-        self.config_ids = [c['id'] for c in configs]
+        self.config_ids = [c["id"] for c in configs]
 
         # Update model
         # Clear/Splice
@@ -176,16 +190,16 @@ class PreferencesWindow(Adw.PreferencesWindow):
             self.config_model.splice(0, self.config_model.get_n_items(), [])
 
         for c in configs:
-            self.config_model.append(c['name'])
+            self.config_model.append(c["name"])
 
         # Select active
-        active_id = self.settings.get_string('active-config-id')
+        active_id = self.settings.get_string("active-config-id")
         if active_id in self.config_ids:
             idx = self.config_ids.index(active_id)
             self.config_selector.set_selected(idx)
         elif configs:
             self.config_selector.set_selected(0)
-            self.settings.set_string('active-config-id', configs[0]['id'])
+            self.settings.set_string("active-config-id", configs[0]["id"])
 
         self._loading = False
         self.on_config_selected(self.config_selector, None)
@@ -200,7 +214,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
             return
 
         self.current_config_id = self.config_ids[idx]
-        self.settings.set_string('active-config-id', self.current_config_id)
+        self.settings.set_string("active-config-id", self.current_config_id)
 
         config = self.config_manager.get_configuration(self.current_config_id)
         if config:
@@ -209,7 +223,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
     def load_config_ui(self, config):
         """Loads configuration into the UI fields."""
         self._loading = True
-        self.domain_name_row.set_text(config.get('name', ''))
+        self.domain_name_row.set_text(config.get("name", ""))
 
         # Clear existing layers
         for row in self._layer_rows:
@@ -217,7 +231,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self._layer_rows = []
 
         # Load layers
-        layers = config.get('layers', [])
+        layers = config.get("layers", [])
         for layer_data in layers:
             self.create_layer_row(layer_data)
 
@@ -232,7 +246,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         row = LayerRow(
             layer_data=data,
             on_delete=self.remove_layer,
-            on_change=self.save_current_config
+            on_change=self.save_current_config,
         )
         self._layer_rows.append(row)
         self.layers_group.add(row)
@@ -252,10 +266,10 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
         layers_data = [row.get_data() for row in self._layer_rows]
         data = {
-            'id': self.current_config_id,
-            'name': self.domain_name_row.get_text(),
-            'entry_point': self.domain_name_row.get_text(),
-            'layers': layers_data
+            "id": self.current_config_id,
+            "name": self.domain_name_row.get_text(),
+            "entry_point": self.domain_name_row.get_text(),
+            "layers": layers_data,
         }
         self.config_manager.save_configuration(self.current_config_id, data)
 
@@ -271,20 +285,23 @@ class PreferencesWindow(Adw.PreferencesWindow):
             "name": "CDN",
             "description": "CDN Layer for " + domain,
             "layer_type": "CDN",
-            "provider": "Akamai", # Default provider
-            "host_url": domain, # Use domain as host URL for CDN (first request)
+            "provider": "Akamai",  # Default provider
+            # Use domain as host URL for CDN (first request)
+            "host_url": domain,
             "custom_headers": {},
             "host_overrides": [],
             "path_match_only": [],
-            "routing_rules": []
+            "routing_rules": [],
         }
 
-        new_id = self.config_manager.add_configuration(domain, domain, layers=[default_cdn_layer])
+        new_id = self.config_manager.add_configuration(
+            domain, domain, layers=[default_cdn_layer]
+        )
 
         # Refresh first
         self.refresh_config_list()
         # Set active to new
-        self.settings.set_string('active-config-id', new_id)
+        self.settings.set_string("active-config-id", new_id)
         self.refresh_config_list()
 
     def on_delete_config(self, _btn):
@@ -299,15 +316,15 @@ class PreferencesWindow(Adw.PreferencesWindow):
     def add_layer(self, _row):
         """Adds a new layer to the current config."""
         new_data = {
-            'name': 'New Layer',
-            'description': '',
-            'layer_type': 'CDN',
-            'provider': 'Akamai',
-            'host_url': 'http://localhost',
-            'custom_headers': {},
-            'host_overrides': [],
-            'path_match_only': [],
-            'routing_rules': []
+            "name": "New Layer",
+            "description": "",
+            "layer_type": "CDN",
+            "provider": "Akamai",
+            "host_url": "http://localhost",
+            "custom_headers": {},
+            "host_overrides": [],
+            "path_match_only": [],
+            "routing_rules": [],
         }
         self.create_layer_row(new_data)
         self.layers_group.remove(self.add_layer_row)
@@ -327,7 +344,9 @@ class PreferencesWindow(Adw.PreferencesWindow):
         config = self.config_manager.get_configuration(self.current_config_id)
         # Export just layers as per previous logic, or update Exporter?
         # Let's export layers for now.
-        self.exporter.export_config(config['layers'], on_success=self.on_export_success)
+        self.exporter.export_config(
+            config["layers"], on_success=self.on_export_success
+        )
 
     def on_export_success(self, filepath):
         """Callback when configuration is exported."""
@@ -346,7 +365,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         # We assume import is just layers list for now
         # Update current config
         config = self.config_manager.get_configuration(self.current_config_id)
-        config['layers'] = layers_data
+        config["layers"] = layers_data
         self.config_manager.save_configuration(self.current_config_id, config)
 
         # Refresh UI

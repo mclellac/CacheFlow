@@ -3,25 +3,32 @@ Netscaler Load Balancer implementation.
 """
 
 from typing import Dict
-from .base import HeaderDefinition, BaseProvider, ProviderType, CAT_LOAD_BALANCER
+from .base import (
+    HeaderDefinition,
+    BaseProvider,
+    ProviderType,
+    CAT_LOAD_BALANCER,
+)
 
 NETSCALAR_HEADERS: Dict[str, HeaderDefinition] = {
     "ns-cache": HeaderDefinition(
         "NetScaler: Indicates if the response came from the NetScaler cache.",
         CAT_LOAD_BALANCER,
-        "HIT, MISS"
+        "HIT, MISS",
     ),
     "x-citrix-am-lb-cookie": HeaderDefinition(
         "NetScaler: Citrix Load Balancer Cookie.",
         CAT_LOAD_BALANCER,
-        "Cookie string"
-    )
+        "Cookie string",
+    ),
 }
+
 
 class Netscalar(BaseProvider):
     """
     Netscalar Load Balancer Provider.
     """
+
     name = "Netscalar"
     provider_type = ProviderType.LOAD_BALANCER
 

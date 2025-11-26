@@ -10,22 +10,22 @@ KUBERNETES_HEADERS: Dict[str, HeaderDefinition] = {
         "Identifies the originating IP address of a client connecting to a web server "
         "through an HTTP proxy or load balancer.",
         CAT_LOAD_BALANCER,
-        "IP address(es)"
+        "IP address(es)",
     ),
     "x-forwarded-proto": HeaderDefinition(
         "Identifies the protocol (HTTP or HTTPS) that a client used to connect to "
         "your proxy or load balancer.",
         CAT_LOAD_BALANCER,
-        "http, https"
+        "http, https",
     ),
     "x-original-host": HeaderDefinition(
         "The original Host header sent by the client, often preserved by Ingress controllers.",
         CAT_LOAD_BALANCER,
-        "Hostname"
+        "Hostname",
     ),
     "x-request-id": HeaderDefinition(
         "Unique ID for the request, often used for tracing across microservices.",
         CAT_DEBUG,
-        "UUID"
+        "UUID",
     ),
 }

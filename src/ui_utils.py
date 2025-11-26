@@ -4,6 +4,7 @@ Shared UI helpers and widgets to reduce duplication.
 
 from gi.repository import Gtk
 
+
 def create_header_list_factory(is_analysis: bool = False):
     """
     Creates a Gtk.SignalListItemFactory for displaying headers or analysis results.
@@ -18,7 +19,9 @@ def create_header_list_factory(is_analysis: bool = False):
     def _setup_structured(_factory, item):
         _setup_header_list_item(item)
 
-    def _bind_structured(_factory, item): # pylint: disable=too-many-statements
+    def _bind_structured(
+        _factory, item
+    ):  # pylint: disable=too-many-statements
         box = item.get_child()
         icon = box.get_first_child()
         vbox = icon.get_next_sibling()
@@ -60,10 +63,13 @@ def create_header_list_factory(is_analysis: bool = False):
 
     return factory
 
+
 def _bind_analysis_item(analysis_item, title, subtitle, box, icon, badge):
     """Helper to bind analysis item data."""
     title.set_text(analysis_item.key)
-    subtitle.set_text(analysis_item.value if analysis_item.value else "(No Value)")
+    subtitle.set_text(
+        analysis_item.value if analysis_item.value else "(No Value)"
+    )
     box.set_tooltip_text(
         f"{analysis_item.description}\nCategory: {analysis_item.category}"
     )
@@ -101,9 +107,12 @@ def _bind_analysis_item(analysis_item, title, subtitle, box, icon, badge):
     if analysis_item.change_type == "MISSING":
         box.add_css_class("error")
 
+
 def _setup_header_list_item(item):
     """Helper to setup the widget structure for header list items."""
     builder = Gtk.Builder()
-    builder.add_from_resource("/com/github/mclellac/CacheFlow/ui/list_item_header.ui")
+    builder.add_from_resource(
+        "/com/github/mclellac/CacheFlow/ui/list_item_header.ui"
+    )
     box = builder.get_object("box")
     item.set_child(box)

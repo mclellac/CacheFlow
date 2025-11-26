@@ -25,14 +25,13 @@ HEADER_KNOWLEDGE.update(OPENSHIFT_HEADERS)
 HEADER_KNOWLEDGE.update(SECURITY_HEADERS)
 HEADER_KNOWLEDGE.update(KUBERNETES_HEADERS)
 
+
 def get_header_info(header_key: str) -> HeaderDefinition:
     """
     Retrieves the definition for a given header key.
     Returns a default definition if not found.
     """
     key = header_key.lower()
-    return HEADER_KNOWLEDGE.get(key, HeaderDefinition(
-        "Unknown or custom header.",
-        "Unknown",
-        "Any"
-    ))
+    return HEADER_KNOWLEDGE.get(
+        key, HeaderDefinition("Unknown or custom header.", "Unknown", "Any")
+    )

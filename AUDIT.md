@@ -18,7 +18,7 @@ This document tracks the findings of a comprehensive code audit and outlines the
   * **Resolution:** Convert the button to use the `.suggested-action` style class.
 
 * **[BUG] Analysis Feature is Incomplete:**
-  * **Files:** `src/header_dialog.py`, `src/window.py`, `src/analysis_dialog.py`
+  * **Files:** `src/header_dialog.py`, `src/window.py`, `src_analysis_dialog.py`
   * **Issue:** The `HeaderDialog` correctly emits an `analyze-clicked` signal, but no handler is connected to it in the main window. The `HeaderAnalysisDialog`, which is fully capable of displaying the analysis, is never instantiated or presented to the user.
   * **Resolution:** Implement the signal handler in `window.py` to create and show the `HeaderAnalysisDialog` when the button is clicked.
 
@@ -28,8 +28,8 @@ This document tracks the findings of a comprehensive code audit and outlines the
 
 ## Action Plan
 
-* [ ] **Task 1:** Fix the "Analyze" button style in `header_dialog.ui`.
+* [X] **Task 1:** Fix the "Analyze" button style in `header_dialog.ui`.
 * [X] **Task 2:** Connect the `analyze-clicked` signal in `window.py` to launch the `HeaderAnalysisDialog`.
-* [ ] **Task 3:** Perform a full codebase scan for PEP8 violations and fix them.
-* [ ] **Task 4:** Review and update all major docstrings to conform to the Google Style Guide.
-* [ ] **Task 5:** Remove all inline comments.
+* [X] **Task 3:** Perform a full codebase scan for PEP8 violations and fix them.
+* [X] **Task 4:** Review and update all major docstrings to conform to the Google Style Guide.
+* [X] **Task 5:** Remove all inline comments.

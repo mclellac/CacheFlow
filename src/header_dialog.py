@@ -11,13 +11,16 @@ from .models import HeaderItem
 log = logging.getLogger(__name__)
 
 
-@Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/header_dialog.ui')
+@Gtk.Template(
+    resource_path="/com/github/mclellac/CacheFlow/ui/header_dialog.ui"
+)
 class HeaderDialog(Adw.ApplicationWindow):
     """
     A window to display key-value headers from a node.
     Allows filtering and copying of header data.
     """
-    __gtype_name__ = 'HeaderDialog'
+
+    __gtype_name__ = "HeaderDialog"
 
     column_view = Gtk.Template.Child()
     column_key = Gtk.Template.Child()
@@ -29,37 +32,51 @@ class HeaderDialog(Adw.ApplicationWindow):
     analyze_button = Gtk.Template.Child()
 
     __gsignals__ = {
-        'analyze-clicked': (GObject.SignalFlags.RUN_FIRST, None, ()),
+        "analyze-clicked": (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
 
     def __init__(self, headers, heading=None, node_data=None, **kwargs):
+        """Initializes the HeaderDialog.
+
+        Args:
+            headers: A list of tuples, where each tuple represents a header.
+            heading: An optional heading for the dialog.
+            node_data: An optional NodeData object.
+            **kwargs: Keyword arguments for the Adw.ApplicationWindow.
+        """
         super().__init__(**kwargs)
         self._clipboard_provider = None
         self.node_data = node_data
 
-        self.analyze_button.connect('clicked', self._on_analyze_clicked)
+        self.analyze_button.connect("clicked", self._on_analyze_clicked)
 
         if heading and heading != "Headers":
             self.window_title.set_title(f"Headers for {heading}")
 
         self.model = Gio.ListStore(item_type=HeaderItem)
-        headers_to_split = ['x-akamai-session-info', 'content-security-policy']
+        headers_to_split = ["x-akamai-session-info", "content-security-policy"]
 
         for header, value, change_type, note in headers:
-            if header.lower() in headers_to_split and ';' in value:
-                parts = [p.strip() for p in value.split(';') if p.strip()]
+            if header.lower() in headers_to_split and ";" in value:
+                parts = [p.strip() for p in value.split(";") if p.strip()]
                 if not parts:
-                    self.model.append(HeaderItem(header, '', change_type, note))
+                    self.model.append(
+                        HeaderItem(header, "", change_type, note)
+                    )
                     continue
-                self.model.append(HeaderItem(header, parts[0] + ';', change_type, note))
+                self.model.append(
+                    HeaderItem(header, parts[0] + ";", change_type, note)
+                )
                 for part in parts[1:]:
-                    val_str = part + (';' if not part == parts[-1] else '')
-                    self.model.append(HeaderItem('', val_str, change_type, ""))
+                    val_str = part + (";" if not part == parts[-1] else "")
+                    self.model.append(HeaderItem("", val_str, change_type, ""))
             else:
                 self.model.append(HeaderItem(header, value, change_type, note))
 
         self.filter = Gtk.CustomFilter.new(self._filter_func)
-        self.filter_model = Gtk.FilterListModel(model=self.model, filter=self.filter)
+        self.filter_model = Gtk.FilterListModel(
+            model=self.model, filter=self.filter
+        )
         self.filter_model.connect("items-changed", self._on_items_changed)
         self.selection_model = Gtk.MultiSelection(model=self.filter_model)
         self.column_view.set_model(self.selection_model)
@@ -67,26 +84,32 @@ class HeaderDialog(Adw.ApplicationWindow):
         self._setup_factories()
         self._setup_context_menu()
 
-        self.search_entry.connect('search-changed', self._on_search_changed)
+        self.search_entry.connect("search-changed", self._on_search_changed)
 
     def _on_items_changed(self, _model, _position, _removed, _added):
+        """Handles the items-changed signal from the filter model."""
         if not self.filter_model.get_n_items():
             self.stack.set_visible_child_name("empty")
         else:
             self.stack.set_visible_child_name("list")
 
     def _filter_func(self, item, _user_data=None):
+        """Filters the headers based on the search query."""
         query = self.search_entry.get_text().lower()
         if not query:
             return True
-        return (query in item.key.lower() or
-                query in item.value.lower() or
-                query in item.note.lower())
+        return (
+            query in item.key.lower()
+            or query in item.value.lower()
+            or query in item.note.lower()
+        )
 
     def _on_search_changed(self, _entry):
+        """Handles the search-changed signal from the search entry."""
         self.filter.changed(Gtk.FilterChange.DIFFERENT)
 
     def _setup_factories(self):
+        """Sets up the factories for the column view."""
         factory_key = Gtk.SignalListItemFactory()
         factory_key.connect("setup", self._on_factory_setup_key)
         factory_key.connect("bind", self._on_factory_bind_key)
@@ -103,24 +126,32 @@ class HeaderDialog(Adw.ApplicationWindow):
         self.column_note.set_factory(factory_note)
 
     def _on_factory_setup_key(self, _factory, item):
+        """Sets up the widget for the key column."""
         builder = Gtk.Builder()
-        builder.add_from_resource("/com/github/mclellac/CacheFlow/ui/column_item_label.ui")
+        builder.add_from_resource(
+            "/com/github/mclellac/CacheFlow/ui/column_item_label.ui"
+        )
         label = builder.get_object("label")
         item.set_child(label)
 
     def _on_factory_bind_key(self, _factory, item):
+        """Binds the data to the widget for the key column."""
         header_item = item.get_item()
         label = item.get_child()
         escaped_key = GLib.markup_escape_text(header_item.key)
         label.set_markup(f"<b>{escaped_key}</b>")
 
     def _on_factory_setup_value(self, _factory, item):
+        """Sets up the widget for the value column."""
         builder = Gtk.Builder()
-        builder.add_from_resource("/com/github/mclellac/CacheFlow/ui/column_item_label.ui")
+        builder.add_from_resource(
+            "/com/github/mclellac/CacheFlow/ui/column_item_label.ui"
+        )
         label = builder.get_object("label")
         item.set_child(label)
 
     def _on_factory_bind_value(self, _factory, item):
+        """Binds the data to the widget for the value column."""
         header_item = item.get_item()
         label = item.get_child()
         label.set_text(header_item.value)
@@ -130,24 +161,27 @@ class HeaderDialog(Adw.ApplicationWindow):
 
         color = None
         if self.node_data:
-            if change_type == 'ADDED':
+            if change_type == "ADDED":
                 color = self.node_data.added_text_color
-            elif change_type == 'REMOVED':
+            elif change_type == "REMOVED":
                 color = self.node_data.removed_text_color
-            elif change_type == 'MODIFIED':
+            elif change_type == "MODIFIED":
                 color = self.node_data.modified_text_color
-            elif change_type == 'UNCHANGED':
+            elif change_type == "UNCHANGED":
                 color = self.node_data.text_color
-
 
         if color:
             rgba = Gdk.RGBA()
             if rgba.parse(color):
-                attrs.insert(Pango.attr_foreground_new(int(rgba.red * 65535),
-                                                       int(rgba.green * 65535),
-                                                       int(rgba.blue * 65535)))
+                attrs.insert(
+                    Pango.attr_foreground_new(
+                        int(rgba.red * 65535),
+                        int(rgba.green * 65535),
+                        int(rgba.blue * 65535),
+                    )
+                )
 
-        if change_type in ['ADDED', 'REMOVED', 'MODIFIED']:
+        if change_type in ["ADDED", "REMOVED", "MODIFIED"]:
             attrs.insert(Pango.attr_weight_new(Pango.Weight.BOLD))
         else:
             attrs.insert(Pango.attr_weight_new(Pango.Weight.NORMAL))
@@ -155,18 +189,23 @@ class HeaderDialog(Adw.ApplicationWindow):
         label.set_attributes(attrs)
 
     def _on_factory_setup_note(self, _factory, item):
+        """Sets up the widget for the note column."""
         builder = Gtk.Builder()
-        builder.add_from_resource("/com/github/mclellac/CacheFlow/ui/column_item_label.ui")
+        builder.add_from_resource(
+            "/com/github/mclellac/CacheFlow/ui/column_item_label.ui"
+        )
         label = builder.get_object("label")
         label.add_css_class("dim-label")
         item.set_child(label)
 
     def _on_factory_bind_note(self, _factory, item):
+        """Binds the data to the widget for the note column."""
         header_item = item.get_item()
         label = item.get_child()
         label.set_text(header_item.note)
 
     def _setup_context_menu(self):
+        """Sets up the context menu for the header list."""
         copy_action = Gio.SimpleAction.new("copy_selection", None)
         copy_action.connect("activate", self._on_copy_activated)
 
@@ -190,19 +229,23 @@ class HeaderDialog(Adw.ApplicationWindow):
         self.column_view.add_controller(key_controller)
 
     def _on_right_click(self, _gesture, _n_press, x, y):
+        """Handles the right-click event on the header list."""
         self.popover.set_pointing_to(Gdk.Rectangle(int(x), int(y), 1, 1))
         self.popover.popup()
 
     def _on_key_pressed(self, _controller, keyval, _keycode, state):
+        """Handles the key-pressed event on the header list."""
         if (state & Gdk.ModifierType.CONTROL_MASK) and keyval == Gdk.KEY_c:
             self.activate_action("dialog.copy_selection", None)
             return True
         return False
 
     def _on_analyze_clicked(self, _button):
-        self.emit('analyze-clicked')
+        """Handles the clicked signal from the analyze button."""
+        self.emit("analyze-clicked")
 
     def _on_copy_activated(self, _action, _param):
+        """Handles the copy action."""
         log.debug("Copy action activated.")
         selection = self.selection_model.get_selection()
         if selection.is_empty():
@@ -223,7 +266,9 @@ class HeaderDialog(Adw.ApplicationWindow):
 
         text_to_copy = "\n".join(clipboard_text)
         log.debug("Attempting to copy text to clipboard: '%s'", text_to_copy)
-        self._clipboard_provider = Gdk.ContentProvider.new_for_value(text_to_copy)
+        self._clipboard_provider = Gdk.ContentProvider.new_for_value(
+            text_to_copy
+        )
         clipboard = self.get_clipboard()
         clipboard.set_content(self._clipboard_provider)
         log.debug("Clipboard content set.")

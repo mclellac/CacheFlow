@@ -1,6 +1,7 @@
 """
 This module handles the rendering logic for the NodeGraph widget.
 """
+
 from typing import Dict, Any
 
 import cairo
@@ -13,15 +14,22 @@ LINE_HEIGHT = 22
 PADDING = 15
 RESIZE_HANDLE_SIZE = 15
 
+
 class GraphRenderer:
     """Handles all drawing logic for the NodeGraph."""
 
     def __init__(self, node_graph):
         self.node_graph = node_graph
 
-    def draw_graph_content(self, cr: cairo.Context, width: float, height: float,
-                           scale: float = 1.0, offset_x: float = 0,
-                           offset_y: float = 0) -> None:
+    def draw_graph_content(
+        self,
+        cr: cairo.Context,
+        width: float,
+        height: float,
+        scale: float = 1.0,
+        offset_x: float = 0,
+        offset_y: float = 0,
+    ) -> None:
         """Draws the entire graph content."""
         style_manager = Adw.StyleManager.get_default()
         is_dark = style_manager.get_dark()
@@ -70,12 +78,17 @@ class GraphRenderer:
             cr.curve_to(c1_x, c1_y, c2_x, c2_y, end_x, end_y)
             cr.stroke()
 
-            points = ConnectionPoints(start_x, start_y, c1_x, c1_y,
-                                      c2_x, c2_y, end_x, end_y)
+            points = ConnectionPoints(
+                start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y
+            )
             self._draw_connection_label(cr, node_b, points)
 
-    def _draw_connection_label(self, cr: cairo.Context, node_b: Dict[str, Any],
-                               points: ConnectionPoints) -> None:
+    def _draw_connection_label(
+        self,
+        cr: cairo.Context,
+        node_b: Dict[str, Any],
+        points: ConnectionPoints,
+    ) -> None:
         """Draws the label on the connection line."""
         request_url = node_b["data"].request_url
         request_host = node_b["data"].request_host
@@ -83,10 +96,18 @@ class GraphRenderer:
         if not request_url:
             return
 
-        mid_x = (0.125 * points.start_x + 0.375 * points.c1_x +
-                 0.375 * points.c2_x + 0.125 * points.end_x)
-        mid_y = (0.125 * points.start_y + 0.375 * points.c1_y +
-                 0.375 * points.c2_y + 0.125 * points.end_y)
+        mid_x = (
+            0.125 * points.start_x
+            + 0.375 * points.c1_x
+            + 0.375 * points.c2_x
+            + 0.125 * points.end_x
+        )
+        mid_y = (
+            0.125 * points.start_y
+            + 0.375 * points.c1_y
+            + 0.375 * points.c2_y
+            + 0.125 * points.end_y
+        )
 
         layout = PangoCairo.create_layout(cr)
         font_desc = Pango.FontDescription("Sans 12")
@@ -103,12 +124,16 @@ class GraphRenderer:
         text_width = logical_rect.width / Pango.SCALE
         text_height = logical_rect.height / Pango.SCALE
 
-        dx = (0.75 * (points.c1_x - points.start_x) +
-              1.5 * (points.c2_x - points.c1_x) +
-              0.75 * (points.end_x - points.c2_x))
-        dy = (0.75 * (points.c1_y - points.start_y) +
-              1.5 * (points.c2_y - points.c1_y) +
-              0.75 * (points.end_y - points.c2_y))
+        dx = (
+            0.75 * (points.c1_x - points.start_x)
+            + 1.5 * (points.c2_x - points.c1_x)
+            + 0.75 * (points.end_x - points.c2_x)
+        )
+        dy = (
+            0.75 * (points.c1_y - points.start_y)
+            + 1.5 * (points.c2_y - points.c1_y)
+            + 0.75 * (points.end_y - points.c2_y)
+        )
 
         is_horizontal = abs(dx) >= abs(dy)
 
@@ -148,35 +173,54 @@ class GraphRenderer:
         cr.fill()
 
         body_rgba = Gdk.RGBA()
-        body_rgba.parse(node['data'].body_color)
+        body_rgba.parse(node["data"].body_color)
         if body_rgba.alpha == 0:
-            body_color = (0.8, 0.8, 0.85, 1) if not is_dark else (
-            0.2, 0.2, 0.25, 1)
+            body_color = (
+                (0.8, 0.8, 0.85, 1) if not is_dark else (0.2, 0.2, 0.25, 1)
+            )
         else:
             body_color = (
-            body_rgba.red, body_rgba.green, body_rgba.blue, body_rgba.alpha)
+                body_rgba.red,
+                body_rgba.green,
+                body_rgba.blue,
+                body_rgba.alpha,
+            )
         cr.set_source_rgba(*body_color)
 
         rounded_rectangle(cr, x, y, w, h, 10)
         cr.fill_preserve()
 
-        border_color = (0.5, 0.5, 0.5, 0.8) if is_dark else (0.4, 0.4, 0.4, 0.8)
+        border_color = (
+            (0.5, 0.5, 0.5, 0.8) if is_dark else (0.4, 0.4, 0.4, 0.8)
+        )
         cr.set_source_rgba(*border_color)
         cr.set_line_width(1)
         cr.stroke()
 
         header_rgba = Gdk.RGBA()
-        header_rgba.parse(node['data'].header_color)
+        header_rgba.parse(node["data"].header_color)
         if header_rgba.alpha == 0:
-            header_color = (0.7, 0.7, 0.75, 1) if not is_dark else (
-            0.3, 0.3, 0.35, 1)
+            header_color = (
+                (0.7, 0.7, 0.75, 1) if not is_dark else (0.3, 0.3, 0.35, 1)
+            )
         else:
             header_color = (
-            header_rgba.red, header_rgba.green, header_rgba.blue, header_rgba.alpha)
+                header_rgba.red,
+                header_rgba.green,
+                header_rgba.blue,
+                header_rgba.alpha,
+            )
         cr.set_source_rgba(*header_color)
 
-        rounded_rectangle(cr, x, y, w, NODE_HEADER_HEIGHT, 10,
-                          corners={'bl': False, 'br': False})
+        rounded_rectangle(
+            cr,
+            x,
+            y,
+            w,
+            NODE_HEADER_HEIGHT,
+            10,
+            corners={"bl": False, "br": False},
+        )
         cr.fill_preserve()
 
         cr.set_source_rgba(*border_color)
@@ -187,8 +231,9 @@ class GraphRenderer:
             cr.set_source_rgba(1, 1, 1, 1)
         else:
             cr.set_source_rgba(0, 0, 0, 1)
-        cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL,
-                             cairo.FONT_WEIGHT_BOLD)
+        cr.select_font_face(
+            "Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+        )
         cr.set_font_size(16)
         cr.move_to(x + PADDING, y + 22)
         cr.show_text(node["data"].name)
@@ -199,15 +244,24 @@ class GraphRenderer:
             cr.set_source_rgba(0.7, 0.7, 0.7, 1)
 
         cr.move_to(x + PADDING, y + 42)
-        provider_name = node["data"].provider if node["data"].provider else "Unknown"
+        provider_name = (
+            node["data"].provider if node["data"].provider else "Unknown"
+        )
         cr.show_text(f"{provider_name}")
 
         self._draw_node_text(cr, node, x, y, w, is_dark)
 
-    def _draw_node_text(self, cr: cairo.Context, node: Dict[str, Any],
-                        x: float, y: float, w: float, is_dark: bool) -> None:
+    def _draw_node_text(
+        self,
+        cr: cairo.Context,
+        node: Dict[str, Any],
+        x: float,
+        y: float,
+        w: float,
+        is_dark: bool,
+    ) -> None:
         """Draws the text content of the node."""
-        font_desc_str = self.node_graph.settings.get_string('node-font')
+        font_desc_str = self.node_graph.settings.get_string("node-font")
         if not font_desc_str:
             font_desc_str = "Monospace 14"
         font_desc = Pango.FontDescription.from_string(font_desc_str)
@@ -218,18 +272,34 @@ class GraphRenderer:
         layout.set_ellipsize(Pango.EllipsizeMode.END)
 
         for header, value, change_type, _ in node["data"].headers:
-            if change_type == 'ADDED':
-                color = get_color(node['data'].added_text_color, is_dark,
-                                  (0, 0.5, 0, 1), (0.5, 1.0, 0.5, 1))
-            elif change_type == 'REMOVED':
-                color = get_color(node['data'].removed_text_color, is_dark,
-                                  (0.8, 0, 0, 1), (1.0, 0.5, 0.5, 1))
-            elif change_type == 'MODIFIED':
-                color = get_color(node['data'].modified_text_color, is_dark,
-                                  (0.8, 0.5, 0, 1), (1.0, 0.8, 0.5, 1))
+            if change_type == "ADDED":
+                color = get_color(
+                    node["data"].added_text_color,
+                    is_dark,
+                    (0, 0.5, 0, 1),
+                    (0.5, 1.0, 0.5, 1),
+                )
+            elif change_type == "REMOVED":
+                color = get_color(
+                    node["data"].removed_text_color,
+                    is_dark,
+                    (0.8, 0, 0, 1),
+                    (1.0, 0.5, 0.5, 1),
+                )
+            elif change_type == "MODIFIED":
+                color = get_color(
+                    node["data"].modified_text_color,
+                    is_dark,
+                    (0.8, 0.5, 0, 1),
+                    (1.0, 0.8, 0.5, 1),
+                )
             else:  # UNCHANGED or other
-                color = get_color(node['data'].text_color, is_dark,
-                                  (0.1, 0.1, 0.1, 1), (0.9, 0.9, 0.9, 1))
+                color = get_color(
+                    node["data"].text_color,
+                    is_dark,
+                    (0.1, 0.1, 0.1, 1),
+                    (0.9, 0.9, 0.9, 1),
+                )
 
             cr.set_source_rgba(*color)
 
@@ -242,7 +312,9 @@ class GraphRenderer:
             PangoCairo.show_layout(cr, layout)
             text_y += LINE_HEIGHT
 
-    def _draw_resize_handle(self, cr: cairo.Context, node: Dict[str, Any]) -> None:
+    def _draw_resize_handle(
+        self, cr: cairo.Context, node: Dict[str, Any]
+    ) -> None:
         """Draws a resize handle in the bottom-right corner of a node."""
         x = node["x"] + node["width"] - RESIZE_HANDLE_SIZE
         y = node["y"] + node["height"] - RESIZE_HANDLE_SIZE

@@ -1,9 +1,11 @@
 """
 Utility functions for CacheFlow.
 """
+
 from typing import Tuple
 
 from gi.repository import Adw
+
 
 def get_accent_color() -> Tuple[float, float, float, float]:
     """

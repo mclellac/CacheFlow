@@ -16,23 +16,24 @@ class ConfigRowMixin:
         self.on_change = on_change
         self.on_delete = on_delete
 
-        if hasattr(self, 'delete_btn'):
-            self.delete_btn.connect('clicked', self.on_delete_clicked)
+        if hasattr(self, "delete_btn"):
+            self.delete_btn.connect("clicked", self.on_delete_clicked)
 
     def notify_change(self, *_args):
         """Notifies when data changes."""
-        if getattr(self, 'on_change', None):
+        if getattr(self, "on_change", None):
             self.on_change()
 
     def on_delete_clicked(self, _btn):
         """Callback for delete button."""
-        if getattr(self, 'on_delete', None):
+        if getattr(self, "on_delete", None):
             self.on_delete(self)
 
 
 class BaseEntryRow(ConfigRowMixin, Adw.PreferencesRow):
     """Base class for rows with text entries."""
-    __gtype_name__ = 'BaseEntryRow'
+
+    __gtype_name__ = "BaseEntryRow"
 
     def __init__(self, on_change=None, on_delete=None, **kwargs):
         super().__init__(**kwargs)
@@ -43,64 +44,72 @@ class BaseEntryRow(ConfigRowMixin, Adw.PreferencesRow):
         """Sets up the entries with initial texts and connects change signals."""
         for entry, text in zip(self.entries, texts):
             entry.set_text(text)
-            entry.connect('changed', self.notify_change)
+            entry.connect("changed", self.notify_change)
 
     def get_texts(self):
         """Returns a list of texts from the entries."""
         return [entry.get_text() for entry in self.entries]
 
 
-@Gtk.Template(filename='src/ui/header_row.ui')
+@Gtk.Template(filename="src/ui/header_row.ui")
 class HeaderRow(BaseEntryRow):
     """Row for editing a single header key-value pair."""
-    __gtype_name__ = 'HeaderRow'
+
+    __gtype_name__ = "HeaderRow"
 
     key_entry = Gtk.Template.Child()
     val_entry = Gtk.Template.Child()
     delete_btn = Gtk.Template.Child()
 
-    def __init__(self, key='', value='', on_change=None, on_delete=None, **kwargs):
+    def __init__(
+        self, key="", value="", on_change=None, on_delete=None, **kwargs
+    ):
         super().__init__(on_change=on_change, on_delete=on_delete, **kwargs)
         self.entries = [self.key_entry, self.val_entry]
         self.setup_entries([key, value])
 
 
-@Gtk.Template(filename='src/ui/override_row.ui')
+@Gtk.Template(filename="src/ui/override_row.ui")
 class OverrideRow(BaseEntryRow):
     """Row for editing a host override."""
-    __gtype_name__ = 'OverrideRow'
+
+    __gtype_name__ = "OverrideRow"
 
     pat_entry = Gtk.Template.Child()
     host_entry = Gtk.Template.Child()
     delete_btn = Gtk.Template.Child()
 
-    def __init__(self, pattern='', host='', on_change=None, on_delete=None, **kwargs):
+    def __init__(
+        self, pattern="", host="", on_change=None, on_delete=None, **kwargs
+    ):
         super().__init__(on_change=on_change, on_delete=on_delete, **kwargs)
         self.entries = [self.pat_entry, self.host_entry]
         self.setup_entries([pattern, host])
 
 
-@Gtk.Template(filename='src/ui/path_match_row.ui')
+@Gtk.Template(filename="src/ui/path_match_row.ui")
 class PathMatchRow(BaseEntryRow):
     """Row for editing a path match pattern."""
-    __gtype_name__ = 'PathMatchRow'
+
+    __gtype_name__ = "PathMatchRow"
 
     pat_entry = Gtk.Template.Child()
     delete_btn = Gtk.Template.Child()
 
-    def __init__(self, pattern='', on_change=None, on_delete=None, **kwargs):
+    def __init__(self, pattern="", on_change=None, on_delete=None, **kwargs):
         super().__init__(on_change=on_change, on_delete=on_delete, **kwargs)
         self.entries = [self.pat_entry]
         self.setup_entries([pattern])
 
 
-@Gtk.Template(filename='src/ui/layer_row.ui')
+@Gtk.Template(filename="src/ui/layer_row.ui")
 class LayerRow(Adw.ExpanderRow):
     """
     A widget representing a single configuration layer in the settings.
     Allows editing of layer properties like URL, headers, and colors.
     """
-    __gtype_name__ = 'LayerRow'
+
+    __gtype_name__ = "LayerRow"
 
     type_row = Gtk.Template.Child()
     provider_row = Gtk.Template.Child()
@@ -158,27 +167,29 @@ class LayerRow(Adw.ExpanderRow):
         self.type_row.set_model(self.type_model)
         self.provider_row.set_model(self.provider_model)
 
-        self.type_row.connect('notify::selected', self.on_type_changed)
-        self.provider_row.connect('notify::selected', self.on_provider_changed)
+        self.type_row.connect("notify::selected", self.on_type_changed)
+        self.provider_row.connect("notify::selected", self.on_provider_changed)
 
-        self.delete_btn.connect('clicked', self.on_delete_clicked)
+        self.delete_btn.connect("clicked", self.on_delete_clicked)
 
-        self.name_row.connect('notify::text', self.on_changed)
-        self.desc_row.connect('notify::text', self.on_changed)
-        self.url_row.connect('notify::text', self.on_changed)
-        self.default_backend_host_row.connect('notify::text', self.on_changed)
-        self.default_backend_header_row.connect('notify::text', self.on_changed)
-        self.header_color_button.connect('color-set', self.on_changed)
-        self.body_color_button.connect('color-set', self.on_changed)
-        self.text_color_button.connect('color-set', self.on_changed)
-        self.added_text_color_button.connect('color-set', self.on_changed)
-        self.removed_text_color_button.connect('color-set', self.on_changed)
-        self.modified_text_color_button.connect('color-set', self.on_changed)
+        self.name_row.connect("notify::text", self.on_changed)
+        self.desc_row.connect("notify::text", self.on_changed)
+        self.url_row.connect("notify::text", self.on_changed)
+        self.default_backend_host_row.connect("notify::text", self.on_changed)
+        self.default_backend_header_row.connect(
+            "notify::text", self.on_changed
+        )
+        self.header_color_button.connect("color-set", self.on_changed)
+        self.body_color_button.connect("color-set", self.on_changed)
+        self.text_color_button.connect("color-set", self.on_changed)
+        self.added_text_color_button.connect("color-set", self.on_changed)
+        self.removed_text_color_button.connect("color-set", self.on_changed)
+        self.modified_text_color_button.connect("color-set", self.on_changed)
 
-        self.add_header_btn.connect('clicked', self.on_add_header)
-        self.add_override_btn.connect('clicked', self.on_add_override)
-        self.add_path_match_btn.connect('clicked', self.on_add_path_match)
-        self.add_routing_rule_btn.connect('clicked', self.on_add_routing_rule)
+        self.add_header_btn.connect("clicked", self.on_add_header)
+        self.add_override_btn.connect("clicked", self.on_add_override)
+        self.add_path_match_btn.connect("clicked", self.on_add_path_match)
+        self.add_routing_rule_btn.connect("clicked", self.on_add_routing_rule)
 
         if layer_data:
             self.load_data(layer_data)
@@ -187,10 +198,14 @@ class LayerRow(Adw.ExpanderRow):
         if self.provider_model.get_n_items() == 0:
             self.on_type_changed(None, None)
 
-        for button in [self.header_color_button, self.body_color_button,
-                       self.text_color_button,
-                       self.added_text_color_button, self.removed_text_color_button,
-                       self.modified_text_color_button]:
+        for button in [
+            self.header_color_button,
+            self.body_color_button,
+            self.text_color_button,
+            self.added_text_color_button,
+            self.removed_text_color_button,
+            self.modified_text_color_button,
+        ]:
             if not button.get_rgba():
                 button.set_rgba(Gdk.RGBA(0, 0, 0, 0))
 
@@ -207,29 +222,41 @@ class LayerRow(Adw.ExpanderRow):
         # Configure Visibility and Labels based on Type
         visibility = {
             ProviderType.CDN: {
-                'url': False, 'default_backend': True, 'routing': True,
-                'overrides': False, 'path_match': False
+                "url": False,
+                "default_backend": True,
+                "routing": True,
+                "overrides": False,
+                "path_match": False,
             },
             ProviderType.CACHE_PROXY: {
-                'url': True, 'default_backend': False, 'routing': True,
-                'overrides': True, 'path_match': True
+                "url": True,
+                "default_backend": False,
+                "routing": True,
+                "overrides": True,
+                "path_match": True,
             },
             ProviderType.LOAD_BALANCER: {
-                'url': True, 'default_backend': False, 'routing': True,
-                'overrides': True, 'path_match': True
+                "url": True,
+                "default_backend": False,
+                "routing": True,
+                "overrides": True,
+                "path_match": True,
             },
             ProviderType.APP_BACKEND: {
-                'url': False, 'default_backend': False, 'routing': False,
-                'overrides': False, 'path_match': False
-            }
+                "url": False,
+                "default_backend": False,
+                "routing": False,
+                "overrides": False,
+                "path_match": False,
+            },
         }
         config = visibility.get(selected_type, visibility[ProviderType.CDN])
 
-        self.url_row.set_visible(config['url'])
-        self.default_backend_group.set_visible(config['default_backend'])
-        self.routing_rules_group.set_visible(config['routing'])
-        self.overrides_group.set_visible(config['overrides'])
-        self.path_match_group.set_visible(config['path_match'])
+        self.url_row.set_visible(config["url"])
+        self.default_backend_group.set_visible(config["default_backend"])
+        self.routing_rules_group.set_visible(config["routing"])
+        self.overrides_group.set_visible(config["overrides"])
+        self.path_match_group.set_visible(config["path_match"])
 
         if selected_type == ProviderType.CDN:
             self.default_backend_group.set_title("Default Origin")
@@ -275,17 +302,20 @@ class LayerRow(Adw.ExpanderRow):
     def load_data(self, data):
         """Loads layer data into the UI widgets."""
         self._loading = True
-        self.name_row.set_text(data.get('name', ''))
-        self.desc_row.set_text(data.get('description', ''))
-        self.url_row.set_text(data.get('host_url', ''))
+        self.name_row.set_text(data.get("name", ""))
+        self.desc_row.set_text(data.get("description", ""))
+        self.url_row.set_text(data.get("host_url", ""))
         self.default_backend_host_row.set_text(
-            data.get('default_backend_host', ''))
+            data.get("default_backend_host", "")
+        )
         self.default_backend_header_row.set_text(
-            data.get('default_backend_host_header', ''))
-        self.set_title(data.get('name', 'New Layer'))
+            data.get("default_backend_host_header", "")
+        )
+        self.set_title(data.get("name", "New Layer"))
         self.name_row.connect(
-            'notify::text',
-            lambda *args: self.set_title(self.name_row.get_text()))
+            "notify::text",
+            lambda *args: self.set_title(self.name_row.get_text()),
+        )
 
         self._load_type_and_provider(data)
         self._load_colors(data)
@@ -297,72 +327,87 @@ class LayerRow(Adw.ExpanderRow):
 
     def _load_type_and_provider(self, data):
         """Loads the layer type and provider from data."""
-        layer_type_str = data.get('layer_type', ProviderType.CDN.value)
-        type_idx = next((i for i, t in enumerate(self.types_list)
-                         if t.value == layer_type_str), 0)
+        layer_type_str = data.get("layer_type", ProviderType.CDN.value)
+        type_idx = next(
+            (
+                i
+                for i, t in enumerate(self.types_list)
+                if t.value == layer_type_str
+            ),
+            0,
+        )
         self.type_row.set_selected(type_idx)
         self.on_type_changed(None, None)
 
-        provider_str = data.get('provider', '')
+        provider_str = data.get("provider", "")
         if provider_str:
-            prov_idx = next((i for i, prov in enumerate(self.current_providers)
-                             if prov.name == provider_str), 0)
+            prov_idx = next(
+                (
+                    i
+                    for i, prov in enumerate(self.current_providers)
+                    if prov.name == provider_str
+                ),
+                0,
+            )
             self.provider_row.set_selected(prov_idx)
 
     def _load_colors(self, data):
         """Loads color data into the UI."""
         color_buttons = {
-            'header_color': self.header_color_button,
-            'body_color': self.body_color_button,
-            'text_color': self.text_color_button,
-            'added_text_color': self.added_text_color_button,
-            'removed_text_color': self.removed_text_color_button,
-            'modified_text_color': self.modified_text_color_button,
+            "header_color": self.header_color_button,
+            "body_color": self.body_color_button,
+            "text_color": self.text_color_button,
+            "added_text_color": self.added_text_color_button,
+            "removed_text_color": self.removed_text_color_button,
+            "modified_text_color": self.modified_text_color_button,
         }
         for key, button in color_buttons.items():
             rgba = Gdk.RGBA()
             if not (data.get(key) and rgba.parse(data[key])):
-                rgba.parse('rgba(0,0,0,0)')
+                rgba.parse("rgba(0,0,0,0)")
             button.set_rgba(rgba)
 
     def _load_headers(self, data):
         """Loads custom headers."""
-        for key, value in data.get('custom_headers', {}).items():
+        for key, value in data.get("custom_headers", {}).items():
             self.add_header_row(key, value)
 
     def _load_overrides(self, data):
         """Loads host overrides."""
-        for override in data.get('host_overrides', []):
-            self.add_override_row(override.get('path_pattern', ''),
-                                  override.get('host_header', ''))
+        for override in data.get("host_overrides", []):
+            self.add_override_row(
+                override.get("path_pattern", ""),
+                override.get("host_header", ""),
+            )
 
     def _load_path_matches(self, data):
         """Loads path matches."""
-        for pattern in data.get('path_match_only', []):
+        for pattern in data.get("path_match_only", []):
             self.add_path_match_row(pattern)
 
     def _load_routing_rules(self, data):
         """Loads and groups routing rules."""
-        routing_rules = data.get('routing_rules', [])
+        routing_rules = data.get("routing_rules", [])
         if not routing_rules:
             return
 
         grouped_backends = {}
         for rule in routing_rules:
             backend_key = (
-                rule.get('backend_host', ''),
-                rule.get('backend_host_header', ''),
-                rule.get('path_rewrite', '')
+                rule.get("backend_host", ""),
+                rule.get("backend_host_header", ""),
+                rule.get("path_rewrite", ""),
             )
             if backend_key not in grouped_backends:
                 grouped_backends[backend_key] = {
-                    'backend_host': backend_key[0],
-                    'backend_host_header': backend_key[1],
-                    'path_rewrite': backend_key[2],
-                    'path_matches': []
+                    "backend_host": backend_key[0],
+                    "backend_host_header": backend_key[1],
+                    "path_rewrite": backend_key[2],
+                    "path_matches": [],
                 }
-            grouped_backends[backend_key]['path_matches'].append(
-                rule.get('path_match', ''))
+            grouped_backends[backend_key]["path_matches"].append(
+                rule.get("path_match", "")
+            )
 
         for origin_data in grouped_backends.values():
             self.add_origin_rule_row(origin_data)
@@ -384,12 +429,13 @@ class LayerRow(Adw.ExpanderRow):
         self.add_header_row()
         self.on_changed()
 
-    def add_header_row(self, key='', value=''):
+    def add_header_row(self, key="", value=""):
         """Adds a header entry row."""
         row = HeaderRow(
-            key=key, value=value,
+            key=key,
+            value=value,
             on_change=self.on_changed,
-            on_delete=self.remove_header_row
+            on_delete=self.remove_header_row,
         )
         self.headers_group.add(row)
         self.header_rows.append(row)
@@ -405,12 +451,13 @@ class LayerRow(Adw.ExpanderRow):
         self.add_override_row()
         self.on_changed()
 
-    def add_override_row(self, pattern='', host=''):
+    def add_override_row(self, pattern="", host=""):
         """Adds an override entry row."""
         row = OverrideRow(
-            pattern=pattern, host=host,
+            pattern=pattern,
+            host=host,
             on_change=self.on_changed,
-            on_delete=self.remove_override_row
+            on_delete=self.remove_override_row,
         )
         self.overrides_group.add(row)
         self.override_rows.append(row)
@@ -426,12 +473,12 @@ class LayerRow(Adw.ExpanderRow):
         self.add_path_match_row()
         self.on_changed()
 
-    def add_path_match_row(self, pattern=''):
+    def add_path_match_row(self, pattern=""):
         """Adds a path match entry row."""
         row = PathMatchRow(
             pattern=pattern,
             on_change=self.on_changed,
-            on_delete=self.remove_path_match_row
+            on_delete=self.remove_path_match_row,
         )
         self.path_match_group.add(row)
         self.path_match_rows.append(row)
@@ -452,7 +499,7 @@ class LayerRow(Adw.ExpanderRow):
         row = OriginRuleRow(
             origin_data=origin_data,
             on_change=self.on_changed,
-            on_delete=self.remove_origin_rule_row
+            on_delete=self.remove_origin_rule_row,
         )
         self.routing_rules_group.add(row)
         self.origin_rule_rows.append(row)
@@ -481,63 +528,66 @@ class LayerRow(Adw.ExpanderRow):
             selected_provider = "Unknown"
 
         data = {
-            'layer_type': selected_type,
-            'provider': selected_provider,
-            'name': self.name_row.get_text(),
-            'description': self.desc_row.get_text(),
-            'host_url': self.url_row.get_text(),
-            'default_backend_host': self.default_backend_host_row.get_text(),
-            'default_backend_host_header':
-                self.default_backend_header_row.get_text(),
-            'header_color': self.header_color_button.get_rgba().to_string(),
-            'body_color': self.body_color_button.get_rgba().to_string(),
-            'text_color': self.text_color_button.get_rgba().to_string(),
-            'added_text_color':
-                self.added_text_color_button.get_rgba().to_string(),
-            'removed_text_color':
-                self.removed_text_color_button.get_rgba().to_string(),
-            'modified_text_color':
-                self.modified_text_color_button.get_rgba().to_string(),
-            'custom_headers': {},
-            'host_overrides': [],
-            'path_match_only': [],
-            'routing_rules': []
+            "layer_type": selected_type,
+            "provider": selected_provider,
+            "name": self.name_row.get_text(),
+            "description": self.desc_row.get_text(),
+            "host_url": self.url_row.get_text(),
+            "default_backend_host": self.default_backend_host_row.get_text(),
+            "default_backend_host_header": self.default_backend_header_row.get_text(),
+            "header_color": self.header_color_button.get_rgba().to_string(),
+            "body_color": self.body_color_button.get_rgba().to_string(),
+            "text_color": self.text_color_button.get_rgba().to_string(),
+            "added_text_color": self.added_text_color_button.get_rgba().to_string(),
+            "removed_text_color": self.removed_text_color_button.get_rgba().to_string(),
+            "modified_text_color": self.modified_text_color_button.get_rgba().to_string(),
+            "custom_headers": {},
+            "host_overrides": [],
+            "path_match_only": [],
+            "routing_rules": [],
         }
 
         for row in self.header_rows:
             k, v = row.get_texts()
             if k:
-                data['custom_headers'][k] = v
+                data["custom_headers"][k] = v
 
         for row in self.override_rows:
             p, h = row.get_texts()
             if p and h:
-                data['host_overrides'].append({'path_pattern': p, 'host_header': h})
+                data["host_overrides"].append(
+                    {"path_pattern": p, "host_header": h}
+                )
 
         for row in self.path_match_rows:
-            p, = row.get_texts()
+            (p,) = row.get_texts()
             if p:
-                data['path_match_only'].append(p)
+                data["path_match_only"].append(p)
 
         # Flatten routing rules from backend rows
         for origin_row in self.origin_rule_rows:
             origin_data = origin_row.get_data()
-            if origin_data['backend_host']:
-                for path_match in origin_data['path_matches']:
-                    data['routing_rules'].append({
-                        'path_match': path_match,
-                        'backend_host': origin_data['backend_host'],
-                        'backend_host_header': origin_data['backend_host_header'],
-                        'path_rewrite': origin_data['path_rewrite']
-                    })
+            if origin_data["backend_host"]:
+                for path_match in origin_data["path_matches"]:
+                    data["routing_rules"].append(
+                        {
+                            "path_match": path_match,
+                            "backend_host": origin_data["backend_host"],
+                            "backend_host_header": origin_data[
+                                "backend_host_header"
+                            ],
+                            "path_rewrite": origin_data["path_rewrite"],
+                        }
+                    )
 
         return data
 
 
-@Gtk.Template(filename='src/ui/origin_rule_row.ui')
+@Gtk.Template(filename="src/ui/origin_rule_row.ui")
 class OriginRuleRow(ConfigRowMixin, Adw.ExpanderRow):
     """Row for editing a backend destination and its associated path matches."""
-    __gtype_name__ = 'OriginRuleRow'
+
+    __gtype_name__ = "OriginRuleRow"
 
     host_entry = Gtk.Template.Child()
     host_header_entry = Gtk.Template.Child()
@@ -546,17 +596,19 @@ class OriginRuleRow(ConfigRowMixin, Adw.ExpanderRow):
     add_path_btn = Gtk.Template.Child()
     delete_btn = Gtk.Template.Child()
 
-    def __init__(self, origin_data=None, on_change=None, on_delete=None, **kwargs):
+    def __init__(
+        self, origin_data=None, on_change=None, on_delete=None, **kwargs
+    ):
         super().__init__(**kwargs)
         self.setup_mixin(on_change, on_delete)
         self._loading = True
 
         self.path_match_rows = []
 
-        self.host_entry.connect('changed', self.on_backend_host_changed)
-        self.host_header_entry.connect('changed', self.notify_change)
-        self.rewrite_entry.connect('changed', self.notify_change)
-        self.add_path_btn.connect('clicked', self.on_add_path_clicked)
+        self.host_entry.connect("changed", self.on_backend_host_changed)
+        self.host_header_entry.connect("changed", self.notify_change)
+        self.rewrite_entry.connect("changed", self.notify_change)
+        self.add_path_btn.connect("clicked", self.on_add_path_clicked)
 
         if origin_data:
             self.load_data(origin_data)
@@ -574,12 +626,12 @@ class OriginRuleRow(ConfigRowMixin, Adw.ExpanderRow):
 
     def load_data(self, data):
         """Loads backend data into the UI."""
-        self.host_entry.set_text(data.get('backend_host', ''))
-        self.host_header_entry.set_text(data.get('backend_host_header', ''))
-        self.rewrite_entry.set_text(data.get('path_rewrite', ''))
-        self.on_backend_host_changed(self.host_entry) # Update title
+        self.host_entry.set_text(data.get("backend_host", ""))
+        self.host_header_entry.set_text(data.get("backend_host_header", ""))
+        self.rewrite_entry.set_text(data.get("path_rewrite", ""))
+        self.on_backend_host_changed(self.host_entry)  # Update title
 
-        for path in data.get('path_matches', []):
+        for path in data.get("path_matches", []):
             self.add_path_match_row(pattern=path)
 
         self.update_subtitle()
@@ -589,12 +641,12 @@ class OriginRuleRow(ConfigRowMixin, Adw.ExpanderRow):
         self.add_path_match_row()
         self.notify_change()
 
-    def add_path_match_row(self, pattern=''):
+    def add_path_match_row(self, pattern=""):
         """Adds a path match entry row."""
         row = PathMatchRow(
             pattern=pattern,
             on_change=self.notify_change,
-            on_delete=self.remove_path_match_row
+            on_delete=self.remove_path_match_row,
         )
         self.path_match_group.add(row)
         self.path_match_rows.append(row)
@@ -615,8 +667,12 @@ class OriginRuleRow(ConfigRowMixin, Adw.ExpanderRow):
     def get_data(self):
         """Returns the backend and path data."""
         return {
-            'backend_host': self.host_entry.get_text(),
-            'backend_host_header': self.host_header_entry.get_text(),
-            'path_rewrite': self.rewrite_entry.get_text(),
-            'path_matches': [row.get_texts()[0] for row in self.path_match_rows if row.get_texts()[0]]
+            "backend_host": self.host_entry.get_text(),
+            "backend_host_header": self.host_header_entry.get_text(),
+            "path_rewrite": self.rewrite_entry.get_text(),
+            "path_matches": [
+                row.get_texts()[0]
+                for row in self.path_match_rows
+                if row.get_texts()[0]
+            ],
         }
