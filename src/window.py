@@ -111,9 +111,9 @@ class Window(Adw.ApplicationWindow):
         upstream_layer = node_data.upstream_layer
 
         dialog = HeaderAnalysisDialog(current_layer,
-                                      upstream_layer,
-                                      transient_for=parent_win,
-                                      modal=True)
+                                      upstream_layer)
+        dialog.set_transient_for(parent_win)
+        dialog.set_modal(True)
         dialog.present()
 
     def setup_actions(self):
