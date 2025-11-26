@@ -33,9 +33,10 @@ class HeaderDialog(Adw.Dialog):
         'analyze-clicked': (GObject.SignalFlags.RUN_FIRST, None, ()),
     }
 
-    def __init__(self, headers, heading=None, **kwargs):
+    def __init__(self, headers, heading=None, node_data=None, **kwargs):
         super().__init__(**kwargs)
         self._clipboard_provider = None
+        self.node_data = node_data
 
         self.analyze_button.connect('clicked', self._on_analyze_clicked)
 
@@ -45,18 +46,18 @@ class HeaderDialog(Adw.Dialog):
         self.model = Gio.ListStore(item_type=HeaderItem)
         headers_to_split = ['x-akamai-session-info', 'content-security-policy']
 
-        for header, value, is_diff, note in headers:
+        for header, value, change_type, note in headers:
             if header.lower() in headers_to_split and ';' in value:
                 parts = [p.strip() for p in value.split(';') if p.strip()]
                 if not parts:
-                    self.model.append(HeaderItem(header, '', is_diff, note))
+                    self.model.append(HeaderItem(header, '', change_type, note))
                     continue
-                self.model.append(HeaderItem(header, parts[0] + ';', is_diff, note))
+                self.model.append(HeaderItem(header, parts[0] + ';', change_type, note))
                 for part in parts[1:]:
                     val_str = part + (';' if not part == parts[-1] else '')
-                    self.model.append(HeaderItem('', val_str, is_diff, ""))
+                    self.model.append(HeaderItem('', val_str, change_type, ""))
             else:
-                self.model.append(HeaderItem(header, value, is_diff, note))
+                self.model.append(HeaderItem(header, value, change_type, note))
 
         self.filter = Gtk.CustomFilter.new(self._filter_func)
         self.filter_model = Gtk.FilterListModel(model=self.model, filter=self.filter)
@@ -130,16 +131,27 @@ class HeaderDialog(Adw.Dialog):
         label.set_text(header_item.value)
 
         attrs = Pango.AttrList()
-        if header_item.is_diff:
-            attrs.insert(Pango.attr_weight_new(Pango.Weight.BOLD))
+        change_type = header_item.change_type
 
-            r, g, b, _ = get_accent_color()
-            r_val = int(r * 65535)
-            g_val = int(g * 65535)
-            b_val = int(b * 65535)
-            attrs.insert(Pango.attr_foreground_new(r_val, g_val, b_val))
+        color = None
+        if self.node_data:
+            if change_type == 'ADDED':
+                color = self.node_data.added_text_color
+            elif change_type == 'REMOVED':
+                color = self.node_data.removed_text_color
+            elif change_type == 'MODIFIED':
+                color = self.node_data.modified_text_color
+
+        if color:
+            rgba = Gdk.RGBA()
+            rgba.parse(color)
+            attrs.insert(Pango.attr_foreground_new(int(rgba.red * 65535), int(rgba.green * 65535), int(rgba.blue * 65535)))
+
+        if change_type in ['ADDED', 'REMOVED', 'MODIFIED']:
+            attrs.insert(Pango.attr_weight_new(Pango.Weight.BOLD))
         else:
             attrs.insert(Pango.attr_weight_new(Pango.Weight.NORMAL))
+
         label.set_attributes(attrs)
 
     def _on_factory_setup_note(self, _factory, item):

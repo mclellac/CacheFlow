@@ -66,13 +66,13 @@ class InspectionController:
             )
 
             # Convert the analysis report into the 4-tuple format required by NodeData.
-            # An item is a diff if its change_type is not 'UNCHANGED'.
+            # The change_type string is now passed directly.
             formatted_headers = [
                 (
                     item.key,
                     item.value,
-                    item.change_type != 'UNCHANGED',
-                    item.description  # Use the detailed description as the note.
+                    item.change_type,
+                    item.description
                 )
                 for item in report.items
             ]

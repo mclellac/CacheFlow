@@ -21,9 +21,9 @@ class HeaderItem(GObject.Object):
     """
     __gtype_name__ = 'HeaderItem'
 
-    def __init__(self, key, value, is_diff, note=""):
+    def __init__(self, key, value, change_type, note=""):
         super().__init__()
         self.key = key
         self.value = value
-        self.is_diff = is_diff
+        self.change_type = change_type
         self.note = note

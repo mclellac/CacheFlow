@@ -203,13 +203,21 @@ class GraphRenderer:
         layout.set_width((w - 2 * PADDING) * Pango.SCALE)
         layout.set_ellipsize(Pango.EllipsizeMode.END)
 
-        for header, value, is_diff, _ in node["data"].headers:
-            if is_diff:
-                color = get_color(node['data'].diff_text_color, is_dark,
-                                  (0, 0.5, 0, 1), (0.5, 1.0, 0.5, 1))
-            else:
+        for header, value, change_type, _ in node["data"].headers:
+            color = (0.1, 0.1, 0.1, 1)
+
+            if change_type == 'UNCHANGED':
                 color = get_color(node['data'].text_color, is_dark,
                                   (0.1, 0.1, 0.1, 1), (0.9, 0.9, 0.9, 1))
+            elif change_type == 'ADDED':
+                color = get_color(node['data'].added_text_color, is_dark,
+                                  (0, 0.5, 0, 1), (0.5, 1.0, 0.5, 1))
+            elif change_type == 'REMOVED':
+                color = get_color(node['data'].removed_text_color, is_dark,
+                                  (0.8, 0, 0, 1), (1.0, 0.5, 0.5, 1))
+            elif change_type == 'MODIFIED':
+                color = get_color(node['data'].modified_text_color, is_dark,
+                                  (0.8, 0.5, 0, 1), (1.0, 0.8, 0.5, 1))
 
             cr.set_source_rgba(*color)
 
