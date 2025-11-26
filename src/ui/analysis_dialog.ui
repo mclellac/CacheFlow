@@ -2,7 +2,7 @@
 <interface>
   <requires lib="gtk" version="4.0"/>
   <requires lib="adw" version="1.0"/>
-  <template class="HeaderAnalysisDialog" parent="Adw.Window">
+  <template class="HeaderAnalysisDialog" parent="AdwWindow">
     <property name="title">Header Analysis</property>
     <property name="default-width">800</property>
     <property name="default-height">600</property>

@@ -43,11 +43,32 @@ providers_sources = [
 py_installation.install_sources(python_sources, subdir: 'cacheflow')
 py_installation.install_sources(providers_sources, subdir: 'cacheflow/providers')
 
+ui_files = files([
+  'ui/main.ui',
+  'ui/preferences.ui',
+  'ui/layer_row.ui',
+  'ui/header_row.ui',
+  'ui/override_row.ui',
+  'ui/path_match_row.ui',
+  'ui/origin_rule_row.ui',
+  'ui/domain_match_row.ui',
+  'ui/add_config_dialog.ui',
+  'ui/header_dialog.ui',
+  'ui/analysis_dialog.ui',
+  'ui/shortcuts.ui',
+  'ui/list_item_header.ui',
+  'ui/column_item_label.ui',
+  'ui/varnish_backend_row.ui',
+])
+
 gnome.compile_resources('cacheflow',
   'cacheflow.gresource.xml',
   gresource_bundle: true,
   install: true,
   install_dir: pkgdatadir,
+  source_dir: '.',
+  c_name: 'cacheflow',
+  dependencies: ui_files
 )
 
 cacheflow_conf = configuration_data()

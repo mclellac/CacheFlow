@@ -81,8 +81,8 @@
                 <object class="AdwActionRow" id="config_actions_row">
                     <property name="title">Manage Configurations</property>
                     <property name="activatable">False</property>
-                    <child>
-                      <object class="GtkBox" type="suffix">
+                    <child type="suffix">
+                      <object class="GtkBox">
                         <property name="spacing">6</property>
                         <child>
                           <object class="GtkButton" id="add_config_btn">
