@@ -91,7 +91,8 @@ class ConfigExporter(BaseExporter):
                 # Validate that items are dictionaries (basic check)
                 for item in layers_data:
                     if not isinstance(item, dict):
-                         raise ValueError("Imported list contains non-dictionary items.")
+                        raise ValueError(
+                            "Imported list contains non-dictionary items.")
 
                 log.info("Configuration imported from %s", filepath)
                 on_success(layers_data)

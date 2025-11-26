@@ -74,28 +74,29 @@ class Window(Adw.ApplicationWindow):
         self.settings.set_int('window-height', height)
         return False
 
-    def _on_header_dialog_close(self, dialog):
-        width = dialog.get_content_width()
-        height = dialog.get_content_height()
+    def _on_header_window_close(self, win):
+        width, height = win.get_default_size()
         self.settings.set_int('header-dialog-width', width)
         self.settings.set_int('header-dialog-height', height)
 
     def _on_node_double_clicked(self, _, node):
-        dialog = HeaderDialog(
+        win = HeaderDialog(
             headers=node.get_property('headers'),
             heading=node.get_property('name'),
-            node_data=node
+            node_data=node,
+            application=self.get_application()
         )
         width = self.settings.get_int('header-dialog-width')
         height = self.settings.get_int('header-dialog-height')
         if width > 0 and height > 0:
-            dialog.set_content_width(width)
-            dialog.set_content_height(height)
-        dialog.connect('closed', self._on_header_dialog_close)
-        dialog.connect('analyze-clicked', lambda d: self._on_analyze_requested(node))
-        dialog.present(self)
+            win.set_default_size(width, height)
 
-    def _on_analyze_requested(self, node_data):
+        win.connect('close-request', self._on_header_window_close)
+        win.connect('analyze-clicked',
+                    lambda w: self._on_analyze_requested(node, w))
+        win.present()
+
+    def _on_analyze_requested(self, node_data, parent_win):
         # Extract current layer dict
         current_layer = {
             'name': node_data.name,
@@ -107,7 +108,9 @@ class Window(Adw.ApplicationWindow):
 
         # pylint: disable=import-outside-toplevel
         from .analysis_dialog import HeaderAnalysisDialog
-        dialog = HeaderAnalysisDialog(current_layer, upstream_layer)
+        dialog = HeaderAnalysisDialog(current_layer,
+                                      upstream_layer,
+                                      transient_for=parent_win)
         dialog.present()
 
     def setup_actions(self):

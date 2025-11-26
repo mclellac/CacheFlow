@@ -4,7 +4,7 @@ and configuration management via GSettings.
 """
 
 import logging
-from gi.repository import Gtk, Adw, Gio, GObject, Gdk
+from gi.repository import Gtk, Adw, Gio, GObject, Gdk, GLib
 
 from .layer_widgets import LayerRow
 from .exporters import ConfigExporter
@@ -237,13 +237,11 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self._layer_rows.append(row)
         self.layers_group.add(row)
 
-    def on_details_changed(self, *_args):
+    def on_details_changed(self, *_):
         """Callback when domain details change."""
         if self._loading or not self.current_config_id:
             return
 
-        # Update name in list if changed
-        new_name = self.domain_name_row.get_text()
         # We can try to update the GtkStringList but it's easier to wait for refresh or save.
         self.save_current_config()
 

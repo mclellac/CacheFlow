@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 
 
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/analysis_dialog.ui')
-class HeaderAnalysisDialog(Adw.Window):
+class HeaderAnalysisDialog(Adw.Dialog):
     """
     Dialog to display header analysis.
     """
@@ -31,8 +31,13 @@ class HeaderAnalysisDialog(Adw.Window):
         self.model = Gio.ListStore(item_type=AnalysisWrapper)
         self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
 
-        self._restore_size()
-        self.connect('close-request', self._on_close_request)
+        width = self.settings.get_int('analyzer-width')
+        height = self.settings.get_int('analyzer-height')
+        if width > 0 and height > 0:
+            self.set_content_width(width)
+            self.set_content_height(height)
+
+        self.connect('closed', self._on_closed)
 
         # Run analysis
         report = self.analyzer.analyze_layer(current_layer, upstream_layer)
@@ -52,15 +57,8 @@ class HeaderAnalysisDialog(Adw.Window):
         factory = create_header_list_factory(is_analysis=True)
         self.list_view.set_factory(factory)
 
-    def _restore_size(self):
-        w = self.settings.get_int('analyzer-width')
-        h = self.settings.get_int('analyzer-height')
-        if w > 0 and h > 0:
-            self.set_default_size(w, h)
-
-    def _on_close_request(self, _win):
-        w = self.get_width()
-        h = self.get_height()
-        self.settings.set_int('analyzer-width', w)
-        self.settings.set_int('analyzer-height', h)
-        return False
+    def _on_closed(self, _dialog):
+        width = self.get_content_width()
+        height = self.get_content_height()
+        self.settings.set_int('analyzer-width', width)
+        self.settings.set_int('analyzer-height', height)

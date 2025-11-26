@@ -5,7 +5,6 @@ HTTP requests across the configured infrastructure layers.
 
 import logging
 import fnmatch
-import re
 import warnings
 from typing import List, Dict, Optional, Tuple, Any, NamedTuple
 from urllib.parse import urlparse
@@ -84,11 +83,16 @@ class CacheFlowEngine:
                 dns.resolver.Timeout) as e:
             log.error("Custom DNS resolution failed for %s: %s", hostname, e)
             return hostname, e
+        return hostname, None
 
-    def _process_layer_dynamic(self, layer_config: Dict[str, Any],
-                               target_base: str, target_path: str,
-                               target_host_header: Optional[str],
-                               user_agent: str) -> Tuple[Dict[str, Any], str, str, Optional[str]]:
+    def _process_layer_dynamic(
+            self,
+            layer_config: Dict[str, Any],
+            target_base: str,
+            target_path: str,
+            target_host_header: Optional[str],
+            user_agent: str
+    ) -> Tuple[Dict[str, Any], str, str, Optional[str]]:
         """
         Processes a layer and determines the next hop.
         Returns (Result, NextBase, NextPath, NextHostHeader)
@@ -101,9 +105,8 @@ class CacheFlowEngine:
 
         result = self._process_layer(exec_layer, target_path, user_agent)
 
-        next_base, next_path, next_host_header = RouteCalculator.calculate_next_hop(
-            layer_config, target_path
-        )
+        next_base, next_path, next_host_header = \
+            RouteCalculator.calculate_next_hop(layer_config, target_path)
 
         return result, next_base, next_path, next_host_header
 
@@ -123,9 +126,11 @@ class CacheFlowEngine:
             return []
 
         results = []
-        entry_point = self.config.get('entry_point') or layers_config[0].get('host_url', 'localhost')
+        entry_point = self.config.get('entry_point') or \
+                      layers_config[0].get('host_url', 'localhost')
 
-        parsed_entry = urlparse(f'https://{entry_point}' if '://' not in entry_point else entry_point)
+        parsed_entry = urlparse(f'https://{entry_point}'
+                                if '://' not in entry_point else entry_point)
         current_base = f'{parsed_entry.scheme}://{parsed_entry.netloc}'
         current_path = test_path
         current_host_header = None
@@ -135,8 +140,7 @@ class CacheFlowEngine:
             layer = layers_config[processed_layers]
 
             result, next_base, next_path, next_hh = self._process_layer_dynamic(
-                layer, current_base, current_path, current_host_header, user_agent
-            )
+                layer, current_base, current_path, current_host_header, user_agent)
             results.append(result)
 
             is_last_layer = processed_layers == len(layers_config) - 1
@@ -147,7 +151,8 @@ class CacheFlowEngine:
                 current_host_header = next_hh
 
                 if is_last_layer:
-                    # If the last configured layer points to another backend, add a dynamic layer to represent it
+                    # If the last configured layer points to another backend,
+                    # add a dynamic layer to represent it
                     dynamic_layer = {
                         'name': 'Backend',
                         'description': 'Dynamically routed backend',
@@ -158,18 +163,23 @@ class CacheFlowEngine:
                     layers_config.append(dynamic_layer)
 
             elif not is_last_layer:
-                # If there's no next hop but more layers are configured, try to fall back to the next layer's URL
-                log.warning("Layer '%s' did not define a next hop. Falling back to next layer's host.", layer['name'])
+                # If there's no next hop but more layers are configured,
+                # try to fall back to the next layer's URL
+                log.warning("Layer '%s' did not define a next hop. "
+                            "Falling back to next layer's host.", layer['name'])
                 next_layer = layers_config[processed_layers + 1]
                 fallback_url = next_layer.get('host_url')
                 if fallback_url:
-                    parsed_fallback = urlparse(f'https://{fallback_url}' if '://' not in fallback_url else fallback_url)
+                    parsed_fallback = urlparse(
+                        f'https://{fallback_url}'
+                        if '://' not in fallback_url else fallback_url)
                     current_base = f'{parsed_fallback.scheme}://{parsed_fallback.netloc}'
-                    current_path = test_path # Reset path on fallback? Maybe not. Let's keep it.
+                    current_path = test_path
                     current_host_header = None
                 else:
-                    log.error("Next layer '%s' has no host_url to fall back to. Stopping inspection.", next_layer['name'])
-                    break # Stop processing
+                    log.error("Next layer '%s' has no host_url to fall back to. "
+                              "Stopping inspection.", next_layer['name'])
+                    break  # Stop processing
             else:
                 # Last layer and no next hop, we're done.
                 break
@@ -267,10 +277,14 @@ class CacheFlowEngine:
 
         try:
             response = self.session.get(
-                params.url, headers=params.headers, timeout=10,
-                allow_redirects=False, verify=self.verify_ssl
+                params.url,
+                headers=params.headers,
+                timeout=10,
+                allow_redirects=False,
+                verify=self.verify_ssl
             )
-            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+            # Raise HTTPError for bad responses (4xx or 5xx)
+            response.raise_for_status()
 
             layer_result.update({
                 'status_code': response.status_code,
@@ -281,19 +295,23 @@ class CacheFlowEngine:
         except requests.exceptions.SSLError as e:
             self._handle_error(layer_result, ERR_SSL, e, 'ssl')
         except requests.exceptions.Timeout as e:
-            self._handle_error(layer_result, ERR_TIMEOUT.format(params.target_ip), e, 'timeout')
+            msg = ERR_TIMEOUT.format(params.target_ip)
+            self._handle_error(layer_result, msg, e, 'timeout')
         except requests.exceptions.ConnectionError as e:
-            self._handle_error(layer_result, ERR_CONNECTION.format(params.target_ip), e, 'connection')
+            msg = ERR_CONNECTION.format(params.target_ip)
+            self._handle_error(layer_result, msg, e, 'connection')
         except requests.exceptions.HTTPError as e:
             # For 4xx/5xx errors, we still want to record the response
             layer_result.update({
                 'status_code': e.response.status_code,
                 'headers': dict(e.response.headers)
             })
-            self._handle_error(layer_result, f"HTTP Error: {e.response.status_code}", e, 'http_error')
+            msg = f"HTTP Error: {e.response.status_code}"
+            self._handle_error(layer_result, msg, e, 'http_error')
         except requests.exceptions.RequestException as e:
             # Catch any other `requests` specific exceptions
-            self._handle_error(layer_result, f"Request Error: {e}", e, 'request_error')
+            self._handle_error(layer_result, f"Request Error: {e}", e,
+                               'request_error')
 
         return layer_result
 

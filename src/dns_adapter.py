@@ -92,6 +92,7 @@ class DNSAdapter(HTTPAdapter):
     """
     def __init__(self, dns_map=None, **kwargs):
         self.dns_map = dns_map or {}
+        self.poolmanager = None
         super().__init__(**kwargs)
 
     def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
