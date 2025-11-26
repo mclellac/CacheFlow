@@ -29,6 +29,11 @@
         <property name="title">Host Header</property>
       </object>
     </child>
+    <child>
+      <object class="AdwEntryRow" id="rewrite_entry">
+        <property name="title">Path Rewrite</property>
+      </object>
+    </child>
 
     <child>
       <object class="AdwPreferencesGroup" id="path_match_group">
