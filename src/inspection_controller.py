@@ -53,23 +53,27 @@ class InspectionController:
         upstream_layer_for_analysis = None  # Stores the dict format for the analyzer
 
         for result in results:
-            node_data = NodeData(**result)
+            raw_headers = result.get('headers', {})
 
             if upstream_layer_for_analysis:
-                # Compare with the previous layer to get diff-annotated headers.
-                formatted_headers = self.analyzer.compare_headers(
-                    upstream_layer_for_analysis,
-                    {'name': node_kwargs.get('name'), 'headers': raw_headers}
+                # Analyze the current layer against the upstream layer.
+                report = self.analyzer.analyze_layer(
+                    current_layer=result,
+                    upstream_layer=upstream_layer_for_analysis
                 )
-                node_kwargs['upstream_layer'] = upstream_layer_for_analysis
+                # Transform the report into the flat tuple format the UI expects.
+                formatted_headers = [
+                    (item.key, item.value, (item.change_type != 'UNCHANGED'), item.warning)
+                    for item in report.items
+                ]
+                result['upstream_layer'] = upstream_layer_for_analysis
             else:
                 # First layer: just convert the raw dict to the standard tuple format.
                 formatted_headers = [(k, v, False, '') for k, v in raw_headers.items()]
 
-            # Create the NodeData object with correctly formatted headers.
-            node_data = NodeData(name=node_kwargs.pop('name', 'Unnamed'),
-                                 headers=formatted_headers,
-                                 **node_kwargs)
+            # Update the result with the processed headers before creating NodeData.
+            result['headers'] = formatted_headers
+            node_data = NodeData(**result)
             processed_nodes.append(node_data)
 
             # Prepare the upstream layer for the next iteration's analysis.
