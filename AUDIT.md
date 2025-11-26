@@ -4,14 +4,14 @@ This document tracks the audit and refactoring process for the CacheFlow project
 
 ## High-Level Goals
 
-- [ ] Separate concerns and organize code better.
-- [ ] Reduce the size of large files.
-- [ ] Ensure code is consistent and simple.
-- [ ] Reduce code complexity and duplication.
-- [ ] Increase debugging, error handling, and stability.
-- [ ] Ensure all code adheres to `AGENTS.md` and Adwaita/GNOME HIG.
-- [ ] Ensure all `Gtk.Button` widgets use `Adw.ButtonContent`.
-- [ ] Identify and remove dead code.
+- [x] Separate concerns and organize code better.
+- [x] Reduce the size of large files.
+- [x] Ensure code is consistent and simple.
+- [x] Reduce code complexity and duplication.
+- [x] Increase debugging, error handling, and stability.
+- [x] Ensure all code adheres to `AGENTS.md` and Adwaita/GNOME HIG.
+- [x] Ensure all `Gtk.Button` widgets use `Adw.ButtonContent`.
+- [x] Identify and remove dead code.
 
 ## File-Specific Audit Items
 
@@ -30,11 +30,13 @@ This document tracks the audit and refactoring process for the CacheFlow project
 - [x] **Complexity:** The main request-handling loop is simplified.
 
 ### `src/node_graph.py`
-- [ ] **Complexity:** The drawing and event handling logic is complex and hard to follow.
+- [x] **Complexity:** The drawing and event handling logic is complex and hard to follow.
+- **Note:** Refactored into `graph_utils.py`, `graph_renderer.py`, and `graph_gestures.py`.
 
 ### `src/layer_widgets.py`
-- [ ] **Duplication:** There may be duplicated code between the different `*Row` widgets.
+- [x] **Duplication:** There may be duplicated code between the different `*Row` widgets.
+- **Note:** Created a `BaseEntryRow` class to reduce duplication.
 
 ## UI and Adwaita Compliance
-- [ ] Review all `.ui` files to ensure they follow Adwaita and GNOME HIG.
-- [ ] Replace any remaining `Gtk.Button` instances that don't use `Adw.ButtonContent`.
+- [x] Review all `.ui` files to ensure they follow Adwaita and GNOME HIG.
+- [x] Replace any remaining `Gtk.Button` instances that don't use `Adw.ButtonContent`.

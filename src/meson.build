@@ -23,6 +23,9 @@ python_sources = [
   'routing.py',
   'models.py',
   'config_manager.py',
+  'graph_utils.py',
+  'graph_renderer.py',
+  'graph_gestures.py',
 ]
 
 providers_sources = [
