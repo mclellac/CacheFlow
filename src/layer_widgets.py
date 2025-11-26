@@ -112,7 +112,6 @@ class LayerRow(Adw.ExpanderRow):
     body_color_button = Gtk.Template.Child()
 
     text_color_button = Gtk.Template.Child()
-    unchanged_text_color_button = Gtk.Template.Child()
     added_text_color_button = Gtk.Template.Child()
     removed_text_color_button = Gtk.Template.Child()
     modified_text_color_button = Gtk.Template.Child()
@@ -172,7 +171,6 @@ class LayerRow(Adw.ExpanderRow):
         self.header_color_button.connect('color-set', self.on_changed)
         self.body_color_button.connect('color-set', self.on_changed)
         self.text_color_button.connect('color-set', self.on_changed)
-        self.unchanged_text_color_button.connect('color-set', self.on_changed)
         self.added_text_color_button.connect('color-set', self.on_changed)
         self.removed_text_color_button.connect('color-set', self.on_changed)
         self.modified_text_color_button.connect('color-set', self.on_changed)
@@ -190,7 +188,7 @@ class LayerRow(Adw.ExpanderRow):
             self.on_type_changed(None, None)
 
         for button in [self.header_color_button, self.body_color_button,
-                       self.text_color_button, self.unchanged_text_color_button,
+                       self.text_color_button,
                        self.added_text_color_button, self.removed_text_color_button,
                        self.modified_text_color_button]:
             if not button.get_rgba():
@@ -317,7 +315,6 @@ class LayerRow(Adw.ExpanderRow):
             'header_color': self.header_color_button,
             'body_color': self.body_color_button,
             'text_color': self.text_color_button,
-            'unchanged_text_color': self.unchanged_text_color_button,
             'added_text_color': self.added_text_color_button,
             'removed_text_color': self.removed_text_color_button,
             'modified_text_color': self.modified_text_color_button,
@@ -495,8 +492,6 @@ class LayerRow(Adw.ExpanderRow):
             'header_color': self.header_color_button.get_rgba().to_string(),
             'body_color': self.body_color_button.get_rgba().to_string(),
             'text_color': self.text_color_button.get_rgba().to_string(),
-            'unchanged_text_color':
-                self.unchanged_text_color_button.get_rgba().to_string(),
             'added_text_color':
                 self.added_text_color_button.get_rgba().to_string(),
             'removed_text_color':

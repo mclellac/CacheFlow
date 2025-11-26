@@ -70,19 +70,9 @@
     </child>
     <child>
       <object class="AdwActionRow" id="text_color_row">
-        <property name="title">Text Color</property>
+        <property name="title">Default Text Color</property>
         <child type="suffix">
           <object class="GtkColorButton" id="text_color_button">
-            <property name="valign">center</property>
-          </object>
-        </child>
-      </object>
-    </child>
-    <child>
-      <object class="AdwActionRow" id="unchanged_text_color_row">
-        <property name="title">Unchanged Text Color</property>
-        <child type="suffix">
-          <object class="GtkColorButton" id="unchanged_text_color_button">
             <property name="valign">center</property>
           </object>
         </child>
