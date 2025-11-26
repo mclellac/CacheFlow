@@ -5,7 +5,7 @@
   <template class="HeaderDialog" parent="AdwDialog">
     <property name="content-width">800</property>
     <property name="content-height">600</property>
-    <property name="title-widget">
+    <child type="title">
       <object class="AdwHeaderBar">
         <child type="title">
           <object class="AdwWindowTitle" id="window_title">
@@ -25,7 +25,7 @@
           </object>
         </child>
       </object>
-    </property>
+    </child>
     <property name="content">
       <object class="GtkScrolledWindow">
         <property name="hscrollbar-policy">never</property>
