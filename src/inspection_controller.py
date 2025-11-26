@@ -50,31 +50,34 @@ class InspectionController:
         including header analysis.
         """
         processed_nodes = []
-        upstream_layer = None
+        upstream_layer_for_analysis = None  # Stores the dict format for the analyzer
 
         for result in results:
-            node_data = NodeData.from_dict(result)
+            # Pop the raw headers dict; the rest of the result becomes kwargs for NodeData.
+            raw_headers = result.pop('headers', {})
+            node_kwargs = result
 
-            if upstream_layer:
-                # Compare current layer with the immediate upstream layer
-                comparison_results = self.analyzer.compare_headers(
-                    upstream_layer,
-                    {
-                        'name': node_data.name,
-                        'headers': {k: v for k, v, _, _ in node_data.headers}
-                    }
+            if upstream_layer_for_analysis:
+                # Compare with the previous layer to get diff-annotated headers.
+                formatted_headers = self.analyzer.compare_headers(
+                    upstream_layer_for_analysis,
+                    {'name': node_kwargs.get('name'), 'headers': raw_headers}
                 )
-                # Update headers in node_data with notes from the analysis
-                node_data.headers = comparison_results
-                node_data.upstream_layer = upstream_layer
+                node_kwargs['upstream_layer'] = upstream_layer_for_analysis
+            else:
+                # First layer: just convert the raw dict to the standard tuple format.
+                formatted_headers = [(k, v, False, '') for k, v in raw_headers.items()]
 
+            # Create the NodeData object with correctly formatted headers.
+            node_data = NodeData(name=node_kwargs.pop('name', 'Unnamed'),
+                                 headers=formatted_headers,
+                                 **node_kwargs)
             processed_nodes.append(node_data)
 
-            # Update upstream_layer for the next iteration
-            # Convert NodeData back to a dict format expected by analyzer
-            upstream_layer = {
+            # Prepare the upstream layer for the next iteration's analysis.
+            upstream_layer_for_analysis = {
                 'name': node_data.name,
-                'headers': {k: v for k, v, _, _ in node_data.headers}
+                'headers': raw_headers  # Use original raw headers for the next comparison.
             }
 
         return processed_nodes
