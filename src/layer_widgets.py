@@ -190,7 +190,9 @@ class LayerRow(Adw.ExpanderRow):
             self.on_type_changed(None, None)
 
         for button in [self.header_color_button, self.body_color_button,
-                       self.text_color_button, self.diff_text_color_button]:
+                       self.text_color_button, self.unchanged_text_color_button,
+                       self.added_text_color_button, self.removed_text_color_button,
+                       self.modified_text_color_button]:
             if not button.get_rgba():
                 button.set_rgba(Gdk.RGBA(0, 0, 0, 0))
 
