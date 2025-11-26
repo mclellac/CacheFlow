@@ -83,7 +83,8 @@ class Window(Adw.ApplicationWindow):
     def _on_node_double_clicked(self, _, node):
         dialog = HeaderDialog(
             headers=node.get_property('headers'),
-            heading=node.get_property('name')
+            heading=node.get_property('name'),
+            node_data=node
         )
         width = self.settings.get_int('header-dialog-width')
         height = self.settings.get_int('header-dialog-height')
