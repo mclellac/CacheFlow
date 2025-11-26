@@ -3,7 +3,7 @@ This module defines custom widgets used in the Layer configuration UI,
 including the LayerRow for editing layer details.
 """
 
-from gi.repository import Gtk, Adw, Gdk, GObject
+from gi.repository import Gtk, Adw, Gdk
 from .providers.base import ProviderType
 from .providers import get_providers_by_type
 
@@ -16,7 +16,6 @@ class ConfigRowMixin:
         self.on_change = on_change
         self.on_delete = on_delete
 
-        # Connect delete button if it exists (template child)
         if hasattr(self, 'delete_btn'):
             self.delete_btn.connect('clicked', self.on_delete_clicked)
 
@@ -31,8 +30,27 @@ class ConfigRowMixin:
             self.on_delete(self)
 
 
+class BaseEntryRow(ConfigRowMixin, Adw.PreferencesRow):
+    """Base class for rows with text entries."""
+
+    def __init__(self, on_change=None, on_delete=None, **kwargs):
+        super().__init__(**kwargs)
+        self.setup_mixin(on_change, on_delete)
+        self.entries = []
+
+    def setup_entries(self, texts):
+        """Sets up the entries with initial texts and connects change signals."""
+        for entry, text in zip(self.entries, texts):
+            entry.set_text(text)
+            entry.connect('changed', self.notify_change)
+
+    def get_texts(self):
+        """Returns a list of texts from the entries."""
+        return [entry.get_text() for entry in self.entries]
+
+
 @Gtk.Template(filename='src/ui/header_row.ui')
-class HeaderRow(ConfigRowMixin, Adw.PreferencesRow):
+class HeaderRow(BaseEntryRow):
     """Row for editing a single header key-value pair."""
     __gtype_name__ = 'HeaderRow'
 
@@ -41,22 +59,13 @@ class HeaderRow(ConfigRowMixin, Adw.PreferencesRow):
     delete_btn = Gtk.Template.Child()
 
     def __init__(self, key='', value='', on_change=None, on_delete=None, **kwargs):
-        super().__init__(**kwargs)
-        self.setup_mixin(on_change, on_delete)
-
-        self.key_entry.set_text(key)
-        self.val_entry.set_text(value)
-
-        self.key_entry.connect('changed', self.notify_change)
-        self.val_entry.connect('changed', self.notify_change)
-
-    def get_texts(self):
-        """Returns [key, value] list."""
-        return [self.key_entry.get_text(), self.val_entry.get_text()]
+        super().__init__(on_change=on_change, on_delete=on_delete, **kwargs)
+        self.entries = [self.key_entry, self.val_entry]
+        self.setup_entries([key, value])
 
 
 @Gtk.Template(filename='src/ui/override_row.ui')
-class OverrideRow(ConfigRowMixin, Adw.PreferencesRow):
+class OverrideRow(BaseEntryRow):
     """Row for editing a host override."""
     __gtype_name__ = 'OverrideRow'
 
@@ -65,22 +74,13 @@ class OverrideRow(ConfigRowMixin, Adw.PreferencesRow):
     delete_btn = Gtk.Template.Child()
 
     def __init__(self, pattern='', host='', on_change=None, on_delete=None, **kwargs):
-        super().__init__(**kwargs)
-        self.setup_mixin(on_change, on_delete)
-
-        self.pat_entry.set_text(pattern)
-        self.host_entry.set_text(host)
-
-        self.pat_entry.connect('changed', self.notify_change)
-        self.host_entry.connect('changed', self.notify_change)
-
-    def get_texts(self):
-        """Returns [pattern, host] list."""
-        return [self.pat_entry.get_text(), self.host_entry.get_text()]
+        super().__init__(on_change=on_change, on_delete=on_delete, **kwargs)
+        self.entries = [self.pat_entry, self.host_entry]
+        self.setup_entries([pattern, host])
 
 
 @Gtk.Template(filename='src/ui/path_match_row.ui')
-class PathMatchRow(ConfigRowMixin, Adw.PreferencesRow):
+class PathMatchRow(BaseEntryRow):
     """Row for editing a path match pattern."""
     __gtype_name__ = 'PathMatchRow'
 
@@ -88,15 +88,9 @@ class PathMatchRow(ConfigRowMixin, Adw.PreferencesRow):
     delete_btn = Gtk.Template.Child()
 
     def __init__(self, pattern='', on_change=None, on_delete=None, **kwargs):
-        super().__init__(**kwargs)
-        self.setup_mixin(on_change, on_delete)
-
-        self.pat_entry.set_text(pattern)
-        self.pat_entry.connect('changed', self.notify_change)
-
-    def get_texts(self):
-        """Returns [pattern] list."""
-        return [self.pat_entry.get_text()]
+        super().__init__(on_change=on_change, on_delete=on_delete, **kwargs)
+        self.entries = [self.pat_entry]
+        self.setup_entries([pattern])
 
 
 @Gtk.Template(filename='src/ui/layer_row.ui')
@@ -520,7 +514,7 @@ class LayerRow(Adw.ExpanderRow):
         return data
 
 
-@Gtk.Template(filename='src/ui/backend_rule_row.ui')
+@Gtk.Template(filename='src/ui/origin_rule_row.ui')
 class BackendRuleRow(ConfigRowMixin, Adw.ExpanderRow):
     """Row for editing a backend destination and its associated path matches."""
     __gtype_name__ = 'BackendRuleRow'

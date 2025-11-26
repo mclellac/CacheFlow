@@ -41,3 +41,24 @@ class NodeData:
             Any: The value of the property or None if it doesn't exist.
         """
         return getattr(self, name, None)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> 'NodeData':
+        """
+        Create a NodeData instance from a dictionary.
+        """
+        headers = data.get('headers', {})
+        header_list = [(k, v, False, '') for k, v in headers.items()]
+        return cls(
+            name=data.get('name', 'Unknown'),
+            headers=header_list,
+            body_color=data.get('body_color', ''),
+            header_color=data.get('header_color', ''),
+            text_color=data.get('text_color', ''),
+            diff_text_color=data.get('diff_text_color', ''),
+            request_url=data.get('url', ''),
+            request_host=data.get('sent_host_header', ''),
+            request_method=data.get('method', 'GET'),
+            provider=data.get('provider', ''),
+            layer_type=data.get('layer_type', '')
+        )

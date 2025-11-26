@@ -14,12 +14,20 @@
             <property name="show-end-title-buttons">False</property>
             <child type="start">
               <object class="GtkButton" id="cancel_btn">
-                <property name="label">Cancel</property>
+                <child>
+                  <object class="AdwButtonContent">
+                    <property name="label">Cancel</property>
+                  </object>
+                </child>
               </object>
             </child>
             <child type="end">
               <object class="GtkButton" id="add_btn">
-                <property name="label">Add</property>
+                <child>
+                  <object class="AdwButtonContent">
+                    <property name="label">Add</property>
+                  </object>
+                </child>
                 <style>
                   <class name="suggested-action"/>
                 </style>
