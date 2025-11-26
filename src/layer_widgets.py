@@ -32,6 +32,7 @@ class ConfigRowMixin:
 
 class BaseEntryRow(ConfigRowMixin, Adw.PreferencesRow):
     """Base class for rows with text entries."""
+    __gtype_name__ = 'BaseEntryRow'
 
     def __init__(self, on_change=None, on_delete=None, **kwargs):
         super().__init__(**kwargs)
