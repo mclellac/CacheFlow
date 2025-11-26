@@ -33,46 +33,55 @@
       </object>
     </child>
     <child>
-      <object class="GtkStack" id="stack">
+      <object class="GtkScrolledWindow">
+        <property name="hscrollbar-policy">never</property>
+        <property name="vscrollbar-policy">automatic</property>
         <child>
-          <object class="GtkScrolledWindow">
-            <property name="hscrollbar-policy">never</property>
-            <property name="vscrollbar-policy">automatic</property>
-            <child>
-              <object class="GtkColumnView" id="column_view">
-                <property name="hexpand">True</property>
-                <property name="vexpand">True</property>
-                <property name="show-column-separators">True</property>
+          <object class="GtkStackPage">
+            <property name="name">list</property>
+            <property name="child">
+              <object class="GtkScrolledWindow">
+                <property name="hscrollbar-policy">never</property>
+                <property name="vscrollbar-policy">automatic</property>
                 <child>
-                  <object class="GtkColumnViewColumn" id="column_key">
-                    <property name="title">Header</property>
-                    <property name="expand">True</property>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkColumnViewColumn" id="column_value">
-                    <property name="title">Value</property>
-                    <property name="expand">True</property>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkColumnViewColumn" id="column_note">
-                    <property name="title">Note</property>
-                    <property name="expand">True</property>
+                  <object class="GtkColumnView" id="column_view">
+                    <property name="hexpand">True</property>
+                    <property name="vexpand">True</property>
+                    <property name="show-column-separators">True</property>
+                    <child>
+                      <object class="GtkColumnViewColumn" id="column_key">
+                        <property name="title">Header</property>
+                        <property name="expand">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkColumnViewColumn" id="column_value">
+                        <property name="title">Value</property>
+                        <property name="expand">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkColumnViewColumn" id="column_note">
+                        <property name="title">Note</property>
+                        <property name="expand">True</property>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>
-            </child>
+            </property>
           </object>
-          <packing>
-            <property name="name">list</property>
-          </packing>
         </child>
         <child>
-          <object class="AdwStatusPage">
-            <property name="title">No Headers Found</property>
-            <property name="description">No headers matched your search.</property>
-            <property name="icon-name">edit-find-symbolic</property>
+          <object class="GtkStackPage">
+            <property name="name">empty</property>
+            <property name="child">
+              <object class="AdwStatusPage">
+                <property name="title">No Headers Found</property>
+                <property name="description">No headers matched your search.</property>
+                <property name="icon-name">edit-find-symbolic</property>
+              </object>
+            </property>
           </object>
           <packing>
             <property name="name">empty</property>
