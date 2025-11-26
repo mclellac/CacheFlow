@@ -146,9 +146,9 @@ class ConfigManager:
 
     def _save_configs(self, configs):
         """ packs and saves list of configs to GSettings."""
-        builder = GLib.VariantBuilder.new(GLib.VariantType.new('aa{sv}'))
+        builder = GLib.VariantBuilder.new('aa{sv}')
         for c_data in configs:
-            dict_builder = GLib.VariantBuilder.new(GLib.VariantType.new('a{sv}'))
+            dict_builder = GLib.VariantBuilder.new('a{sv}')
             dict_builder.add(
                 '{sv}', 'id', GLib.Variant('s', c_data.get('id', str(uuid.uuid4())))
             )
@@ -170,9 +170,9 @@ class ConfigManager:
 
     def _pack_layers(self, layers_data):
         """Packs a list of Python layer dicts into a GLib.Variant ('aa{sv}')."""
-        builder = GLib.VariantBuilder.new(GLib.VariantType.new('aa{sv}'))
+        builder = GLib.VariantBuilder.new('aa{sv}')
         for l_data in layers_data:
-            dict_builder = GLib.VariantBuilder.new(GLib.VariantType.new('a{sv}'))
+            dict_builder = GLib.VariantBuilder.new('a{sv}')
             # Pack all known keys, providing defaults for missing ones
             dict_builder.add('{sv}', 'name', GLib.Variant('s', l_data.get('name', '')))
             dict_builder.add('{sv}', 'description', GLib.Variant('s', l_data.get('description', '')))
@@ -194,7 +194,7 @@ class ConfigManager:
             dict_builder.add('{sv}', 'custom_headers', GLib.Variant('a{ss}', l_data.get('custom_headers', {})))
 
             # Build 'host_overrides' (aa{ss})
-            overrides_builder = GLib.VariantBuilder.new(GLib.VariantType.new('aa{ss}'))
+            overrides_builder = GLib.VariantBuilder.new('aa{ss}')
             for override in l_data.get('host_overrides', []):
                 overrides_builder.add('a{ss}', override)
             dict_builder.add('{sv}', 'host_overrides', overrides_builder.end())
@@ -202,7 +202,7 @@ class ConfigManager:
             dict_builder.add('{sv}', 'path_match_only', GLib.Variant('as', l_data.get('path_match_only', [])))
 
             # Build 'routing_rules' (aa{ss})
-            rules_builder = GLib.VariantBuilder.new(GLib.VariantType.new('aa{ss}'))
+            rules_builder = GLib.VariantBuilder.new('aa{ss}')
             for rule in l_data.get('routing_rules', []):
                 rules_builder.add('a{ss}', rule)
             dict_builder.add('{sv}', 'routing_rules', rules_builder.end())
