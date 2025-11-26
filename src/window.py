@@ -112,7 +112,9 @@ class Window(Adw.ApplicationWindow):
 
         dialog = HeaderAnalysisDialog(current_layer,
                                       upstream_layer)
-        dialog.present(parent_win)
+        dialog.set_transient_for(parent_win)
+        dialog.set_modal(True)
+        dialog.present()
 
     def setup_actions(self):
         """Sets up window-scope actions."""
