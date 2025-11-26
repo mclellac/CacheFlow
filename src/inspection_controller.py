@@ -56,16 +56,15 @@ class InspectionController:
             raw_headers = result.get('headers', {})
 
             if upstream_layer_for_analysis:
-                # Analyze the current layer against the upstream layer.
-                report = self.analyzer.analyze_layer(
-                    current_layer=result,
-                    upstream_layer=upstream_layer_for_analysis
+                # Compare with the previous layer to get diff-annotated headers.
+                comparison_layer = {
+                    'name': result.get('name'),
+                    'headers': raw_headers
+                }
+                formatted_headers = self.analyzer.compare_headers(
+                    upstream_layer_for_analysis,
+                    comparison_layer
                 )
-                # Transform the report into the flat tuple format the UI expects.
-                formatted_headers = [
-                    (item.key, item.value, (item.change_type != 'UNCHANGED'), item.warning)
-                    for item in report.items
-                ]
                 result['upstream_layer'] = upstream_layer_for_analysis
             else:
                 # First layer: just convert the raw dict to the standard tuple format.
