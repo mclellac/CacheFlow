@@ -21,7 +21,6 @@ class NodeData:
         self.body_color = kwargs.get('body_color', '')
         self.header_color = kwargs.get('header_color', '')
         self.text_color = kwargs.get('text_color', '')
-        self.unchanged_text_color = kwargs.get('unchanged_text_color', '')
         self.added_text_color = kwargs.get('added_text_color', '')
         self.removed_text_color = kwargs.get('removed_text_color', '')
         self.modified_text_color = kwargs.get('modified_text_color', '')

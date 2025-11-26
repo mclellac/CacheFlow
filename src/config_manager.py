@@ -149,8 +149,8 @@ class ConfigManager:
         builder = GLib.VariantBuilder.new(GLib.VariantType.new('aa{sv}'))
         for c_data in configs:
             dict_builder = GLib.VariantBuilder.new(GLib.VariantType.new('a{sv}'))
-            dict_builder.add(
-                '{sv}', 'id', GLib.Variant('s', c_data.get('id', str(uuid.uuid4())))
+            dict_builder.add_value(
+                GLib.Variant('{sv}', ('id', GLib.Variant('s', c_data.get('id', str(uuid.uuid4())))))
             )
             dict_builder.add_value(
                 GLib.Variant('{sv}', ('name', GLib.Variant('s', c_data.get('name', ''))))
@@ -196,9 +196,9 @@ class ConfigManager:
                              GLib.Variant('s', l_data.get('header_color', 'rgba(0,0,0,0)')))))
             dict_builder.add_value(GLib.Variant('{sv}', ('body_color',
                              GLib.Variant('s', l_data.get('body_color', 'rgba(0,0,0,0)')))))
-            dict_builder.add_value(GLib.Variant('{sv}', ('unchanged_text_color',
+            dict_builder.add_value(GLib.Variant('{sv}', ('text_color',
                              GLib.Variant('s',
-                                          l_data.get('unchanged_text_color', 'rgba(0,0,0,0)')))))
+                                          l_data.get('text_color', 'rgba(0,0,0,0)')))))
             dict_builder.add_value(GLib.Variant('{sv}', ('added_text_color',
                              GLib.Variant('s', l_data.get('added_text_color', 'rgba(0,0,0,0)')))))
             dict_builder.add_value(GLib.Variant('{sv}', ('removed_text_color',
