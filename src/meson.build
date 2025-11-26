@@ -26,6 +26,7 @@ python_sources = [
   'graph_utils.py',
   'graph_renderer.py',
   'graph_gestures.py',
+  'ui_utils.py',
 ]
 
 providers_sources = [
