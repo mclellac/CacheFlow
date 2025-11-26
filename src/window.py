@@ -19,10 +19,11 @@ from .config_manager import ConfigManager
 log = logging.getLogger(__name__)
 
 
-@Gtk.Template(filename='src/ui/main.ui')
+@Gtk.Template(filename="src/ui/main.ui")
 class Window(Adw.ApplicationWindow):
     """The main application window."""
-    __gtype_name__ = 'Window'
+
+    __gtype_name__ = "Window"
 
     path_entry = Gtk.Template.Child()
     env_label = Gtk.Template.Child()
@@ -36,33 +37,32 @@ class Window(Adw.ApplicationWindow):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         log.debug("Main window initialized.")
-        self.settings = Gio.Settings.new('com.github.mclellac.CacheFlow')
+        self.settings = Gio.Settings.new("com.github.mclellac.CacheFlow")
         self.config_manager = ConfigManager(self.settings)
         self.win_action_group = None
         self.config_model = None
         self.analyzer = HeaderAnalyzer()
         self.controller = InspectionController(
-            on_success=self.on_inspection_succeeded,
-            on_error=self.on_inspection_failed
+            on_success=self.on_inspection_succeeded, on_error=self.on_inspection_failed
         )
 
         self.setup_actions()
         self.setup_config_switcher()
         self.setup_window_size()
 
-        self.inspect_button.connect('clicked', self.on_inspect_clicked)
-        self.path_entry.set_text(self.settings.get_string('test-path'))
+        self.inspect_button.connect("clicked", self.on_inspect_clicked)
+        self.path_entry.set_text(self.settings.get_string("test-path"))
 
         self.connect("close-request", self.on_close_request)
-        self.node_graph.connect('node-double-clicked', self._on_node_double_clicked)
+        self.node_graph.connect("node-double-clicked", self._on_node_double_clicked)
 
         # Listen for setting changes (e.g. from Preferences) to refresh switcher
-        self.settings.connect('changed::configurations', self.on_configurations_changed)
+        self.settings.connect("changed::configurations", self.on_configurations_changed)
 
     def setup_window_size(self):
         """Restores the window size from settings."""
-        width = self.settings.get_int('window-width')
-        height = self.settings.get_int('window-height')
+        width = self.settings.get_int("window-width")
+        height = self.settings.get_int("window-height")
 
         if width > 0 and height > 0:
             self.set_default_size(width, height)
@@ -71,29 +71,29 @@ class Window(Adw.ApplicationWindow):
         """Saves window size before closing."""
         width = self.get_width()
         height = self.get_height()
-        self.settings.set_int('window-width', width)
-        self.settings.set_int('window-height', height)
+        self.settings.set_int("window-width", width)
+        self.settings.set_int("window-height", height)
         return False
 
     def _on_header_window_close(self, win):
         width, height = win.get_default_size()
-        self.settings.set_int('header-dialog-width', width)
-        self.settings.set_int('header-dialog-height', height)
+        self.settings.set_int("header-dialog-width", width)
+        self.settings.set_int("header-dialog-height", height)
 
     def _on_node_double_clicked(self, _, node):
         win = HeaderDialog(
-            headers=node.get_property('headers'),
-            heading=node.get_property('name'),
+            headers=node.get_property("headers"),
+            heading=node.get_property("name"),
             node_data=node,
-            application=self.get_application()
+            application=self.get_application(),
         )
-        width = self.settings.get_int('header-dialog-width')
-        height = self.settings.get_int('header-dialog-height')
+        width = self.settings.get_int("header-dialog-width")
+        height = self.settings.get_int("header-dialog-height")
         if width > 0 and height > 0:
             win.set_default_size(width, height)
 
-        win.connect('close-request', self._on_header_window_close)
-        win.connect('analyze-clicked', self._on_analyze_clicked, node)
+        win.connect("close-request", self._on_header_window_close)
+        win.connect("analyze-clicked", self._on_analyze_clicked, node)
         win.present()
 
     def _on_analyze_clicked(self, header_dialog, node_data):
@@ -103,17 +103,14 @@ class Window(Adw.ApplicationWindow):
     def _on_analyze_requested(self, node_data, parent_win):
         # Extract current layer dict
         current_layer = {
-            'name': node_data.name,
-            'headers': {k: v for k, v, _, _ in node_data.headers}
+            "name": node_data.name,
+            "headers": {k: v for k, v, _, _ in node_data.headers},
         }
 
         # Upstream layer is now attached to node_data
         upstream_layer = node_data.upstream_layer
 
-        dialog = HeaderAnalysisDialog(current_layer,
-                                      upstream_layer)
-        dialog.set_transient_for(parent_win)
-        dialog.set_modal(True)
+        dialog = HeaderAnalysisDialog(current_layer, upstream_layer)
         dialog.present()
 
     def setup_actions(self):
@@ -142,23 +139,23 @@ class Window(Adw.ApplicationWindow):
     def setup_config_switcher(self):
         """Sets up the configuration switcher dropdown."""
         configs = self.config_manager.get_configurations()
-        self.config_ids = [c['id'] for c in configs]
-        names = [c['name'] for c in configs]
+        self.config_ids = [c["id"] for c in configs]
+        names = [c["name"] for c in configs]
 
         self.config_model = Gtk.StringList.new(names)
         self.config_switcher.set_model(self.config_model)
 
-        active_id = self.settings.get_string('active-config-id')
+        active_id = self.settings.get_string("active-config-id")
         if active_id in self.config_ids:
             idx = self.config_ids.index(active_id)
             self.config_switcher.set_selected(idx)
         elif configs:
             self.config_switcher.set_selected(0)
-            self.settings.set_string('active-config-id', configs[0]['id'])
-            active_id = configs[0]['id']
+            self.settings.set_string("active-config-id", configs[0]["id"])
+            active_id = configs[0]["id"]
 
         self.update_env_label(active_id)
-        self.config_switcher.connect('notify::selected', self.on_config_selected)
+        self.config_switcher.connect("notify::selected", self.on_config_selected)
 
     def on_configurations_changed(self, _settings, _key):
         """Callback when configurations change in GSettings."""
@@ -174,7 +171,7 @@ class Window(Adw.ApplicationWindow):
             return
 
         new_id = self.config_ids[idx]
-        self.settings.set_string('active-config-id', new_id)
+        self.settings.set_string("active-config-id", new_id)
         self.node_graph.set_data([])
         self.content_stack.set_visible_child_name("empty")
         self.update_env_label(new_id)
@@ -183,7 +180,7 @@ class Window(Adw.ApplicationWindow):
         """Updates the environment label with the entry point."""
         config = self.config_manager.get_configuration(config_id)
         if config:
-            self.env_label.set_text(config.get('entry_point', 'No Host Configured'))
+            self.env_label.set_text(config.get("entry_point", "No Host Configured"))
         else:
             self.env_label.set_text("No Host Configured")
 
@@ -192,37 +189,35 @@ class Window(Adw.ApplicationWindow):
         log.info("Inspect button clicked.")
         path = self.path_entry.get_text()
         self.set_inspection_in_progress(True)
-        if not path or not path.startswith('/'):
+        if not path or not path.startswith("/"):
             error_msg = f"Invalid path for inspection: '{path}'"
             log.error(error_msg)
             self.show_error_dialog(
-                "Invalid Input",
-                "Path must not be empty and must start with '/'."
+                "Invalid Input", "Path must not be empty and must start with '/'."
             )
             self.set_inspection_in_progress(False)
             return
 
-        self.settings.set_string('test-path', path)
+        self.settings.set_string("test-path", path)
 
-        active_id = self.settings.get_string('active-config-id')
+        active_id = self.settings.get_string("active-config-id")
         config_data = self.config_manager.get_configuration(active_id)
 
-        if not config_data or not config_data.get('layers'):
+        if not config_data or not config_data.get("layers"):
             self.show_error_dialog(
-                "Configuration Error",
-                "No layers configured for current domain."
+                "Configuration Error", "No layers configured for current domain."
             )
             self.set_inspection_in_progress(False)
             return
 
-        layers_config = config_data.get('layers', [])
+        layers_config = config_data.get("layers", [])
 
         config = {
-            'layers': layers_config,
-            'entry_point': config_data.get('entry_point', ''),
-            'user_agent': self.settings.get_string('user-agent'),
-            'dns_servers': self.settings.get_string('dns-servers'),
-            'verify_ssl': self.settings.get_boolean('verify-ssl')
+            "layers": layers_config,
+            "entry_point": config_data.get("entry_point", ""),
+            "user_agent": self.settings.get_string("user-agent"),
+            "dns_servers": self.settings.get_string("dns-servers"),
+            "verify_ssl": self.settings.get_boolean("verify-ssl"),
         }
 
         self.controller.start_inspection(config, path)
