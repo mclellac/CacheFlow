@@ -18,6 +18,12 @@ DEFAULT_LAYERS = [
         "host_url": "https://www.example.com",
         "default_backend_host": "cache.examplefarm.com",
         "default_backend_host_header": "origin.example.com",
+        "header_color": "rgba(128, 0, 128, 0.8)",
+        "body_color": "rgba(128, 0, 128, 0.6)",
+        "unchanged_text_color": "rgba(255, 255, 255, 1.0)",
+        "added_text_color": "rgba(173, 255, 47, 1.0)",
+        "removed_text_color": "rgba(255, 99, 71, 1.0)",
+        "modified_text_color": "rgba(255, 215, 0, 1.0)",
         "custom_headers": {
             "Pragma": "akamai-x-get-request-id, akamai-x-cache-on, akamai-x-cache-key"
         },
@@ -33,6 +39,12 @@ DEFAULT_LAYERS = [
         "host_url": "http://cache.examplefarm.com",
         "default_backend_host": "",
         "default_backend_host_header": "",
+        "header_color": "rgba(0, 128, 128, 0.8)",
+        "body_color": "rgba(0, 128, 128, 0.6)",
+        "unchanged_text_color": "rgba(255, 255, 255, 1.0)",
+        "added_text_color": "rgba(173, 255, 47, 1.0)",
+        "removed_text_color": "rgba(255, 99, 71, 1.0)",
+        "modified_text_color": "rgba(255, 215, 0, 1.0)",
         "custom_headers": {
             "X-Varnish-Debug": "true",
             "X-Origin-Auth": "secret-token-123"
@@ -63,13 +75,13 @@ class ConfigManager:
         if not configs:
             # If empty, create a default one
             default_id = str(uuid.uuid4())
-            default_config = {
+            default_config_dict = {
                 'id': GLib.Variant('s', default_id),
                 'name': GLib.Variant('s', 'Example Domain'),
-                'entry_point': GLib.Variant('s', 'www.example.com'),
                 'layers': self._pack_layers(DEFAULT_LAYERS)
             }
-            self.settings.set_value('configurations', GLib.Variant('aa{sv}', [default_config]))
+
+            self.settings.set_value('configurations', GLib.Variant('aa{sv}', [default_config_dict]))
             self.settings.set_string('active-config-id', default_id)
             return [{
                 'id': default_id,
@@ -78,24 +90,22 @@ class ConfigManager:
                 'layers': DEFAULT_LAYERS
             }]
 
-        # Unpack layers recursively
+        # Recursively unpack variants into python types
         unpacked_configs = []
         for c in configs:
-            c_dict = dict(c) # c is a dict from aa{sv}
-            layers_variant = c_dict.get('layers')
-            if isinstance(layers_variant, GLib.Variant):
-                layers = layers_variant.unpack()
-            else:
-                layers = layers_variant if layers_variant else []
+            unpacked_c = {}
+            for k, v in c.items():
+                if isinstance(v, GLib.Variant):
+                    unpacked_c[k] = v.unpack()
+                else:
+                    unpacked_c[k] = v
 
-            # entry_point is deprecated/removed, use name (Domain Name)
-            unpacked_configs.append({
-                'id': c_dict.get('id', ''),
-                'name': c_dict.get('name', ''),
-                'entry_point': c_dict.get('name', ''),
-                'layers': layers
-            })
+            # entry_point is deprecated, use name (Domain Name)
+            unpacked_c['entry_point'] = unpacked_c.get('name', '')
+            unpacked_configs.append(unpacked_c)
+
         return unpacked_configs
+
 
     def get_configuration(self, conf_id):
         """Returns a single configuration by ID."""
@@ -136,45 +146,70 @@ class ConfigManager:
 
     def _save_configs(self, configs):
         """ packs and saves list of configs to GSettings."""
-        variant_data = []
-        for c in configs:
-            c_dict = {
-                'id': GLib.Variant('s', c['id']),
-                'name': GLib.Variant('s', c['name']),
-                # entry_point is duplicate of name (Domain Name), so we don't save it anymore
-                'layers': self._pack_layers(c['layers'])
-            }
-            variant_data.append(c_dict)
+        builder = GLib.VariantBuilder.new('aa{sv}')
+        for c_data in configs:
+            dict_builder = GLib.VariantBuilder.new('a{sv}')
+            dict_builder.add(
+                '{sv}', 'id', GLib.Variant('s', c_data.get('id', str(uuid.uuid4())))
+            )
+            dict_builder.add(
+                '{sv}', 'name', GLib.Variant('s', c_data.get('name', ''))
+            )
+            dict_builder.add(
+                '{sv}', 'layers', self._pack_layers(c_data.get('layers', []))
+            )
+            builder.add_value(dict_builder.end())
 
         try:
-            self.settings.set_value('configurations', GLib.Variant('aa{sv}', variant_data))
+            self.settings.set_value('configurations', builder.end())
+            log.info("Configurations saved successfully.")
+        except TypeError as e:
+            log.error("TypeError saving configurations. This indicates a data mismatch: %s", e)
         except Exception as e:
-            log.error("Error saving configurations: %s", e)
+            log.error("An unexpected error occurred while saving configurations: %s", e)
 
     def _pack_layers(self, layers_data):
-        """Packs list of layer dicts into Variant."""
-        variant_data = []
+        """Packs a list of Python layer dicts into a GLib.Variant ('aa{sv}')."""
+        builder = GLib.VariantBuilder.new('aa{sv}')
         for l_data in layers_data:
-            layer_dict = {
-                'name': GLib.Variant('s', l_data.get('name', '')),
-                'description': GLib.Variant('s', l_data.get('description', '')),
-                'layer_type': GLib.Variant('s', l_data.get('layer_type', 'CDN')),
-                'provider': GLib.Variant('s', l_data.get('provider', 'Akamai')),
-                'host_url': GLib.Variant('s', l_data.get('host_url', '')),
-                'default_backend_host': GLib.Variant('s', l_data.get('default_backend_host', '')),
-                'default_backend_host_header': GLib.Variant('s', l_data.get('default_backend_host_header', '')),
-                'header_color': GLib.Variant('s', l_data.get('header_color', '')),
-                'body_color': GLib.Variant('s', l_data.get('body_color', '')),
-                'text_color': GLib.Variant('s', l_data.get('text_color', '')),
-                'unchanged_text_color': GLib.Variant('s', l_data.get('unchanged_text_color', '')),
-                'added_text_color': GLib.Variant('s', l_data.get('added_text_color', '')),
-                'removed_text_color': GLib.Variant('s', l_data.get('removed_text_color', '')),
-                'modified_text_color': GLib.Variant('s', l_data.get('modified_text_color', '')),
-                'custom_headers': GLib.Variant('a{ss}', l_data.get('custom_headers', {})),
-                'host_overrides': GLib.Variant('aa{ss}', l_data.get('host_overrides', [])),
-                'path_match_only': GLib.Variant('as', l_data.get('path_match_only', [])),
-                'routing_rules': GLib.Variant('aa{ss}', l_data.get('routing_rules', []))
-            }
-            variant_data.append(layer_dict)
+            dict_builder = GLib.VariantBuilder.new('a{sv}')
+            # Pack all known keys, providing defaults for missing ones
+            dict_builder.add('{sv}', 'name', GLib.Variant('s', l_data.get('name', '')))
+            dict_builder.add('{sv}', 'description', GLib.Variant('s', l_data.get('description', '')))
+            dict_builder.add('{sv}', 'layer_type', GLib.Variant('s', l_data.get('layer_type', 'CDN')))
+            dict_builder.add('{sv}', 'provider', GLib.Variant('s', l_data.get('provider', 'Akamai')))
+            dict_builder.add('{sv}', 'host_url', GLib.Variant('s', l_data.get('host_url', '')))
+            dict_builder.add('{sv}', 'default_backend_host', GLib.Variant('s', l_data.get('default_backend_host', '')))
+            dict_builder.add('{sv}', 'default_backend_host_header', GLib.Variant('s', l_data.get('default_backend_host_header', '')))
 
-        return GLib.Variant('aa{sv}', variant_data)
+            # Color settings
+            dict_builder.add('{sv}', 'header_color', GLib.Variant('s', l_data.get('header_color', 'rgba(0,0,0,0)')))
+            dict_builder.add('{sv}', 'body_color', GLib.Variant('s', l_data.get('body_color', 'rgba(0,0,0,0)')))
+            dict_builder.add('{sv}', 'unchanged_text_color', GLib.Variant('s', l_data.get('unchanged_text_color', 'rgba(0,0,0,0)')))
+            dict_builder.add('{sv}', 'added_text_color', GLib.Variant('s', l_data.get('added_text_color', 'rgba(0,0,0,0)')))
+            dict_builder.add('{sv}', 'removed_text_color', GLib.Variant('s', l_data.get('removed_text_color', 'rgba(0,0,0,0)')))
+            dict_builder.add('{sv}', 'modified_text_color', GLib.Variant('s', l_data.get('modified_text_color', 'rgba(0,0,0,0)')))
+
+            # Complex types
+            dict_builder.add('{sv}', 'custom_headers', GLib.Variant('a{ss}', l_data.get('custom_headers', {})))
+
+            # Build 'host_overrides' (aa{ss})
+            overrides_builder = GLib.VariantBuilder.new('aa{ss}')
+            for override in l_data.get('host_overrides', []):
+                overrides_builder.add('a{ss}', override)
+            dict_builder.add('{sv}', 'host_overrides', overrides_builder.end())
+
+            dict_builder.add('{sv}', 'path_match_only', GLib.Variant('as', l_data.get('path_match_only', [])))
+
+            # Build 'routing_rules' (aa{ss})
+            rules_builder = GLib.VariantBuilder.new('aa{ss}')
+            for rule in l_data.get('routing_rules', []):
+                rules_builder.add('a{ss}', rule)
+            dict_builder.add('{sv}', 'routing_rules', rules_builder.end())
+
+            # Deprecated, pack empty for compatibility if needed
+            dict_builder.add('{sv}', 'varnish_backends', GLib.Variant('aa{sv}', []))
+
+            builder.add_value(dict_builder.end())
+
+        return builder.end()
