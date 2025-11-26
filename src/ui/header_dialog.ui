@@ -2,11 +2,11 @@
 <interface>
   <requires lib="gtk" version="4.0"/>
   <requires lib="adw" version="1.0"/>
-  <template class="HeaderDialog" parent="AdwDialog">
+  <template class="HeaderDialog" parent="Adw.Dialog">
     <property name="presentation-mode">floating</property>
     <property name="content-width">700</property>
     <property name="content-height">600</property>
-    <property name="child">
+    <property name="content">
       <object class="AdwToolbarView">
         <child type="top">
           <object class="AdwHeaderBar">
@@ -33,27 +33,24 @@
           </object>
         </child>
 
-        <child type="top">
-            <object class="GtkBox">
-                <property name="orientation">vertical</property>
-                <property name="margin-top">6</property>
-                <property name="margin-bottom">6</property>
-                <property name="margin-start">6</property>
-                <property name="margin-end">6</property>
-                <child>
-                    <object class="GtkSearchEntry" id="search_entry">
-                        <property name="placeholder-text">Search headers...</property>
-                        <property name="hexpand">True</property>
-                    </object>
-                </child>
-            </object>
-        </child>
-
         <property name="content">
-            <object class="GtkStack" id="stack">
+          <object class="GtkBox">
+            <property name="orientation">vertical</property>
+            <child>
+                <object class="GtkSearchEntry" id="search_entry">
+                    <property name="placeholder-text">Search headers...</property>
+                    <property name="hexpand">True</property>
+                    <property name="margin-top">6</property>
+                    <property name="margin-bottom">6</property>
+                    <property name="margin-start">6</property>
+                    <property name="margin-end">6</property>
+                </object>
+            </child>
+            <child>
+              <object class="GtkStack" id="stack">
                 <child>
                     <object class="GtkStackPage">
-                        <property name="name">list</property>
+                      <property name="name">list</property>
                         <property name="child">
                           <object class="GtkScrolledWindow">
                             <child>
@@ -101,7 +98,9 @@
                         </property>
                     </object>
                 </child>
-            </object>
+              </object>
+            </child>
+          </object>
         </property>
       </object>
     </property>
