@@ -33,9 +33,7 @@
       </object>
     </child>
     <child>
-      <object class="GtkScrolledWindow">
-        <property name="hscrollbar-policy">never</property>
-        <property name="vscrollbar-policy">automatic</property>
+      <object class="GtkStack" id="stack">
         <child>
           <object class="GtkStackPage">
             <property name="name">list</property>
@@ -83,9 +81,6 @@
               </object>
             </property>
           </object>
-          <packing>
-            <property name="name">empty</property>
-          </packing>
         </child>
       </object>
     </child>
