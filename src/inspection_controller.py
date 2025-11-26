@@ -53,7 +53,7 @@ class InspectionController:
         upstream_layer = None
 
         for result in results:
-            node_data = NodeData.from_dict(result)
+            node_data = NodeData(**result)
 
             if upstream_layer:
                 # Compare current layer with the immediate upstream layer
