@@ -26,7 +26,7 @@
         </child>
       </object>
     </child>
-    <property name="content">
+    <child>
       <object class="GtkScrolledWindow">
         <property name="hscrollbar-policy">never</property>
         <property name="vscrollbar-policy">automatic</property>
@@ -37,6 +37,6 @@
           </object>
         </child>
       </object>
-    </property>
+    </child>
   </template>
 </interface>
