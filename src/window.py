@@ -12,6 +12,7 @@ from .node_graph import NodeGraph  # pylint: disable=unused-import
 from .header_dialog import HeaderDialog
 from .node_data import NodeData
 from .analyzer import HeaderAnalyzer
+from .analysis_dialog import HeaderAnalysisDialog
 from .inspection_controller import InspectionController
 from .config_manager import ConfigManager
 
@@ -92,9 +93,12 @@ class Window(Adw.ApplicationWindow):
             win.set_default_size(width, height)
 
         win.connect('close-request', self._on_header_window_close)
-        win.connect('analyze-clicked',
-                    lambda w: self._on_analyze_requested(node, w))
+        win.connect('analyze-clicked', self._on_analyze_clicked, node)
         win.present()
+
+    def _on_analyze_clicked(self, header_dialog, node_data):
+        """Handles the analyze-clicked signal from the HeaderDialog."""
+        self._on_analyze_requested(node_data, header_dialog)
 
     def _on_analyze_requested(self, node_data, parent_win):
         # Extract current layer dict
@@ -106,11 +110,11 @@ class Window(Adw.ApplicationWindow):
         # Upstream layer is now attached to node_data
         upstream_layer = node_data.upstream_layer
 
-        # pylint: disable=import-outside-toplevel
-        from .analysis_dialog import HeaderAnalysisDialog
         dialog = HeaderAnalysisDialog(current_layer,
-                                      upstream_layer)
-        dialog.present(parent_win)
+                                      upstream_layer,
+                                      transient_for=parent_win,
+                                      modal=True)
+        dialog.present()
 
     def setup_actions(self):
         """Sets up window-scope actions."""
