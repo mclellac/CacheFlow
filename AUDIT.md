@@ -27,7 +27,7 @@ The primary issue identified was a systemic failure in the persistence and appli
 - **File:** `src/header_dialog.py`
 - **Problem:** In the Header Dialog, headers marked as `ADDED`, `REMOVED`, or `MODIFIED` were correctly colored, but `UNCHANGED` headers were displayed with a default system color, not the user-configured color.
 - **Root Cause:** The `_on_factory_bind_value` method, which applies styling to the header list, contained logic for all diff types *except* for `UNCHANGED`.
-- **Resolution:** Added the missing condition to the logic to explicitly check for the `UNCHANGED` state and apply the `unchanged_text_color` property from the `NodeData` object.
+- **Resolution:** Added the missing condition to the logic to explicitly check for the `UNCHANGED` state and apply the `text_color` property from the `NodeData` object.
 
 ### 4. [VERIFIED] `graph_renderer.py` and `node_data.py`
 

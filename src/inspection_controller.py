@@ -97,7 +97,7 @@ class InspectionController:
                 # Merge color properties from the layer's configuration
                 'header_color': layer_config.get('header_color'),
                 'body_color': layer_config.get('body_color'),
-                'unchanged_text_color': layer_config.get('unchanged_text_color'),
+                'text_color': layer_config.get('text_color'),
                 'added_text_color': layer_config.get('added_text_color'),
                 'removed_text_color': layer_config.get('removed_text_color'),
                 'modified_text_color': layer_config.get('modified_text_color'),
