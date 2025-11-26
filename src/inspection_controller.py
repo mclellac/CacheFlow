@@ -53,9 +53,7 @@ class InspectionController:
         upstream_layer_for_analysis = None  # Stores the dict format for the analyzer
 
         for result in results:
-            # Pop the raw headers dict; the rest of the result becomes kwargs for NodeData.
-            raw_headers = result.pop('headers', {})
-            node_kwargs = result
+            node_data = NodeData(**result)
 
             if upstream_layer_for_analysis:
                 # Compare with the previous layer to get diff-annotated headers.
