@@ -9,6 +9,7 @@ log = logging.getLogger(__name__)
 
 RESIZE_HANDLE_SIZE = 15
 
+
 class GraphGestures:
     """Handles all gesture and event handling for the NodeGraph."""
 
@@ -60,15 +61,19 @@ class GraphGestures:
         motion_controller.connect("motion", self._on_motion)
         self.node_graph.add_controller(motion_controller)
 
-    def _on_right_click(self, _gesture: Gtk.GestureClick, _n_press: int, x: float,
-                        y: float) -> None:
+    def _on_right_click(
+        self, _gesture: Gtk.GestureClick, _n_press: int, x: float, y: float
+    ) -> None:
         """Shows context menu on right click."""
         if self.node_graph.popover_menu:
-            self.node_graph.popover_menu.set_pointing_to(Gdk.Rectangle(int(x), int(y), 1, 1))
+            self.node_graph.popover_menu.set_pointing_to(
+                Gdk.Rectangle(int(x), int(y), 1, 1)
+            )
             self.node_graph.popover_menu.popup()
 
-    def _on_pan_begin(self, gesture: Gtk.GestureDrag, start_x: float,
-                      start_y: float) -> None:
+    def _on_pan_begin(
+        self, gesture: Gtk.GestureDrag, start_x: float, start_y: float
+    ) -> None:
         """Starts panning operation."""
         self.pan_start_x = start_x
         self.pan_start_y = start_y
@@ -76,21 +81,24 @@ class GraphGestures:
         self.pan_start_offset_y = self.node_graph.offset_y
         gesture.set_state(Gtk.EventSequenceState.CLAIMED)
 
-    def _on_pan_update(self, _gesture: Gtk.GestureDrag, offset_x: float,
-                       offset_y: float) -> None:
+    def _on_pan_update(
+        self, _gesture: Gtk.GestureDrag, offset_x: float, offset_y: float
+    ) -> None:
         """Updates panning offset."""
         self.node_graph.offset_x = self.pan_start_offset_x + offset_x
         self.node_graph.offset_y = self.pan_start_offset_y + offset_y
         self.node_graph.queue_draw()
 
-    def _on_motion(self, _controller: Gtk.EventControllerMotion, x: float,
-                   y: float) -> None:
+    def _on_motion(
+        self, _controller: Gtk.EventControllerMotion, x: float, y: float
+    ) -> None:
         """Tracks mouse position."""
         self.mouse_x = x
         self.mouse_y = y
 
-    def _on_scroll(self, _controller: Gtk.EventControllerScroll, _dx: float,
-                   dy: float) -> bool:
+    def _on_scroll(
+        self, _controller: Gtk.EventControllerScroll, _dx: float, dy: float
+    ) -> bool:
         """Handles zooming via scroll."""
         x = self.mouse_x
         y = self.mouse_y
@@ -110,8 +118,9 @@ class GraphGestures:
         self.node_graph.queue_draw()
         return True
 
-    def _on_drag_begin(self, gesture: Gtk.GestureDrag, start_x: float,
-                       start_y: float) -> None:
+    def _on_drag_begin(
+        self, gesture: Gtk.GestureDrag, start_x: float, start_y: float
+    ) -> None:
         """Handles the beginning of a drag operation."""
         log.debug("Drag begin at (%s, %s).", start_x, start_y)
         self.dragging_node = None
@@ -121,28 +130,37 @@ class GraphGestures:
         wy = (start_y - self.node_graph.offset_y) / self.node_graph.scale
 
         for node in reversed(self.node_graph.nodes):
-            node_x, node_y, node_w, node_h = (node["x"], node["y"],
-                                              node["width"], node["height"])
+            node_x, node_y, node_w, node_h = (
+                node["x"],
+                node["y"],
+                node["width"],
+                node["height"],
+            )
 
             handle_x = node_x + node_w - RESIZE_HANDLE_SIZE
             handle_y = node_y + node_h - RESIZE_HANDLE_SIZE
 
-            if (handle_x <= wx <= node_x + node_w and
-                    handle_y <= wy <= node_y + node_h):
+            if (
+                handle_x <= wx <= node_x + node_w
+                and handle_y <= wy <= node_y + node_h
+            ):
                 self.resizing_node = node
                 self.node_graph.selected_node_index = node["id"]
                 self.node_graph.queue_draw()
-                log.debug("Resizing node '%s'.", node['data'].name)
+                log.debug("Resizing node '%s'.", node["data"].name)
                 gesture.set_state(Gtk.EventSequenceState.CLAIMED)
                 return
 
-            if node_x <= wx <= node_x + node_w and node_y <= wy <= node_y + node_h:
+            if (
+                node_x <= wx <= node_x + node_w
+                and node_y <= wy <= node_y + node_h
+            ):
                 self.dragging_node = node
                 self.node_graph.selected_node_index = node["id"]
                 self.node_graph.queue_draw()
                 self.drag_offset_x = wx - node["x"]
                 self.drag_offset_y = wy - node["y"]
-                log.debug("Dragging node '%s'.", node['data'].name)
+                log.debug("Dragging node '%s'.", node["data"].name)
                 gesture.set_state(Gtk.EventSequenceState.CLAIMED)
                 return
 
@@ -157,8 +175,9 @@ class GraphGestures:
         self.pan_start_offset_y = self.node_graph.offset_y
         gesture.set_state(Gtk.EventSequenceState.CLAIMED)
 
-    def _on_drag_update(self, gesture: Gtk.GestureDrag, offset_x: float,
-                        offset_y: float) -> None:
+    def _on_drag_update(
+        self, gesture: Gtk.GestureDrag, offset_x: float, offset_y: float
+    ) -> None:
         """Handles the update during a drag operation."""
         ok, start_x, start_y = gesture.get_start_point()
         if not ok:
@@ -178,16 +197,21 @@ class GraphGestures:
 
         elif self.resizing_node:
             min_w = self.resizing_node.get("min_width", 150)
-            self.resizing_node["width"] = max(min_w, wx - self.resizing_node["x"])
-            self.resizing_node["height"] = max(100, wy - self.resizing_node["y"])
+            self.resizing_node["width"] = max(
+                min_w, wx - self.resizing_node["x"]
+            )
+            self.resizing_node["height"] = max(
+                100, wy - self.resizing_node["y"]
+            )
         elif self.is_panning:
             self.node_graph.offset_x = self.pan_start_offset_x + offset_x
             self.node_graph.offset_y = self.pan_start_offset_y + offset_y
 
         self.node_graph.queue_draw()
 
-    def _on_drag_end(self, gesture: Gtk.GestureDrag, offset_x: float,
-                     offset_y: float) -> None:
+    def _on_drag_end(
+        self, gesture: Gtk.GestureDrag, offset_x: float, offset_y: float
+    ) -> None:
         """Handles the end of a drag operation."""
         log.debug("Drag ended.")
         if self.dragging_node:
@@ -200,8 +224,9 @@ class GraphGestures:
             self._on_drag_update(gesture, offset_x, offset_y)
             self.is_panning = False
 
-    def _on_click(self, _gesture: Gtk.GestureClick, n_press: int, x: float,
-                  y: float) -> None:
+    def _on_click(
+        self, _gesture: Gtk.GestureClick, n_press: int, x: float, y: float
+    ) -> None:
         """Handles click events."""
         wx = (x - self.node_graph.offset_x) / self.node_graph.scale
         wy = (y - self.node_graph.offset_y) / self.node_graph.scale
@@ -209,22 +234,31 @@ class GraphGestures:
         if n_press == 1:
             hit_node = False
             for node in reversed(self.node_graph.nodes):
-                if (node["x"] <= wx <= node["x"] + node["width"] and
-                        node["y"] <= wy <= node["y"] + node["height"]):
+                if (
+                    node["x"] <= wx <= node["x"] + node["width"]
+                    and node["y"] <= wy <= node["y"] + node["height"]
+                ):
                     self.node_graph.selected_node_index = node["id"]
                     self.node_graph.queue_draw()
                     hit_node = True
                     break
 
-            if not hit_node and self.node_graph.selected_node_index is not None:
+            if (
+                not hit_node
+                and self.node_graph.selected_node_index is not None
+            ):
                 self.node_graph.selected_node_index = None
                 self.node_graph.queue_draw()
 
         if n_press == 2:
             for node in reversed(self.node_graph.nodes):
-                if (node["x"] <= wx <= node["x"] + node["width"] and
-                        node["y"] <= wy <= node["y"] + node["height"]):
-                    log.debug("Double-click on node '%s', emitting signal.",
-                              node['data'].name)
-                    self.node_graph.emit('node-double-clicked', node['data'])
+                if (
+                    node["x"] <= wx <= node["x"] + node["width"]
+                    and node["y"] <= wy <= node["y"] + node["height"]
+                ):
+                    log.debug(
+                        "Double-click on node '%s', emitting signal.",
+                        node["data"].name,
+                    )
+                    self.node_graph.emit("node-double-clicked", node["data"])
                     return

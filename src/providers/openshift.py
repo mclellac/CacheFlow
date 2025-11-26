@@ -9,14 +9,16 @@ OPENSHIFT_HEADERS: Dict[str, HeaderDefinition] = {
     "x-ocp-pod": HeaderDefinition(
         "OpenShift: Identifies the pod serving the request (if exposed).",
         CAT_CONTENT,
-        "Pod Name"
+        "Pod Name",
     )
 }
+
 
 class OpenShift(BaseProvider):
     """
     OpenShift Application Backend Provider.
     """
+
     name = "OpenShift"
     provider_type = ProviderType.APP_BACKEND
 

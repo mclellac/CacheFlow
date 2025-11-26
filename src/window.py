@@ -43,7 +43,8 @@ class Window(Adw.ApplicationWindow):
         self.config_model = None
         self.analyzer = HeaderAnalyzer()
         self.controller = InspectionController(
-            on_success=self.on_inspection_succeeded, on_error=self.on_inspection_failed
+            on_success=self.on_inspection_succeeded,
+            on_error=self.on_inspection_failed,
         )
 
         self.setup_actions()
@@ -54,10 +55,14 @@ class Window(Adw.ApplicationWindow):
         self.path_entry.set_text(self.settings.get_string("test-path"))
 
         self.connect("close-request", self.on_close_request)
-        self.node_graph.connect("node-double-clicked", self._on_node_double_clicked)
+        self.node_graph.connect(
+            "node-double-clicked", self._on_node_double_clicked
+        )
 
         # Listen for setting changes (e.g. from Preferences) to refresh switcher
-        self.settings.connect("changed::configurations", self.on_configurations_changed)
+        self.settings.connect(
+            "changed::configurations", self.on_configurations_changed
+        )
 
     def setup_window_size(self):
         """Restores the window size from settings."""
@@ -68,7 +73,11 @@ class Window(Adw.ApplicationWindow):
             self.set_default_size(width, height)
 
     def on_close_request(self, _window):
-        """Saves window size before closing."""
+        """Saves window size before closing.
+
+        Args:
+            _window: The window that emitted the signal.
+        """
         width = self.get_width()
         height = self.get_height()
         self.settings.set_int("window-width", width)
@@ -76,11 +85,22 @@ class Window(Adw.ApplicationWindow):
         return False
 
     def _on_header_window_close(self, win):
+        """Saves the header dialog size before it closes.
+
+        Args:
+            win: The HeaderDialog that emitted the signal.
+        """
         width, height = win.get_default_size()
         self.settings.set_int("header-dialog-width", width)
         self.settings.set_int("header-dialog-height", height)
 
     def _on_node_double_clicked(self, _, node):
+        """Handles the node-double-clicked signal from the NodeGraph.
+
+        Args:
+            _: The NodeGraph that emitted the signal.
+            node: The node that was double-clicked.
+        """
         win = HeaderDialog(
             headers=node.get_property("headers"),
             heading=node.get_property("name"),
@@ -97,11 +117,21 @@ class Window(Adw.ApplicationWindow):
         win.present()
 
     def _on_analyze_clicked(self, header_dialog, node_data):
-        """Handles the analyze-clicked signal from the HeaderDialog."""
+        """Handles the analyze-clicked signal from the HeaderDialog.
+
+        Args:
+            header_dialog: The HeaderDialog that emitted the signal.
+            node_data: The data for the node being analyzed.
+        """
         self._on_analyze_requested(node_data, header_dialog)
 
     def _on_analyze_requested(self, node_data, parent_win):
-        # Extract current layer dict
+        """Creates and presents the HeaderAnalysisDialog.
+
+        Args:
+            node_data: The data for the node being analyzed.
+            parent_win: The parent window for the dialog.
+        """
         current_layer = {
             "name": node_data.name,
             "headers": {k: v for k, v, _, _ in node_data.headers},
@@ -111,7 +141,7 @@ class Window(Adw.ApplicationWindow):
         upstream_layer = node_data.upstream_layer
 
         dialog = HeaderAnalysisDialog(current_layer, upstream_layer)
-        dialog.present()
+        dialog.present(parent_win)
 
     def setup_actions(self):
         """Sets up window-scope actions."""
@@ -123,15 +153,30 @@ class Window(Adw.ApplicationWindow):
         self.add_action("reset-layout", self.on_reset_layout_action)
 
     def on_export_graph_action(self, _action, _param):
-        """Triggers the export graph dialog."""
+        """Triggers the export graph dialog.
+
+        Args:
+            _action: The action that emitted the signal.
+            _param: The parameter for the action.
+        """
         self.node_graph.show_export_dialog()
 
     def on_reset_layout_action(self, _action, _param):
-        """Resets the node graph layout."""
+        """Resets the node graph layout.
+
+        Args:
+            _action: The action that emitted the signal.
+            _param: The parameter for the action.
+        """
         self.node_graph.reset_layout()
 
     def add_action(self, name, callback):
-        """Helper to add an action to the window group."""
+        """Adds an action to the window's action group.
+
+        Args:
+            name: The name of the action.
+            callback: The callback function for the action.
+        """
         action = Gio.SimpleAction.new(name, None)
         action.connect("activate", callback)
         self.win_action_group.add_action(action)
@@ -155,17 +200,26 @@ class Window(Adw.ApplicationWindow):
             active_id = configs[0]["id"]
 
         self.update_env_label(active_id)
-        self.config_switcher.connect("notify::selected", self.on_config_selected)
+        self.config_switcher.connect(
+            "notify::selected", self.on_config_selected
+        )
 
     def on_configurations_changed(self, _settings, _key):
-        """Callback when configurations change in GSettings."""
-        # Re-setup switcher
-        # We need to preserve selection if possible or respect new active ID
-        # For simplicity, just re-run setup
+        """Callback for when configurations change in GSettings.
+
+        Args:
+            _settings: The GSettings object.
+            _key: The key that changed.
+        """
         self.setup_config_switcher()
 
     def on_config_selected(self, dropdown, _):
-        """Callback when the configuration selection changes."""
+        """Callback for when the configuration selection changes.
+
+        Args:
+            dropdown: The dropdown that emitted the signal.
+            _: The parameter for the signal.
+        """
         idx = dropdown.get_selected()
         if idx < 0 or idx >= len(self.config_ids):
             return
@@ -177,15 +231,25 @@ class Window(Adw.ApplicationWindow):
         self.update_env_label(new_id)
 
     def update_env_label(self, config_id):
-        """Updates the environment label with the entry point."""
+        """Updates the environment label with the entry point.
+
+        Args:
+            config_id: The ID of the current configuration.
+        """
         config = self.config_manager.get_configuration(config_id)
         if config:
-            self.env_label.set_text(config.get("entry_point", "No Host Configured"))
+            self.env_label.set_text(
+                config.get("entry_point", "No Host Configured")
+            )
         else:
             self.env_label.set_text("No Host Configured")
 
     def on_inspect_clicked(self, *_):
-        """Callback for the inspect button."""
+        """Callback for the inspect button.
+
+        Args:
+            *_: The arguments for the signal.
+        """
         log.info("Inspect button clicked.")
         path = self.path_entry.get_text()
         self.set_inspection_in_progress(True)
@@ -193,7 +257,8 @@ class Window(Adw.ApplicationWindow):
             error_msg = f"Invalid path for inspection: '{path}'"
             log.error(error_msg)
             self.show_error_dialog(
-                "Invalid Input", "Path must not be empty and must start with '/'."
+                "Invalid Input",
+                "Path must not be empty and must start with '/'.",
             )
             self.set_inspection_in_progress(False)
             return
@@ -205,7 +270,8 @@ class Window(Adw.ApplicationWindow):
 
         if not config_data or not config_data.get("layers"):
             self.show_error_dialog(
-                "Configuration Error", "No layers configured for current domain."
+                "Configuration Error",
+                "No layers configured for current domain.",
             )
             self.set_inspection_in_progress(False)
             return
@@ -223,7 +289,14 @@ class Window(Adw.ApplicationWindow):
         self.controller.start_inspection(config, path)
 
     def on_inspection_succeeded(self, processed_nodes: List[NodeData]) -> bool:
-        """Callback when inspection succeeds."""
+        """Callback for when an inspection succeeds.
+
+        Args:
+            processed_nodes: A list of NodeData objects from the inspection.
+
+        Returns:
+            GLib.SOURCE_REMOVE to remove the idle source.
+        """
         log.debug("Inspection succeeded, displaying results.")
 
         if not processed_nodes:
@@ -237,20 +310,36 @@ class Window(Adw.ApplicationWindow):
         return GLib.SOURCE_REMOVE
 
     def on_inspection_failed(self, exception: Exception) -> bool:
-        """Callback when inspection fails."""
+        """Callback for when an inspection fails.
+
+        Args:
+            exception: The exception that occurred.
+
+        Returns:
+            GLib.SOURCE_REMOVE to remove the idle source.
+        """
         log.error("Inspection task failed: %s", exception)
         self.show_error_dialog("Inspection Failed", str(exception))
         self.set_inspection_in_progress(False)
         return GLib.SOURCE_REMOVE
 
     def set_inspection_in_progress(self, in_progress):
-        """Toggles UI state during inspection."""
+        """Toggles the UI state during an inspection.
+
+        Args:
+            in_progress: Whether an inspection is in progress.
+        """
         self.inspect_button.set_sensitive(not in_progress)
         self.spinner.set_spinning(in_progress)
         self.spinner.set_visible(in_progress)
 
     def show_error_dialog(self, primary_text, secondary_text):
-        """Displays an error dialog."""
+        """Displays an error dialog.
+
+        Args:
+            primary_text: The primary text for the dialog.
+            secondary_text: The secondary text for the dialog.
+        """
         dialog = Adw.AlertDialog.new(primary_text, secondary_text)
         dialog.add_response("ok", "OK")
         dialog.set_default_response("ok")
@@ -258,6 +347,10 @@ class Window(Adw.ApplicationWindow):
         dialog.present(self)
 
     def show_toast(self, message: str) -> None:
-        """Displays a toast notification."""
+        """Displays a toast notification.
+
+        Args:
+            message: The message to display in the toast.
+        """
         toast = Adw.Toast.new(message)
         self.toast_overlay.add_toast(toast)

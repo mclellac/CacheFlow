@@ -13,14 +13,18 @@ PROVIDERS: Dict[str, Type[BaseProvider]] = {
     "Akamai": Akamai,
     "Varnish": Varnish,
     "Netscalar": Netscalar,
-    "OpenShift": OpenShift
+    "OpenShift": OpenShift,
 }
 
-def get_providers_by_type(provider_type: ProviderType) -> List[Type[BaseProvider]]:
+
+def get_providers_by_type(
+    provider_type: ProviderType,
+) -> List[Type[BaseProvider]]:
     """
     Returns a list of providers matching the given type.
     """
     return [p for p in PROVIDERS.values() if p.provider_type == provider_type]
+
 
 def get_provider_class(name: str) -> Type[BaseProvider]:
     """

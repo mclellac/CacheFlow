@@ -5,10 +5,16 @@ for individual nodes in the inspection graph.
 
 from typing import List, Tuple, Any, Optional, Dict
 
+
 class NodeData:
     """Data class representing a node in the graph."""
 
-    def __init__(self, name: str, headers: List[Tuple[str, str, str, str]], **kwargs: Any):
+    def __init__(
+        self,
+        name: str,
+        headers: List[Tuple[str, str, str, str]],
+        **kwargs: Any
+    ):
         """
         Initializes the NodeData object.
         Args:
@@ -18,18 +24,20 @@ class NodeData:
         """
         self.name = name
         self.headers = headers
-        self.body_color = kwargs.get('body_color', '')
-        self.header_color = kwargs.get('header_color', '')
-        self.text_color = kwargs.get('text_color', '')
-        self.added_text_color = kwargs.get('added_text_color', '')
-        self.removed_text_color = kwargs.get('removed_text_color', '')
-        self.modified_text_color = kwargs.get('modified_text_color', '')
-        self.request_url = kwargs.get('request_url', '')
-        self.request_host = kwargs.get('request_host', '')
-        self.request_method = kwargs.get('request_method', 'GET')
-        self.upstream_layer: Optional[Dict[str, Any]] = kwargs.get('upstream_layer', None)
-        self.provider: str = kwargs.get('provider', '')
-        self.layer_type: str = kwargs.get('layer_type', '')
+        self.body_color = kwargs.get("body_color", "")
+        self.header_color = kwargs.get("header_color", "")
+        self.text_color = kwargs.get("text_color", "")
+        self.added_text_color = kwargs.get("added_text_color", "")
+        self.removed_text_color = kwargs.get("removed_text_color", "")
+        self.modified_text_color = kwargs.get("modified_text_color", "")
+        self.request_url = kwargs.get("request_url", "")
+        self.request_host = kwargs.get("request_host", "")
+        self.request_method = kwargs.get("request_method", "GET")
+        self.upstream_layer: Optional[Dict[str, Any]] = kwargs.get(
+            "upstream_layer", None
+        )
+        self.provider: str = kwargs.get("provider", "")
+        self.layer_type: str = kwargs.get("layer_type", "")
 
     def get_property(self, name: str) -> Any:
         """

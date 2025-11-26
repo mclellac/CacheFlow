@@ -19,15 +19,17 @@ class BaseExporter(GObject.Object):
         super().__init__()
         self.parent = parent_window
 
-    def show_dialog(self, title: str, action: Gtk.FileChooserAction,
-                    filters: List[Gtk.FileFilter],
-                    callback: Callable[[str], None],
-                    default_filename: Optional[str] = None) -> None:
+    def show_dialog(
+        self,
+        title: str,
+        action: Gtk.FileChooserAction,
+        filters: List[Gtk.FileFilter],
+        callback: Callable[[str], None],
+        default_filename: Optional[str] = None,
+    ) -> None:
         """Shows a file chooser dialog."""
         dialog = Gtk.FileChooserNative(
-            title=title,
-            action=action,
-            transient_for=self.parent
+            title=title, action=action, transient_for=self.parent
         )
 
         if action == Gtk.FileChooserAction.SAVE and default_filename:
@@ -36,7 +38,9 @@ class BaseExporter(GObject.Object):
         for file_filter in filters:
             dialog.add_filter(file_filter)
 
-        def on_response(_dialog: Gtk.FileChooserNative, response_id: int) -> None:
+        def on_response(
+            _dialog: Gtk.FileChooserNative, response_id: int
+        ) -> None:
             if response_id == Gtk.ResponseType.ACCEPT:
                 file_obj = dialog.get_file()
                 if file_obj:
@@ -52,8 +56,12 @@ class BaseExporter(GObject.Object):
 class ConfigExporter(BaseExporter):
     """Handles configuration export and import."""
 
-    def export_config(self, data: List[Any], default_filename: str = "config.yaml",
-                      on_success: Optional[Callable[[str], None]] = None) -> None:
+    def export_config(
+        self,
+        data: List[Any],
+        default_filename: str = "config.yaml",
+        on_success: Optional[Callable[[str], None]] = None,
+    ) -> None:
         """Exports configuration data to a YAML file."""
         filter_yaml = Gtk.FileFilter()
         filter_yaml.set_name("YAML files")
@@ -62,7 +70,7 @@ class ConfigExporter(BaseExporter):
 
         def on_file_selected(filepath: str) -> None:
             try:
-                with open(filepath, 'w', encoding='utf-8') as f:
+                with open(filepath, "w", encoding="utf-8") as f:
                     yaml.dump(data, f, sort_keys=False)
                 log.info("Configuration exported to %s", filepath)
                 if on_success:
@@ -70,8 +78,13 @@ class ConfigExporter(BaseExporter):
             except Exception as e:  # pylint: disable=broad-exception-caught
                 log.error("Failed to export configuration: %s", e)
 
-        self.show_dialog("Export Configuration", Gtk.FileChooserAction.SAVE,
-                         [filter_yaml], on_file_selected, default_filename)
+        self.show_dialog(
+            "Export Configuration",
+            Gtk.FileChooserAction.SAVE,
+            [filter_yaml],
+            on_file_selected,
+            default_filename,
+        )
 
     def import_config(self, on_success: Callable[[List[Any]], None]) -> None:
         """Imports configuration data from a YAML file."""
@@ -82,7 +95,7 @@ class ConfigExporter(BaseExporter):
 
         def on_file_selected(filepath: str) -> None:
             try:
-                with open(filepath, 'r', encoding='utf-8') as f:
+                with open(filepath, "r", encoding="utf-8") as f:
                     layers_data = yaml.safe_load(f)
 
                 if not isinstance(layers_data, list):
@@ -92,21 +105,28 @@ class ConfigExporter(BaseExporter):
                 for item in layers_data:
                     if not isinstance(item, dict):
                         raise ValueError(
-                            "Imported list contains non-dictionary items.")
+                            "Imported list contains non-dictionary items."
+                        )
 
                 log.info("Configuration imported from %s", filepath)
                 on_success(layers_data)
             except Exception as e:  # pylint: disable=broad-exception-caught
                 log.error("Failed to import configuration: %s", e)
 
-        self.show_dialog("Import Configuration", Gtk.FileChooserAction.OPEN,
-                         [filter_yaml], on_file_selected)
+        self.show_dialog(
+            "Import Configuration",
+            Gtk.FileChooserAction.OPEN,
+            [filter_yaml],
+            on_file_selected,
+        )
 
 
 class GraphExporter(BaseExporter):
     """Handles graph export."""
 
-    def __init__(self, parent_window: Gtk.Window, export_callback: Callable[[str], None]):
+    def __init__(
+        self, parent_window: Gtk.Window, export_callback: Callable[[str], None]
+    ):
         super().__init__(parent_window)
         self.export_callback = export_callback
 
@@ -124,6 +144,10 @@ class GraphExporter(BaseExporter):
         filter_txt.set_name("Text File")
         filter_txt.add_pattern("*.txt")
 
-        self.show_dialog("Export Graph", Gtk.FileChooserAction.SAVE,
-                         [filter_png, filter_svg, filter_txt], self.export_callback,
-                         "graph.png")
+        self.show_dialog(
+            "Export Graph",
+            Gtk.FileChooserAction.SAVE,
+            [filter_png, filter_svg, filter_txt],
+            self.export_callback,
+            "graph.png",
+        )

@@ -17,6 +17,7 @@ class CustomHTTPSConnectionPool(HTTPSConnectionPool):
     Custom HTTPS connection pool that connects to a specific target IP
     instead of resolving the hostname, but keeps the hostname for SNI.
     """
+
     def __init__(self, host, port=None, target_ip=None, **kwargs):
         self.target_ip = target_ip
         super().__init__(host, port, **kwargs)
@@ -25,7 +26,9 @@ class CustomHTTPSConnectionPool(HTTPSConnectionPool):
         self.num_connections += 1
         actual_host = self.target_ip if self.target_ip else self.host
 
-        log.debug("Creating HTTPS connection to %s for %s", actual_host, self.host)
+        log.debug(
+            "Creating HTTPS connection to %s for %s", actual_host, self.host
+        )
         return HTTPSConnection(
             host=actual_host,
             port=self.port,
@@ -40,6 +43,7 @@ class CustomHTTPConnectionPool(HTTPConnectionPool):
     Custom HTTP connection pool that connects to a specific target IP
     instead of resolving the hostname.
     """
+
     def __init__(self, host, port=None, target_ip=None, **kwargs):
         self.target_ip = target_ip
         super().__init__(host, port, **kwargs)
@@ -48,7 +52,9 @@ class CustomHTTPConnectionPool(HTTPConnectionPool):
         self.num_connections += 1
         actual_host = self.target_ip if self.target_ip else self.host
 
-        log.debug("Creating HTTP connection to %s for %s", actual_host, self.host)
+        log.debug(
+            "Creating HTTP connection to %s for %s", actual_host, self.host
+        )
         return HTTPConnection(
             host=actual_host,
             port=self.port,
@@ -62,6 +68,7 @@ class CustomPoolManager(PoolManager):
     Custom PoolManager that creates CustomHTTPSConnectionPool or
     CustomHTTPConnectionPool instances based on the scheme.
     """
+
     def __init__(self, dns_map=None, **kwargs):
         self.dns_map = dns_map or {}
         super().__init__(**kwargs)
@@ -71,14 +78,16 @@ class CustomPoolManager(PoolManager):
         if target_ip:
             log.debug(
                 "Using custom IP %s for host %s (scheme: %s)",
-                target_ip, host, scheme
+                target_ip,
+                host,
+                scheme,
             )
 
-        if scheme == 'https':
+        if scheme == "https":
             return CustomHTTPSConnectionPool(
                 host, port, target_ip=target_ip, **self.connection_pool_kw
             )
-        if scheme == 'http':
+        if scheme == "http":
             return CustomHTTPConnectionPool(
                 host, port, target_ip=target_ip, **self.connection_pool_kw
             )
@@ -90,12 +99,15 @@ class DNSAdapter(HTTPAdapter):
     A custom requests HTTPAdapter that allows forcing a specific IP for a hostname
     while preserving the hostname for SNI and SSL verification.
     """
+
     def __init__(self, dns_map=None, **kwargs):
         self.dns_map = dns_map or {}
         self.poolmanager = None
         super().__init__(**kwargs)
 
-    def init_poolmanager(self, connections, maxsize, block=False, **pool_kwargs):
+    def init_poolmanager(
+        self, connections, maxsize, block=False, **pool_kwargs
+    ):
         """
         Initialize the pool manager with the custom CustomPoolManager.
         """
