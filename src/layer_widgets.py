@@ -207,29 +207,37 @@ class LayerRow(Adw.ExpanderRow):
         selected_type = self.types_list[selected_idx]
 
         # Configure Visibility and Labels based on Type
+        visibility = {
+            ProviderType.CDN: {
+                'url': False, 'default_backend': True, 'routing': True,
+                'overrides': False, 'path_match': False
+            },
+            ProviderType.CACHE_PROXY: {
+                'url': True, 'default_backend': False, 'routing': True,
+                'overrides': True, 'path_match': True
+            },
+            ProviderType.LOAD_BALANCER: {
+                'url': True, 'default_backend': False, 'routing': True,
+                'overrides': True, 'path_match': True
+            },
+            ProviderType.APP_BACKEND: {
+                'url': False, 'default_backend': False, 'routing': False,
+                'overrides': False, 'path_match': False
+            }
+        }
+        config = visibility.get(selected_type, visibility[ProviderType.CDN])
+
+        self.url_row.set_visible(config['url'])
+        self.default_backend_group.set_visible(config['default_backend'])
+        self.routing_rules_group.set_visible(config['routing'])
+        self.overrides_group.set_visible(config['overrides'])
+        self.path_match_group.set_visible(config['path_match'])
+
         if selected_type == ProviderType.CDN:
-            self.url_row.set_visible(False)
-            self.default_backend_group.set_visible(True)
             self.default_backend_group.set_title("Default Origin")
-            self.routing_rules_group.set_visible(True)
             self.routing_rules_group.set_title("Routing Rules")
-            self.overrides_group.set_visible(False)
-            self.path_match_group.set_visible(False)
-
-        elif selected_type in (ProviderType.CACHE_PROXY, ProviderType.LOAD_BALANCER):
-            self.url_row.set_visible(True)
-            self.default_backend_group.set_visible(False) # No default backend, falls through or routed
-            self.routing_rules_group.set_visible(True)
+        else:
             self.routing_rules_group.set_title("Routing Rules")
-            self.overrides_group.set_visible(True)
-            self.path_match_group.set_visible(True)
-
-        elif selected_type == ProviderType.APP_BACKEND:
-            self.url_row.set_visible(False) # Backend location determined by previous layer
-            self.default_backend_group.set_visible(False)
-            self.routing_rules_group.set_visible(False)
-            self.overrides_group.set_visible(False)
-            self.path_match_group.set_visible(False)
 
         # Clear provider model
         n_items = self.provider_model.get_n_items()
@@ -268,117 +276,99 @@ class LayerRow(Adw.ExpanderRow):
 
     def load_data(self, data):
         """Loads layer data into the UI widgets."""
+        self._loading = True
         self.name_row.set_text(data.get('name', ''))
         self.desc_row.set_text(data.get('description', ''))
         self.url_row.set_text(data.get('host_url', ''))
-        self.default_backend_host_row.set_text(data.get('default_backend_host', ''))
-        self.default_backend_header_row.set_text(data.get('default_backend_host_header', ''))
+        self.default_backend_host_row.set_text(
+            data.get('default_backend_host', ''))
+        self.default_backend_header_row.set_text(
+            data.get('default_backend_host_header', ''))
         self.set_title(data.get('name', 'New Layer'))
-        self.name_row.connect('notify::text',
-                              lambda *args: self.set_title(self.name_row.get_text()))
+        self.name_row.connect(
+            'notify::text',
+            lambda *args: self.set_title(self.name_row.get_text()))
 
-        # Load Type
+        self._load_type_and_provider(data)
+        self._load_colors(data)
+        self._load_headers(data)
+        self._load_overrides(data)
+        self._load_path_matches(data)
+        self._load_routing_rules(data)
+        self._loading = False
+
+    def _load_type_and_provider(self, data):
+        """Loads the layer type and provider from data."""
         layer_type_str = data.get('layer_type', ProviderType.CDN.value)
-        # Find index
-        type_idx = 0
-        for i, t in enumerate(self.types_list):
-            if t.value == layer_type_str:
-                type_idx = i
-                break
+        type_idx = next((i for i, t in enumerate(self.types_list)
+                         if t.value == layer_type_str), 0)
         self.type_row.set_selected(type_idx)
-
-        # Force provider update immediately to populate the second dropdown
-        # and set visibility before loading other fields
         self.on_type_changed(None, None)
 
-        # Load Provider
         provider_str = data.get('provider', '')
         if provider_str:
-            # Find index in current_providers
-            prov_idx = 0
-            for i, prov in enumerate(self.current_providers):
-                if prov.name == provider_str:
-                    prov_idx = i
-                    break
+            prov_idx = next((i for i, prov in enumerate(self.current_providers)
+                             if prov.name == provider_str), 0)
             self.provider_row.set_selected(prov_idx)
 
+    def _load_colors(self, data):
+        """Loads color data into the UI."""
+        color_buttons = {
+            'header_color': self.header_color_button,
+            'body_color': self.body_color_button,
+            'text_color': self.text_color_button,
+            'unchanged_text_color': self.unchanged_text_color_button,
+            'added_text_color': self.added_text_color_button,
+            'removed_text_color': self.removed_text_color_button,
+            'modified_text_color': self.modified_text_color_button,
+        }
+        for key, button in color_buttons.items():
+            rgba = Gdk.RGBA()
+            if not (data.get(key) and rgba.parse(data[key])):
+                rgba.parse('rgba(0,0,0,0)')
+            button.set_rgba(rgba)
 
-        header_color = Gdk.RGBA()
-        if not (data.get('header_color') and header_color.parse(data['header_color'])):
-            header_color.parse('rgba(0,0,0,0)')
-        self.header_color_button.set_rgba(header_color)
+    def _load_headers(self, data):
+        """Loads custom headers."""
+        for key, value in data.get('custom_headers', {}).items():
+            self.add_header_row(key, value)
 
-        body_color = Gdk.RGBA()
-        if not (data.get('body_color') and body_color.parse(data['body_color'])):
-            body_color.parse('rgba(0,0,0,0)')
-        self.body_color_button.set_rgba(body_color)
+    def _load_overrides(self, data):
+        """Loads host overrides."""
+        for override in data.get('host_overrides', []):
+            self.add_override_row(override.get('path_pattern', ''),
+                                  override.get('host_header', ''))
 
-        text_color = Gdk.RGBA()
-        if not (data.get('text_color') and text_color.parse(data['text_color'])):
-            text_color.parse('rgba(0,0,0,0)')
-        self.text_color_button.set_rgba(text_color)
+    def _load_path_matches(self, data):
+        """Loads path matches."""
+        for pattern in data.get('path_match_only', []):
+            self.add_path_match_row(pattern)
 
-        diff_text_color = Gdk.RGBA()
-        if not (data.get('unchanged_text_color') and
-                diff_text_color.parse(data['unchanged_text_color'])):
-            diff_text_color.parse('rgba(0,0,0,0)')
-        self.unchanged_text_color_button.set_rgba(diff_text_color)
-
-        added_text_color = Gdk.RGBA()
-        if not (data.get('added_text_color') and
-                added_text_color.parse(data['added_text_color'])):
-            added_text_color.parse('rgba(0,0,0,0)')
-        self.added_text_color_button.set_rgba(added_text_color)
-
-        removed_text_color = Gdk.RGBA()
-        if not (data.get('removed_text_color') and
-                removed_text_color.parse(data['removed_text_color'])):
-            removed_text_color.parse('rgba(0,0,0,0)')
-        self.removed_text_color_button.set_rgba(removed_text_color)
-
-        modified_text_color = Gdk.RGBA()
-        if not (data.get('modified_text_color') and
-                modified_text_color.parse(data['modified_text_color'])):
-            modified_text_color.parse('rgba(0,0,0,0)')
-        self.modified_text_color_button.set_rgba(modified_text_color)
-
-        custom_headers = data.get('custom_headers', {})
-        if custom_headers:
-            for key, value in custom_headers.items():
-                self.add_header_row(key, value)
-
-        overrides = data.get('host_overrides', [])
-        if overrides:
-            for override in overrides:
-                self.add_override_row(override.get('path_pattern', ''),
-                                      override.get('host_header', ''))
-
-        path_matches = data.get('path_match_only', [])
-        if path_matches:
-            for pattern in path_matches:
-                self.add_path_match_row(pattern)
-
+    def _load_routing_rules(self, data):
+        """Loads and groups routing rules."""
         routing_rules = data.get('routing_rules', [])
-        if routing_rules:
-            # Group rules by backend host, header, and rewrite
-            grouped_backends = {}
-            for rule in routing_rules:
-                backend_key = (
-                    rule.get('backend_host', ''),
-                    rule.get('backend_host_header', ''),
-                    rule.get('path_rewrite', '')
-                )
-                if backend_key not in grouped_backends:
-                    grouped_backends[backend_key] = {
-                        'backend_host': backend_key[0],
-                        'backend_host_header': backend_key[1],
-                        'path_rewrite': backend_key[2],
-                        'path_matches': []
-                    }
-                grouped_backends[backend_key]['path_matches'].append(rule.get('path_match', ''))
+        if not routing_rules:
+            return
 
-            for origin_data in grouped_backends.values():
-                self.add_origin_rule_row(origin_data)
+        grouped_backends = {}
+        for rule in routing_rules:
+            backend_key = (
+                rule.get('backend_host', ''),
+                rule.get('backend_host_header', ''),
+                rule.get('path_rewrite', '')
+            )
+            if backend_key not in grouped_backends:
+                grouped_backends[backend_key] = {
+                    'backend_host': backend_key[0],
+                    'backend_host_header': backend_key[1],
+                    'path_rewrite': backend_key[2],
+                    'path_matches': []
+                }
+            grouped_backends[backend_key]['path_matches'].append(
+                rule.get('path_match', ''))
+
+        for origin_data in grouped_backends.values():
+            self.add_origin_rule_row(origin_data)
 
     def on_changed(self, *_args):
         """Callback when any data in the layer row changes."""
@@ -500,14 +490,19 @@ class LayerRow(Adw.ExpanderRow):
             'description': self.desc_row.get_text(),
             'host_url': self.url_row.get_text(),
             'default_backend_host': self.default_backend_host_row.get_text(),
-            'default_backend_host_header': self.default_backend_header_row.get_text(),
+            'default_backend_host_header':
+                self.default_backend_header_row.get_text(),
             'header_color': self.header_color_button.get_rgba().to_string(),
             'body_color': self.body_color_button.get_rgba().to_string(),
             'text_color': self.text_color_button.get_rgba().to_string(),
-            'unchanged_text_color': self.unchanged_text_color_button.get_rgba().to_string(),
-            'added_text_color': self.added_text_color_button.get_rgba().to_string(),
-            'removed_text_color': self.removed_text_color_button.get_rgba().to_string(),
-            'modified_text_color': self.modified_text_color_button.get_rgba().to_string(),
+            'unchanged_text_color':
+                self.unchanged_text_color_button.get_rgba().to_string(),
+            'added_text_color':
+                self.added_text_color_button.get_rgba().to_string(),
+            'removed_text_color':
+                self.removed_text_color_button.get_rgba().to_string(),
+            'modified_text_color':
+                self.modified_text_color_button.get_rgba().to_string(),
             'custom_headers': {},
             'host_overrides': [],
             'path_match_only': [],

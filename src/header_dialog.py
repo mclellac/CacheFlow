@@ -6,16 +6,15 @@ inspecting HTTP headers in detail.
 import logging
 from gi.repository import Gtk, Adw, Gio, GObject, GLib, Pango, Gdk
 
-from .utils import get_accent_color
 from .models import HeaderItem
 
 log = logging.getLogger(__name__)
 
 
 @Gtk.Template(resource_path='/com/github/mclellac/CacheFlow/ui/header_dialog.ui')
-class HeaderDialog(Adw.Dialog):
+class HeaderDialog(Adw.ApplicationWindow):
     """
-    A dialog to display key-value headers from a node.
+    A window to display key-value headers from a node.
     Allows filtering and copying of header data.
     """
     __gtype_name__ = 'HeaderDialog'

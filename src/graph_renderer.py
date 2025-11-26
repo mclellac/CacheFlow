@@ -1,9 +1,9 @@
 """
 This module handles the rendering logic for the NodeGraph widget.
 """
+from typing import Dict, Any
 
 import cairo
-from typing import List, Dict, Any
 from gi.repository import Adw, Pango, PangoCairo, GLib, Gdk
 from .utils import get_accent_color
 from .graph_utils import get_color, rounded_rectangle, ConnectionPoints
@@ -70,7 +70,8 @@ class GraphRenderer:
             cr.curve_to(c1_x, c1_y, c2_x, c2_y, end_x, end_y)
             cr.stroke()
 
-            points = ConnectionPoints(start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y)
+            points = ConnectionPoints(start_x, start_y, c1_x, c1_y,
+                                      c2_x, c2_y, end_x, end_y)
             self._draw_connection_label(cr, node_b, points)
 
     def _draw_connection_label(self, cr: cairo.Context, node_b: Dict[str, Any],
@@ -149,9 +150,11 @@ class GraphRenderer:
         body_rgba = Gdk.RGBA()
         body_rgba.parse(node['data'].body_color)
         if body_rgba.alpha == 0:
-            body_color = (0.8, 0.8, 0.85, 1) if not is_dark else (0.2, 0.2, 0.25, 1)
+            body_color = (0.8, 0.8, 0.85, 1) if not is_dark else (
+            0.2, 0.2, 0.25, 1)
         else:
-            body_color = (body_rgba.red, body_rgba.green, body_rgba.blue, body_rgba.alpha)
+            body_color = (
+            body_rgba.red, body_rgba.green, body_rgba.blue, body_rgba.alpha)
         cr.set_source_rgba(*body_color)
 
         rounded_rectangle(cr, x, y, w, h, 10)
@@ -165,9 +168,11 @@ class GraphRenderer:
         header_rgba = Gdk.RGBA()
         header_rgba.parse(node['data'].header_color)
         if header_rgba.alpha == 0:
-            header_color = (0.7, 0.7, 0.75, 1) if not is_dark else (0.3, 0.3, 0.35, 1)
+            header_color = (0.7, 0.7, 0.75, 1) if not is_dark else (
+            0.3, 0.3, 0.35, 1)
         else:
-            header_color = (header_rgba.red, header_rgba.green, header_rgba.blue, header_rgba.alpha)
+            header_color = (
+            header_rgba.red, header_rgba.green, header_rgba.blue, header_rgba.alpha)
         cr.set_source_rgba(*header_color)
 
         rounded_rectangle(cr, x, y, w, NODE_HEADER_HEIGHT, 10,
@@ -182,7 +187,8 @@ class GraphRenderer:
             cr.set_source_rgba(1, 1, 1, 1)
         else:
             cr.set_source_rgba(0, 0, 0, 1)
-        cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+        cr.select_font_face("Sans", cairo.FONT_SLANT_NORMAL,
+                             cairo.FONT_WEIGHT_BOLD)
         cr.set_font_size(16)
         cr.move_to(x + PADDING, y + 22)
         cr.show_text(node["data"].name)
@@ -190,7 +196,7 @@ class GraphRenderer:
         cr.set_font_size(12)
         cr.set_source_rgba(0.4, 0.4, 0.4, 1)
         if is_dark:
-             cr.set_source_rgba(0.7, 0.7, 0.7, 1)
+            cr.set_source_rgba(0.7, 0.7, 0.7, 1)
 
         cr.move_to(x + PADDING, y + 42)
         provider_name = node["data"].provider if node["data"].provider else "Unknown"

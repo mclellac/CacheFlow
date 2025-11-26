@@ -164,9 +164,11 @@ class ConfigManager:
             self.settings.set_value('configurations', builder.end())
             log.info("Configurations saved successfully.")
         except TypeError as e:
-            log.error("TypeError saving configurations. This indicates a data mismatch: %s", e)
+            log.error("TypeError saving configurations. "
+                      "This indicates a data mismatch: %s", e)
         except Exception as e:
-            log.error("An unexpected error occurred while saving configurations: %s", e)
+            log.error("An unexpected error occurred while saving configurations: %s",
+                      e)
 
     def _pack_layers(self, layers_data):
         """Packs a list of Python layer dicts into a GLib.Variant ('aa{sv}')."""
@@ -175,23 +177,39 @@ class ConfigManager:
             dict_builder = GLib.VariantBuilder.new('a{sv}')
             # Pack all known keys, providing defaults for missing ones
             dict_builder.add('{sv}', 'name', GLib.Variant('s', l_data.get('name', '')))
-            dict_builder.add('{sv}', 'description', GLib.Variant('s', l_data.get('description', '')))
-            dict_builder.add('{sv}', 'layer_type', GLib.Variant('s', l_data.get('layer_type', 'CDN')))
-            dict_builder.add('{sv}', 'provider', GLib.Variant('s', l_data.get('provider', 'Akamai')))
-            dict_builder.add('{sv}', 'host_url', GLib.Variant('s', l_data.get('host_url', '')))
-            dict_builder.add('{sv}', 'default_backend_host', GLib.Variant('s', l_data.get('default_backend_host', '')))
-            dict_builder.add('{sv}', 'default_backend_host_header', GLib.Variant('s', l_data.get('default_backend_host_header', '')))
+            dict_builder.add('{sv}', 'description',
+                             GLib.Variant('s', l_data.get('description', '')))
+            dict_builder.add('{sv}', 'layer_type',
+                             GLib.Variant('s', l_data.get('layer_type', 'CDN')))
+            dict_builder.add('{sv}', 'provider',
+                             GLib.Variant('s', l_data.get('provider', 'Akamai')))
+            dict_builder.add('{sv}', 'host_url',
+                             GLib.Variant('s', l_data.get('host_url', '')))
+            dict_builder.add('{sv}', 'default_backend_host',
+                             GLib.Variant('s', l_data.get('default_backend_host', '')))
+            dict_builder.add('{sv}', 'default_backend_host_header',
+                             GLib.Variant('s',
+                                          l_data.get('default_backend_host_header', '')))
 
             # Color settings
-            dict_builder.add('{sv}', 'header_color', GLib.Variant('s', l_data.get('header_color', 'rgba(0,0,0,0)')))
-            dict_builder.add('{sv}', 'body_color', GLib.Variant('s', l_data.get('body_color', 'rgba(0,0,0,0)')))
-            dict_builder.add('{sv}', 'unchanged_text_color', GLib.Variant('s', l_data.get('unchanged_text_color', 'rgba(0,0,0,0)')))
-            dict_builder.add('{sv}', 'added_text_color', GLib.Variant('s', l_data.get('added_text_color', 'rgba(0,0,0,0)')))
-            dict_builder.add('{sv}', 'removed_text_color', GLib.Variant('s', l_data.get('removed_text_color', 'rgba(0,0,0,0)')))
-            dict_builder.add('{sv}', 'modified_text_color', GLib.Variant('s', l_data.get('modified_text_color', 'rgba(0,0,0,0)')))
+            dict_builder.add('{sv}', 'header_color',
+                             GLib.Variant('s', l_data.get('header_color', 'rgba(0,0,0,0)')))
+            dict_builder.add('{sv}', 'body_color',
+                             GLib.Variant('s', l_data.get('body_color', 'rgba(0,0,0,0)')))
+            dict_builder.add('{sv}', 'unchanged_text_color',
+                             GLib.Variant('s',
+                                          l_data.get('unchanged_text_color', 'rgba(0,0,0,0)')))
+            dict_builder.add('{sv}', 'added_text_color',
+                             GLib.Variant('s', l_data.get('added_text_color', 'rgba(0,0,0,0)')))
+            dict_builder.add('{sv}', 'removed_text_color',
+                             GLib.Variant('s', l_data.get('removed_text_color', 'rgba(0,0,0,0)')))
+            dict_builder.add('{sv}', 'modified_text_color',
+                             GLib.Variant('s',
+                                          l_data.get('modified_text_color', 'rgba(0,0,0,0)')))
 
             # Complex types
-            dict_builder.add('{sv}', 'custom_headers', GLib.Variant('a{ss}', l_data.get('custom_headers', {})))
+            dict_builder.add('{sv}', 'custom_headers',
+                             GLib.Variant('a{ss}', l_data.get('custom_headers', {})))
 
             # Build 'host_overrides' (aa{ss})
             overrides_builder = GLib.VariantBuilder.new('aa{ss}')
@@ -199,7 +217,8 @@ class ConfigManager:
                 overrides_builder.add('a{ss}', override)
             dict_builder.add('{sv}', 'host_overrides', overrides_builder.end())
 
-            dict_builder.add('{sv}', 'path_match_only', GLib.Variant('as', l_data.get('path_match_only', [])))
+            dict_builder.add('{sv}', 'path_match_only',
+                             GLib.Variant('as', l_data.get('path_match_only', [])))
 
             # Build 'routing_rules' (aa{ss})
             rules_builder = GLib.VariantBuilder.new('aa{ss}')

@@ -2,7 +2,7 @@
 Shared UI helpers and widgets to reduce duplication.
 """
 
-from gi.repository import Gtk, Pango
+from gi.repository import Gtk
 
 def create_header_list_factory(is_analysis: bool = False):
     """
