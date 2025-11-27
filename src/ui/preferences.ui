@@ -148,13 +148,25 @@
                         <property name="title">CDN</property>
                         <property name="icon-name">network-server-symbolic</property>
                         <property name="child">
-                          <object class="AdwPreferencesGroup" id="group_cdn">
-                            <property name="description">Content Delivery Network layers (Entry Points).</property>
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">24</property>
                             <child>
-                              <object class="AdwActionRow" id="add_cdn_row">
-                                <property name="title">Add CDN Layer</property>
-                                <property name="icon-name">list-add-symbolic</property>
-                                <property name="activatable">True</property>
+                              <object class="GtkBox" id="group_cdn">
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">12</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="AdwPreferencesGroup">
+                                <property name="description">Content Delivery Network layers (Entry Points).</property>
+                                <child>
+                                  <object class="AdwActionRow" id="add_cdn_row">
+                                    <property name="title">Add CDN Layer</property>
+                                    <property name="icon-name">list-add-symbolic</property>
+                                    <property name="activatable">True</property>
+                                  </object>
+                                </child>
                               </object>
                             </child>
                           </object>
@@ -167,13 +179,25 @@
                         <property name="title">Load Balancer</property>
                         <property name="icon-name">network-transmit-receive-symbolic</property>
                         <property name="child">
-                          <object class="AdwPreferencesGroup" id="group_lb">
-                            <property name="description">Traffic distribution layers (e.g., Nginx, HAProxy).</property>
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">24</property>
                             <child>
-                              <object class="AdwActionRow" id="add_lb_row">
-                                <property name="title">Add Load Balancer Layer</property>
-                                <property name="icon-name">list-add-symbolic</property>
-                                <property name="activatable">True</property>
+                              <object class="GtkBox" id="group_lb">
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">12</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="AdwPreferencesGroup">
+                                <property name="description">Traffic distribution layers (e.g., Nginx, HAProxy).</property>
+                                <child>
+                                  <object class="AdwActionRow" id="add_lb_row">
+                                    <property name="title">Add Load Balancer Layer</property>
+                                    <property name="icon-name">list-add-symbolic</property>
+                                    <property name="activatable">True</property>
+                                  </object>
+                                </child>
                               </object>
                             </child>
                           </object>
@@ -186,13 +210,25 @@
                         <property name="title">Caching Proxy</property>
                         <property name="icon-name">drive-harddisk-symbolic</property>
                         <property name="child">
-                          <object class="AdwPreferencesGroup" id="group_proxy">
-                            <property name="description">Caching layers (e.g., Varnish) sitting between LB and App.</property>
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">24</property>
                             <child>
-                              <object class="AdwActionRow" id="add_proxy_row">
-                                <property name="title">Add Proxy Layer</property>
-                                <property name="icon-name">list-add-symbolic</property>
-                                <property name="activatable">True</property>
+                              <object class="GtkBox" id="group_proxy">
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">12</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="AdwPreferencesGroup">
+                                <property name="description">Caching layers (e.g., Varnish) sitting between LB and App.</property>
+                                <child>
+                                  <object class="AdwActionRow" id="add_proxy_row">
+                                    <property name="title">Add Proxy Layer</property>
+                                    <property name="icon-name">list-add-symbolic</property>
+                                    <property name="activatable">True</property>
+                                  </object>
+                                </child>
                               </object>
                             </child>
                           </object>
@@ -205,13 +241,25 @@
                         <property name="title">Application</property>
                         <property name="icon-name">application-x-executable-symbolic</property>
                         <property name="child">
-                          <object class="AdwPreferencesGroup" id="group_app">
-                            <property name="description">Origin Application Backends (e.g., Web Servers).</property>
+                          <object class="GtkBox">
+                            <property name="orientation">vertical</property>
+                            <property name="spacing">24</property>
                             <child>
-                              <object class="AdwActionRow" id="add_app_row">
-                                <property name="title">Add Application Layer</property>
-                                <property name="icon-name">list-add-symbolic</property>
-                                <property name="activatable">True</property>
+                              <object class="GtkBox" id="group_app">
+                                <property name="orientation">vertical</property>
+                                <property name="spacing">12</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="AdwPreferencesGroup">
+                                <property name="description">Origin Application Backends (e.g., Web Servers).</property>
+                                <child>
+                                  <object class="AdwActionRow" id="add_app_row">
+                                    <property name="title">Add Application Layer</property>
+                                    <property name="icon-name">list-add-symbolic</property>
+                                    <property name="activatable">True</property>
+                                  </object>
+                                </child>
                               </object>
                             </child>
                           </object>
