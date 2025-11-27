@@ -143,21 +143,9 @@ class CacheFlowEngine:
                 # Match based on target host_url
                 # target_base matches node['host_url']
                 # Strip trailing slashes and schemes for comparison if needed
-                node_url = node.get("host_url", "").strip().rstrip("/")
-                target = target_base.strip().rstrip("/")
-
-                # Check for scheme mismatch. target_base often comes with scheme from RouteCalculator
-                # but node_url might be configured with or without.
-                # If node_url doesn't have scheme, try matching without scheme in target
-
-                parsed_target = urlparse(target)
-                target_no_scheme = parsed_target.netloc + parsed_target.path
-
-                parsed_node = urlparse(node_url)
-                node_no_scheme = parsed_node.netloc + parsed_node.path if parsed_node.scheme else node_url
-
-                # Try exact match, or match without scheme
-                if node_url == target or node_no_scheme == target_no_scheme:
+                node_url = node.get("host_url", "").rstrip("/")
+                target = target_base.rstrip("/")
+                if node_url == target:
                     matched = True
 
             if matched and not active_node:

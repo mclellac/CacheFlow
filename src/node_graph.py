@@ -259,13 +259,10 @@ class NodeGraph(Gtk.DrawingArea):
                 # inactive nodes should be smaller?
                 # "inactive nodes" are just blocks without headers.
 
-                if node_data.is_active:
-                    header_count = len(node_data.headers)
-                    node_height = NODE_HEADER_HEIGHT + PADDING
-                    if header_count > 0:
-                         node_height += (header_count * LINE_HEIGHT)
-                else:
-                    node_height = NODE_HEADER_HEIGHT + 5 # Smaller height for inactive
+                header_count = len(node_data.headers)
+                node_height = NODE_HEADER_HEIGHT + PADDING
+                if header_count > 0:
+                     node_height += (header_count * LINE_HEIGHT)
 
                 nodes_dimensions.append({
                     "width": node_width,

@@ -223,22 +223,20 @@ class GraphRenderer:
 
         is_active = node["data"].is_active
 
-        # If inactive, draw smaller "empty" box
-        if not is_active:
-            self._draw_inactive_node(cr, node, x, y, w, h, is_dark)
-            return
+        # Dim inactive nodes
+        alpha_mult = 1.0 if is_active else 0.5
 
         if self.node_graph.selected_node_index == node["id"]:
             r, g, b, _ = get_accent_color()
-            cr.set_source_rgba(r, g, b, 0.4)
+            cr.set_source_rgba(r, g, b, 0.4 * alpha_mult)
             rounded_rectangle(cr, x - 8, y - 8, w + 16, h + 16, 18)
             cr.fill()
-            cr.set_source_rgba(r, g, b, 1.0)
+            cr.set_source_rgba(r, g, b, 1.0 * alpha_mult)
             cr.set_line_width(3)
             rounded_rectangle(cr, x, y, w, h, 10)
             cr.stroke()
 
-        cr.set_source_rgba(0.0, 0.0, 0.0, 0.4)
+        cr.set_source_rgba(0.0, 0.0, 0.0, 0.4 * alpha_mult)
         rounded_rectangle(cr, x + 2, y + 3, w, h, 10)
         cr.fill()
 
@@ -250,14 +248,14 @@ class GraphRenderer:
 
         if body_rgba.alpha == 0:
             body_color = (
-                (0.8, 0.8, 0.85, 1) if not is_dark else (0.2, 0.2, 0.25, 1)
+                (0.8, 0.8, 0.85, 1 * alpha_mult) if not is_dark else (0.2, 0.2, 0.25, 1 * alpha_mult)
             )
         else:
             body_color = (
                 body_rgba.red,
                 body_rgba.green,
                 body_rgba.blue,
-                body_rgba.alpha,
+                body_rgba.alpha * alpha_mult,
             )
         cr.set_source_rgba(*body_color)
 
@@ -265,7 +263,7 @@ class GraphRenderer:
         cr.fill_preserve()
 
         border_color = (
-            (0.5, 0.5, 0.5, 0.8) if is_dark else (0.4, 0.4, 0.4, 0.8)
+            (0.5, 0.5, 0.5, 0.8 * alpha_mult) if is_dark else (0.4, 0.4, 0.4, 0.8 * alpha_mult)
         )
         cr.set_source_rgba(*border_color)
         cr.set_line_width(1)
@@ -279,14 +277,14 @@ class GraphRenderer:
 
         if header_rgba.alpha == 0:
             header_color = (
-                (0.7, 0.7, 0.75, 1) if not is_dark else (0.3, 0.3, 0.35, 1)
+                (0.7, 0.7, 0.75, 1 * alpha_mult) if not is_dark else (0.3, 0.3, 0.35, 1 * alpha_mult)
             )
         else:
             header_color = (
                 header_rgba.red,
                 header_rgba.green,
                 header_rgba.blue,
-                header_rgba.alpha,
+                header_rgba.alpha * alpha_mult,
             )
         cr.set_source_rgba(*header_color)
 
@@ -306,9 +304,9 @@ class GraphRenderer:
         cr.stroke()
 
         if is_dark:
-            cr.set_source_rgba(1, 1, 1, 1)
+            cr.set_source_rgba(1, 1, 1, 1 * alpha_mult)
         else:
-            cr.set_source_rgba(0, 0, 0, 1)
+            cr.set_source_rgba(0, 0, 0, 1 * alpha_mult)
         cr.select_font_face(
             "Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
         )
@@ -317,9 +315,9 @@ class GraphRenderer:
         cr.show_text(node["data"].name)
 
         cr.set_font_size(12)
-        cr.set_source_rgba(0.4, 0.4, 0.4, 1)
+        cr.set_source_rgba(0.4, 0.4, 0.4, 1 * alpha_mult)
         if is_dark:
-            cr.set_source_rgba(0.7, 0.7, 0.7, 1)
+            cr.set_source_rgba(0.7, 0.7, 0.7, 1 * alpha_mult)
 
         cr.move_to(x + PADDING, y + 42)
         provider_name = (
@@ -327,7 +325,11 @@ class GraphRenderer:
         )
         cr.show_text(f"{provider_name}")
 
-        self._draw_node_text(cr, node, x, y, w, is_dark)
+        if is_active:
+             self._draw_node_text(cr, node, x, y, w, is_dark)
+        else:
+             # Maybe draw a "Inactive" text?
+             pass
 
     def _draw_inactive_node(self, cr, node, x, y, w, h, is_dark):
         """Draws a smaller, dimmed version for inactive nodes."""
