@@ -438,6 +438,57 @@ class ConfigManager:
                 )
             )
 
+            # Build 'nodes' (aa{sv}) for multiple proxies/backends
+            nodes_builder = GLib.VariantBuilder.new(
+                GLib.VariantType.new("aa{sv}")
+            )
+            for node in l_data.get("nodes", []):
+                node_dict_builder = GLib.VariantBuilder.new(
+                    GLib.VariantType.new("a{sv}")
+                )
+                node_dict_builder.add_value(
+                    GLib.Variant(
+                        "{sv}", ("name", GLib.Variant("s", node.get("name", "")))
+                    )
+                )
+                node_dict_builder.add_value(
+                    GLib.Variant(
+                        "{sv}", ("host_url", GLib.Variant("s", node.get("host_url", "")))
+                    )
+                )
+                node_dict_builder.add_value(
+                    GLib.Variant(
+                        "{sv}", ("match_header", GLib.Variant("s", node.get("match_header", "")))
+                    )
+                )
+                node_dict_builder.add_value(
+                    GLib.Variant(
+                        "{sv}", ("match_value", GLib.Variant("s", node.get("match_value", "")))
+                    )
+                )
+                node_dict_builder.add_value(
+                    GLib.Variant(
+                        "{sv}", ("provider", GLib.Variant("s", node.get("provider", "")))
+                    )
+                )
+                node_dict_builder.add_value(
+                    GLib.Variant(
+                        "{sv}", ("header_color", GLib.Variant("s", node.get("header_color", "rgba(0,0,0,0)")))
+                    )
+                )
+                node_dict_builder.add_value(
+                    GLib.Variant(
+                        "{sv}", ("body_color", GLib.Variant("s", node.get("body_color", "rgba(0,0,0,0)")))
+                    )
+                )
+                nodes_builder.add_value(node_dict_builder.end())
+
+            dict_builder.add_value(
+                GLib.Variant(
+                    "{sv}", ("nodes", nodes_builder.end())
+                )
+            )
+
             builder.add_value(dict_builder.end())
 
         return builder.end()

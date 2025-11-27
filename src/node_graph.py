@@ -23,6 +23,8 @@ NODE_WIDTH = 450
 NODE_HEADER_HEIGHT = 55
 LINE_HEIGHT = 22
 PADDING = 15
+GAP_X = 300
+GAP_Y = 50
 
 
 class NodeGraph(Gtk.DrawingArea):
@@ -45,6 +47,7 @@ class NodeGraph(Gtk.DrawingArea):
         """
         super().__init__(**kwargs)
         self.nodes: List[Dict[str, Any]] = []
+        self.layers_data: List[List[Any]] = [] # Store original layers data structure
         self.selected_node_index: Optional[int] = None
         self.scale = 1.0
         self.offset_x = 0
@@ -91,7 +94,7 @@ class NodeGraph(Gtk.DrawingArea):
         self.scale = 1.0
         self.offset_x = 0
         self.offset_y = 0
-        self.set_data([n["data"] for n in self.nodes])
+        self.set_data(self.layers_data)
 
     def _on_reset_layout_action(
         self, _action: Gio.SimpleAction, _param: GLib.Variant
@@ -185,9 +188,10 @@ class NodeGraph(Gtk.DrawingArea):
         with open(filepath, "w") as f:
             for node in self.nodes:
                 f.write(f"Node: {node['data'].name}\n")
-                f.write(
-                    f"URL: {node['data'].request_method} {node['data'].request_url}\n"
-                )
+                if hasattr(node['data'], 'request_method'):
+                     f.write(
+                        f"URL: {node['data'].request_method} {node['data'].request_url}\n"
+                    )
                 f.write("Headers:\n")
                 for h, v, diff, note in node["data"].headers:
                     marker = "*" if diff else " "
@@ -209,15 +213,16 @@ class NodeGraph(Gtk.DrawingArea):
         log.debug("System style (light/dark) changed, queueing redraw.")
         self.queue_draw()
 
-    def set_data(self, nodes_data: List[Any]) -> None:
+    def set_data(self, layers_data: List[List[Any]]) -> None:
         """Sets the data for the nodes and arranges them.
 
         Args:
-            nodes_data: A list of NodeData objects.
+            layers_data: A list of lists of NodeData objects.
         """
-        log.info("Setting node data with %d nodes.", len(nodes_data))
+        log.info("Setting graph data with %d layers.", len(layers_data))
+        self.layers_data = layers_data
         self.nodes = []
-        x, y = 50.0, 50.0
+        x = 50.0
 
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 0, 0)
         cr = cairo.Context(surface)
@@ -226,23 +231,76 @@ class NodeGraph(Gtk.DrawingArea):
         )
         cr.set_font_size(16)
 
-        for i, node_data in enumerate(nodes_data):
-            text_extents = cr.text_extents(node_data.name)
-            min_width = text_extents.width + 2 * PADDING
-            node_width = max(NODE_WIDTH, min_width)
-            node = {
-                "id": i,
-                "x": x,
-                "y": y,
-                "width": node_width,
-                "height": NODE_HEADER_HEIGHT
-                + (len(node_data.headers) * LINE_HEIGHT)
-                + PADDING,
-                "data": node_data,
-                "min_width": min_width,
-            }
-            self.nodes.append(node)
-            x += node_width + 300
+        node_id_counter = 0
+
+        # Calculate layout
+        # Each layer gets an X position.
+        # Nodes within a layer get Y positions.
+
+        for layer_nodes in layers_data:
+            # First, check if input is List[List] or just List (backward compat for old linear list)
+            if isinstance(layer_nodes, list):
+                nodes_in_col = layer_nodes
+            else:
+                 # Should not happen with new controller but safety check
+                 nodes_in_col = [layer_nodes]
+
+            # Find max width in this column
+            max_col_width = NODE_WIDTH
+
+            # First pass: measure all nodes in this layer/column
+            nodes_dimensions = []
+            for node_data in nodes_in_col:
+                text_extents = cr.text_extents(node_data.name)
+                min_width = text_extents.width + 2 * PADDING
+                node_width = max(NODE_WIDTH, min_width)
+
+                # Height depends on headers if expanded/active?
+                # inactive nodes should be smaller?
+                # "inactive nodes" are just blocks without headers.
+
+                header_count = len(node_data.headers)
+                node_height = NODE_HEADER_HEIGHT + PADDING
+                if header_count > 0:
+                     node_height += (header_count * LINE_HEIGHT)
+
+                nodes_dimensions.append({
+                    "width": node_width,
+                    "height": node_height,
+                    "data": node_data
+                })
+
+                if node_width > max_col_width:
+                    max_col_width = node_width
+
+            # Second pass: assign positions
+            # Center the column vertically? Or top align?
+            # Let's stack them starting from y=50 with gaps.
+            y = 50.0
+
+            for dim in nodes_dimensions:
+                node = {
+                    "id": node_id_counter,
+                    "x": x,
+                    "y": y,
+                    "width": dim["width"], # Use individual width or column width? Usually uniform width looks better.
+                    # Let's use individual width but maybe center align them if they differ?
+                    # For simplicity, left align at X.
+                    "height": dim["height"],
+                    "data": dim["data"],
+                    "min_width": dim["width"], # Stored for reference
+                }
+
+                # If we want to force uniform width per column:
+                # node["width"] = max_col_width
+
+                self.nodes.append(node)
+                node_id_counter += 1
+
+                y += dim["height"] + GAP_Y
+
+            x += max_col_width + GAP_X
+
         self.queue_draw()
 
     def _on_draw(

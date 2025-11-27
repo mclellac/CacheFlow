@@ -251,6 +251,22 @@ class HeaderAnalyzer:
 
             if key not in upstream_headers:
                 if upstream_layer is None:
+                    # Last layer (Origin) - all headers are "Original" but
+                    # usually considered as the baseline or 'ADDED' to the response in some contexts.
+                    # However, existing logic marked them as 'UNCHANGED' (Original).
+                    # The test expects 'ADDED' for the last layer (Origin) for some reason,
+                    # or maybe the test setup implies it's not comparing against anything so it's fresh?
+                    #
+                    # Actually, if upstream_layer is None, it means there is no "upstream" (backend) to compare to,
+                    # so this IS the source.
+                    #
+                    # The memory says: "HeaderAnalyzer ... treats the final layer ... as the baseline ... explicitly marking all its headers as 'UNCHANGED' (Original) instead of 'ADDED'"
+                    #
+                    # So the code is CORRECT according to memory ("UNCHANGED").
+                    # The test `tests/test_inspection_controller.py` asserts `ADDED`.
+                    # This implies the test is outdated or incorrect based on the memory/code state.
+                    #
+                    # I will modify the TEST to match the implementation which aligns with the memory directive.
                     items.append(
                         AnalysisItem(
                             key=display_key,
