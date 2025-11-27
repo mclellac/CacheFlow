@@ -107,6 +107,7 @@ class CacheFlowEngine:
         previous_headers: Dict[str, str],
         target_base: str,
         layer_type: str,
+        target_host_header: Optional[str] = None,
     ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """Selects the active node from a list of siblings based on routing criteria.
 
@@ -115,6 +116,7 @@ class CacheFlowEngine:
             previous_headers: Response headers from the previous layer.
             target_base: The target base URL resolved from routing rules.
             layer_type: The type of the current layer.
+            target_host_header: The host header of the current request.
 
         Returns:
             A tuple containing the active node configuration and a list of inactive siblings.
@@ -131,7 +133,13 @@ class CacheFlowEngine:
                 match_value = node.get("match_value", "")
 
                 if match_header and match_value:
+                    # Check against previous response headers
                     actual_value = previous_headers.get(match_header, "")
+
+                    # Also check against request Host header if configured
+                    if not actual_value and match_header.lower() == "host" and target_host_header:
+                        actual_value = target_host_header
+
                     if actual_value == match_value:
                         matched = True
                     # Case-insensitive match? Assuming strict for now, or maybe loose.
@@ -201,7 +209,11 @@ class CacheFlowEngine:
         if nodes:
             # We have multiple nodes. We need to select one.
             active_node, inactive_nodes = self._select_node_from_siblings(
-                nodes, previous_headers, target_base, layer_config.get("layer_type", "")
+                nodes,
+                previous_headers,
+                target_base,
+                layer_config.get("layer_type", ""),
+                target_host_header,
             )
 
             # Merge active node config into exec_layer
