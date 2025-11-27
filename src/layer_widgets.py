@@ -649,9 +649,18 @@ class LayerRow(Adw.PreferencesGroup):
             self.routing_rules_group.set_subtitle("Configure origin servers and matching rules.")
             self.add_routing_rule_btn.set_tooltip_text("Add New Origin")
             label_prefix = "Origin"
+        elif selected_type == ProviderType.LOAD_BALANCER:
+            self.url_row.set_title("Load Balancer Hostname (e.g. lb.example.com)")
+            self.default_backend_host_row.set_title("Default Target Host (Fallback)")
+            self.default_backend_header_row.set_title("Default Target Host Header (Optional)")
+            self.routing_rules_group.set_title("Target Pools")
+            self.routing_rules_group.set_subtitle("Configure target pools (e.g. Cache Proxies) and matching rules.")
+            self.add_routing_rule_btn.set_tooltip_text("Add New Target Pool")
+            label_prefix = "Target"
         else:
+            self.url_row.set_title("Host URL")
             self.default_backend_host_row.set_title("Default Backend Host")
-            self.default_backend_header_row.set_title("Default Backend Host Header")
+            self.default_backend_header_row.set_title("Default Backend Host Header (Optional)")
             self.routing_rules_group.set_title("Backend Rules")
             self.routing_rules_group.set_subtitle("Define backend destinations based on request paths.")
             self.add_routing_rule_btn.set_tooltip_text("Add New Backend")

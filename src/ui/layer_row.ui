@@ -54,7 +54,7 @@
     </child>
     <child>
         <object class="AdwEntryRow" id="default_backend_header_row">
-            <property name="title">Host Header</property>
+            <property name="title">Host Header (Optional)</property>
         </object>
     </child>
 
