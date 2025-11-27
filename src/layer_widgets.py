@@ -643,14 +643,12 @@ class LayerRow(Adw.PreferencesGroup):
         self.headers_group.set_visible(config["headers"])
 
         if selected_type == ProviderType.CDN:
-            self.url_row.set_title("CDN Domain")
-            self.default_backend_host_row.set_title("Default Origin Target")
+            self.default_backend_host_row.set_title("Default Origin Host")
             self.default_backend_header_row.set_title("Default Origin Host Header")
-            self.routing_rules_group.set_title("Origin Rules")
+            self.routing_rules_group.set_title("Additional Origins")
             self.add_routing_rule_btn.set_tooltip_text("Add New Origin")
             label_prefix = "Origin"
         else:
-            self.url_row.set_title("Host URL")
             self.default_backend_host_row.set_title("Default Backend Host")
             self.default_backend_header_row.set_title("Default Backend Host Header")
             self.routing_rules_group.set_title("Backend Rules")
