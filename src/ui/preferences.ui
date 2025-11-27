@@ -127,17 +127,102 @@
             </object>
         </child>
         <child>
-            <object class="AdwPreferencesGroup" id="layers_group">
-                <property name="title">Infrastructure Layers</property>
-                <property name="description">Define the layers of your infrastructure, from CDN to Backend.</property>
+          <object class="AdwPreferencesGroup">
+            <property name="title">Infrastructure Layers</property>
+            <property name="description">Configure the layers of your infrastructure. The inspection follows the order: CDN → Load Balancer → Caching Proxy → Application.</property>
+            <child>
+              <object class="GtkBox">
+                <property name="orientation">vertical</property>
+                <property name="spacing">12</property>
                 <child>
-                    <object class="AdwActionRow" id="add_layer_row">
-                        <property name="title">Add New Layer</property>
-                        <property name="icon-name">list-add-symbolic</property>
-                        <property name="activatable">True</property>
-                    </object>
+                  <object class="AdwViewSwitcher">
+                    <property name="stack">layers_stack</property>
+                    <property name="policy">wide</property>
+                  </object>
                 </child>
-            </object>
+                <child>
+                  <object class="AdwViewStack" id="layers_stack">
+                    <child>
+                      <object class="AdwViewStackPage">
+                        <property name="name">page_cdn</property>
+                        <property name="title">CDN</property>
+                        <property name="icon-name">network-server-symbolic</property>
+                        <property name="child">
+                          <object class="AdwPreferencesGroup" id="group_cdn">
+                            <property name="description">Content Delivery Network layers (Entry Points).</property>
+                            <child>
+                              <object class="AdwActionRow" id="add_cdn_row">
+                                <property name="title">Add CDN Layer</property>
+                                <property name="icon-name">list-add-symbolic</property>
+                                <property name="activatable">True</property>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwViewStackPage">
+                        <property name="name">page_lb</property>
+                        <property name="title">Load Balancer</property>
+                        <property name="icon-name">network-transmit-receive-symbolic</property>
+                        <property name="child">
+                          <object class="AdwPreferencesGroup" id="group_lb">
+                            <property name="description">Traffic distribution layers (e.g., Nginx, HAProxy).</property>
+                            <child>
+                              <object class="AdwActionRow" id="add_lb_row">
+                                <property name="title">Add Load Balancer Layer</property>
+                                <property name="icon-name">list-add-symbolic</property>
+                                <property name="activatable">True</property>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwViewStackPage">
+                        <property name="name">page_proxy</property>
+                        <property name="title">Caching Proxy</property>
+                        <property name="icon-name">drive-harddisk-symbolic</property>
+                        <property name="child">
+                          <object class="AdwPreferencesGroup" id="group_proxy">
+                            <property name="description">Caching layers (e.g., Varnish) sitting between LB and App.</property>
+                            <child>
+                              <object class="AdwActionRow" id="add_proxy_row">
+                                <property name="title">Add Proxy Layer</property>
+                                <property name="icon-name">list-add-symbolic</property>
+                                <property name="activatable">True</property>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="AdwViewStackPage">
+                        <property name="name">page_app</property>
+                        <property name="title">Application</property>
+                        <property name="icon-name">application-x-executable-symbolic</property>
+                        <property name="child">
+                          <object class="AdwPreferencesGroup" id="group_app">
+                            <property name="description">Origin Application Backends (e.g., Web Servers).</property>
+                            <child>
+                              <object class="AdwActionRow" id="add_app_row">
+                                <property name="title">Add Application Layer</property>
+                                <property name="icon-name">list-add-symbolic</property>
+                                <property name="activatable">True</property>
+                              </object>
+                            </child>
+                          </object>
+                        </property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+          </object>
         </child>
         <child>
             <object class="AdwPreferencesGroup" id="import_export_group">

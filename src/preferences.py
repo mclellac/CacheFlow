@@ -89,8 +89,17 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     domain_name_row = Gtk.Template.Child()
 
-    layers_group = Gtk.Template.Child()
-    add_layer_row = Gtk.Template.Child()
+    # New groups
+    group_cdn = Gtk.Template.Child()
+    group_lb = Gtk.Template.Child()
+    group_proxy = Gtk.Template.Child()
+    group_app = Gtk.Template.Child()
+
+    # Add buttons
+    add_cdn_row = Gtk.Template.Child()
+    add_lb_row = Gtk.Template.Child()
+    add_proxy_row = Gtk.Template.Child()
+    add_app_row = Gtk.Template.Child()
 
     export_row = Gtk.Template.Child()
     import_row = Gtk.Template.Child()
@@ -131,7 +140,16 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
         self.domain_name_row.connect("notify::text", self.on_details_changed)
 
-        self.add_layer_row.connect("activated", self.add_layer)
+        self.add_cdn_row.connect("activated", lambda *_: self.add_layer("CDN"))
+        self.add_lb_row.connect(
+            "activated", lambda *_: self.add_layer("Load Balancer")
+        )
+        self.add_proxy_row.connect(
+            "activated", lambda *_: self.add_layer("Cache Proxy")
+        )
+        self.add_app_row.connect(
+            "activated", lambda *_: self.add_layer("Application Backend")
+        )
 
         self.export_row.connect("activated", self.do_export_config)
         self.import_row.connect("activated", self.do_import_config)
@@ -225,31 +243,64 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self._loading = True
         self.domain_name_row.set_text(config.get("name", ""))
 
-        # Clear existing layers
+        # Clear existing layers from all groups
         for row in self._layer_rows:
-            self.layers_group.remove(row)
+            parent = row.get_parent()
+            if parent:
+                parent.remove(row)
         self._layer_rows = []
 
-        # Load layers
+        # Load layers into respective groups
         layers = config.get("layers", [])
         for layer_data in layers:
             self.create_layer_row(layer_data)
 
-        # Re-add add button at the end
-        self.layers_group.remove(self.add_layer_row)
-        self.layers_group.add(self.add_layer_row)
+        # Ensure "Add" buttons are at the end of each group
+        self._reorder_add_buttons()
 
         self._loading = False
 
+    def _reorder_add_buttons(self):
+        """Ensures Add buttons are at the end of their lists."""
+        self.group_cdn.remove(self.add_cdn_row)
+        self.group_cdn.add(self.add_cdn_row)
+
+        self.group_lb.remove(self.add_lb_row)
+        self.group_lb.add(self.add_lb_row)
+
+        self.group_proxy.remove(self.add_proxy_row)
+        self.group_proxy.add(self.add_proxy_row)
+
+        self.group_app.remove(self.add_app_row)
+        self.group_app.add(self.add_app_row)
+
     def create_layer_row(self, data):
-        """Creates a LayerRow."""
+        """Creates a LayerRow and adds it to the appropriate group."""
         row = LayerRow(
             layer_data=data,
             on_delete=self.remove_layer,
             on_change=self.save_current_config,
         )
         self._layer_rows.append(row)
-        self.layers_group.add(row)
+
+        layer_type = data.get("layer_type", "CDN")
+        if layer_type == "CDN":
+            self.group_cdn.add(row)
+        elif layer_type == "Load Balancer":
+            self.group_lb.add(row)
+        elif layer_type == "Cache Proxy" or layer_type == "Caching Proxy":
+            # Handle legacy naming if any
+            self.group_proxy.add(row)
+        elif layer_type == "Application Backend" or layer_type == "Backend":
+            self.group_app.add(row)
+        else:
+            # Fallback for unknown types - add to App or CDN?
+            # Let's add to App for safety, or log warning.
+            log.warning(
+                "Unknown layer type '%s'. Defaulting to Application.",
+                layer_type,
+            )
+            self.group_app.add(row)
 
     def on_details_changed(self, *_):
         """Callback when domain details change."""
@@ -264,12 +315,39 @@ class PreferencesWindow(Adw.PreferencesWindow):
         if self._loading or not self.current_config_id:
             return
 
-        layers_data = [row.get_data() for row in self._layer_rows]
+        # Collect layers in the enforced order: CDN -> LB -> Proxy -> App
+        ordered_layers = []
+
+        # Helper to get data from rows in a group
+        def get_layers_from_group(group):
+            layers = []
+            # Iterate children. AdwPreferencesGroup children are not easily accessible via list?
+            # We have self._layer_rows, we can filter by type or parent.
+            # Filtering by parent is safer to respect visual order (if we allowed reordering).
+            # But currently we don't support DnD reordering.
+            # So just iterating self._layer_rows and sorting by type/group is enough?
+            # No, user might expect the order within the group to matter (if we had multiple CDN layers).
+            # Since we don't have DnD, the order is append-only.
+
+            # Use `row.get_parent() == group`
+            # But Gtk widget iteration is better.
+            child = group.get_first_child()
+            while child:
+                if isinstance(child, LayerRow):
+                    layers.append(child.get_data())
+                child = child.get_next_sibling()
+            return layers
+
+        ordered_layers.extend(get_layers_from_group(self.group_cdn))
+        ordered_layers.extend(get_layers_from_group(self.group_lb))
+        ordered_layers.extend(get_layers_from_group(self.group_proxy))
+        ordered_layers.extend(get_layers_from_group(self.group_app))
+
         data = {
             "id": self.current_config_id,
             "name": self.domain_name_row.get_text(),
             "entry_point": self.domain_name_row.get_text(),
-            "layers": layers_data,
+            "layers": ordered_layers,
         }
         self.config_manager.save_configuration(self.current_config_id, data)
 
@@ -313,13 +391,23 @@ class PreferencesWindow(Adw.PreferencesWindow):
         # The refresh will pick a new one or default
         self.refresh_config_list()
 
-    def add_layer(self, _row):
+    def add_layer(self, layer_type):
         """Adds a new layer to the current config."""
+
+        # Determine default provider based on type
+        provider = "Akamai"
+        if layer_type == "Load Balancer":
+            provider = "Nginx"
+        elif layer_type == "Cache Proxy":
+            provider = "Varnish"
+        elif layer_type == "Application Backend":
+            provider = "Apache"
+
         new_data = {
-            "name": "New Layer",
+            "name": f"New {layer_type}",
             "description": "",
-            "layer_type": "CDN",
-            "provider": "Akamai",
+            "layer_type": layer_type,
+            "provider": provider,
             "host_url": "http://localhost",
             "custom_headers": {},
             "host_overrides": [],
@@ -327,13 +415,14 @@ class PreferencesWindow(Adw.PreferencesWindow):
             "routing_rules": [],
         }
         self.create_layer_row(new_data)
-        self.layers_group.remove(self.add_layer_row)
-        self.layers_group.add(self.add_layer_row)
+        self._reorder_add_buttons()
         self.save_current_config()
 
     def remove_layer(self, row):
         """Removes a layer."""
-        self.layers_group.remove(row)
+        parent = row.get_parent()
+        if parent:
+            parent.remove(row)
         self._layer_rows.remove(row)
         self.save_current_config()
 
