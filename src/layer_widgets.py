@@ -526,7 +526,7 @@ class LayerRow(Adw.ExpanderRow):
 
         visibility = {
             ProviderType.CDN: {
-                "url": False,
+                "url": True,
                 "default_backend": True,
                 "routing": True,
                 "overrides": False,
@@ -534,8 +534,8 @@ class LayerRow(Adw.ExpanderRow):
                 "nodes": False,
             },
             ProviderType.CACHE_PROXY: {
-                "url": True, # Should be hidden if nodes are present? Or keep as default?
-                "default_backend": False,
+                "url": False,
+                "default_backend": True,
                 "routing": True,
                 "overrides": True,
                 "path_match": True,
@@ -543,19 +543,19 @@ class LayerRow(Adw.ExpanderRow):
             },
             ProviderType.LOAD_BALANCER: {
                 "url": True,
-                "default_backend": False,
+                "default_backend": True,
                 "routing": True,
                 "overrides": True,
                 "path_match": True,
                 "nodes": False,
             },
             ProviderType.APP_BACKEND: {
-                "url": False, # Backend URLs are defined in nodes or default?
+                "url": True,
                 "default_backend": False,
                 "routing": False,
                 "overrides": False,
                 "path_match": False,
-                "nodes": True,
+                "nodes": False,
             },
         }
         config = visibility.get(selected_type, visibility[ProviderType.CDN])
@@ -908,7 +908,7 @@ class LayerRow(Adw.ExpanderRow):
             "provider": selected_provider,
             "name": self.name_row.get_text(),
             "description": self.desc_row.get_text(),
-            "host_url": self.url_row.get_text(),
+            "host_url": self.url_row.get_text() if self.url_row.get_visible() else "",
             "default_backend_host": self.default_backend_host_row.get_text(),
             "default_backend_host_header": self.default_backend_header_row.get_text(),
             "header_color": self.header_color_button.get_rgba().to_string(),
@@ -929,39 +929,43 @@ class LayerRow(Adw.ExpanderRow):
             if k:
                 data["custom_headers"][k] = v
 
-        for row in self.override_rows:
-            p, h = row.get_texts()
-            if p and h:
-                data["host_overrides"].append(
-                    {"path_pattern": p, "host_header": h}
-                )
+        if self.overrides_group.get_visible():
+            for row in self.override_rows:
+                p, h = row.get_texts()
+                if p and h:
+                    data["host_overrides"].append(
+                        {"path_pattern": p, "host_header": h}
+                    )
 
-        for row in self.path_match_rows:
-            (p,) = row.get_texts()
-            if p:
-                data["path_match_only"].append(p)
+        if self.path_match_group.get_visible():
+            for row in self.path_match_rows:
+                (p,) = row.get_texts()
+                if p:
+                    data["path_match_only"].append(p)
 
         # Flatten routing rules from backend rows
-        for origin_row in self.origin_rule_rows:
-            origin_data = origin_row.get_data()
-            if origin_data["backend_host"]:
-                base_rule = {
-                    "backend_host": origin_data["backend_host"],
-                    "backend_host_header": origin_data["backend_host_header"],
-                    "path_rewrite": origin_data["path_rewrite"],
-                }
-                for path_match in origin_data["path_matches"]:
-                    rule = base_rule.copy()
-                    rule["path_match"] = path_match
-                    data["routing_rules"].append(rule)
+        if self.routing_rules_group.get_visible():
+            for origin_row in self.origin_rule_rows:
+                origin_data = origin_row.get_data()
+                if origin_data["backend_host"]:
+                    base_rule = {
+                        "backend_host": origin_data["backend_host"],
+                        "backend_host_header": origin_data["backend_host_header"],
+                        "path_rewrite": origin_data["path_rewrite"],
+                    }
+                    for path_match in origin_data["path_matches"]:
+                        rule = base_rule.copy()
+                        rule["path_match"] = path_match
+                        data["routing_rules"].append(rule)
 
-                for domain_match in origin_data["domain_matches"]:
-                    rule = base_rule.copy()
-                    rule["domain_match"] = domain_match
-                    data["routing_rules"].append(rule)
+                    for domain_match in origin_data["domain_matches"]:
+                        rule = base_rule.copy()
+                        rule["domain_match"] = domain_match
+                        data["routing_rules"].append(rule)
 
         # Collect nodes
-        for node_row in self.node_rows:
-            data["nodes"].append(node_row.get_data())
+        if self.nodes_group.get_visible():
+            for node_row in self.node_rows:
+                data["nodes"].append(node_row.get_data())
 
         return data
