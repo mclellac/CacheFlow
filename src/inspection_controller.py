@@ -5,7 +5,7 @@ process in a separate thread to avoid blocking the UI.
 
 import logging
 import threading
-from typing import Callable, List, Dict, Any
+from typing import Callable, List, Dict, Any, Union
 
 from gi.repository import GLib
 
@@ -65,7 +65,7 @@ class InspectionController:
 
     def _process_results(
         self, results: List[Dict[str, Any]]
-    ) -> List[NodeData]:
+    ) -> List[List[NodeData]]:
         """Processes the raw results from the engine into NodeData objects.
 
         This method merges configuration data (like colors) and performs
@@ -75,9 +75,9 @@ class InspectionController:
             results: A list of raw result dictionaries from the engine.
 
         Returns:
-            A list of NodeData objects.
+            A list of list of NodeData objects (representing layers).
         """
-        processed_nodes: List[NodeData] = []
+        processed_layers: List[List[NodeData]] = []
         config_layers: List[Dict[str, Any]] = self.config.get("layers", [])
 
         for i, result in enumerate(results):
@@ -128,10 +128,12 @@ class InspectionController:
 
             # Find the corresponding layer in the original config to get UI settings.
             # This assumes the order of results matches the order of layers.
+            # However, with dynamic routing and dynamic backends, indices might mismatch if not careful.
+            # But run_inspection returns results roughly in order of traversal.
             layer_config = config_layers[i] if i < len(config_layers) else {}
 
-            # Create the final dictionary for NodeData, merging results and config.
-            node_args = {
+            # Active Node Data
+            active_node_args = {
                 "name": result.get("name"),
                 "headers": formatted_headers,
                 "request_url": result.get("request_url"),
@@ -140,16 +142,37 @@ class InspectionController:
                 "provider": result.get("provider"),
                 "layer_type": result.get("layer_type"),
                 "upstream_layer": baseline_layer,
-                # Merge color properties from the layer's configuration
-                "header_color": layer_config.get("header_color"),
-                "body_color": layer_config.get("body_color"),
-                "text_color": layer_config.get("text_color"),
-                "added_text_color": layer_config.get("added_text_color"),
-                "removed_text_color": layer_config.get("removed_text_color"),
-                "modified_text_color": layer_config.get("modified_text_color"),
+                "is_active": True,
+                # Merge color properties from the layer's configuration (which should be merged in result already by engine)
+                # But engine merges config into result dict, so we can use result directly if it has them
+                # Or rely on layer_config.
+                # Let's prefer result properties if they exist (engine merged active node props), fall back to layer_config
+                "header_color": result.get("header_color") or layer_config.get("header_color"),
+                "body_color": result.get("body_color") or layer_config.get("body_color"),
+                "text_color": result.get("text_color") or layer_config.get("text_color"),
+                "added_text_color": result.get("added_text_color") or layer_config.get("added_text_color"),
+                "removed_text_color": result.get("removed_text_color") or layer_config.get("removed_text_color"),
+                "modified_text_color": result.get("modified_text_color") or layer_config.get("modified_text_color"),
             }
 
-            node_data = NodeData(**node_args)
-            processed_nodes.append(node_data)
+            nodes_in_this_layer = [NodeData(**active_node_args)]
 
-        return processed_nodes
+            # Process Siblings
+            siblings = result.get("siblings", [])
+            for sibling in siblings:
+                 # Sibling nodes are inactive and have no headers/results
+                sibling_args = {
+                    "name": sibling.get("name", "Unknown"),
+                    "headers": [], # No headers for inactive nodes
+                    "provider": sibling.get("provider"),
+                    "layer_type": result.get("layer_type"), # Same type as active
+                    "is_active": False,
+                    "header_color": sibling.get("header_color") or layer_config.get("header_color"),
+                    "body_color": sibling.get("body_color") or layer_config.get("body_color"),
+                    "text_color": layer_config.get("text_color"), # Use layer default for text
+                }
+                nodes_in_this_layer.append(NodeData(**sibling_args))
+
+            processed_layers.append(nodes_in_this_layer)
+
+        return processed_layers

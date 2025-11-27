@@ -47,6 +47,7 @@ class NodeData:
         )
         self.provider: str = kwargs.get("provider", "")
         self.layer_type: str = kwargs.get("layer_type", "")
+        self.is_active: bool = kwargs.get("is_active", True)
 
     def get_property(self, name: str) -> Any:
         """

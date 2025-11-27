@@ -101,6 +101,80 @@ class CacheFlowEngine:
             return hostname, e
         return hostname, None
 
+    def _select_node_from_siblings(
+        self,
+        siblings: List[Dict[str, Any]],
+        previous_headers: Dict[str, str],
+        target_base: str,
+        layer_type: str,
+    ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
+        """Selects the active node from a list of siblings based on routing criteria.
+
+        Args:
+            siblings: List of sibling node configurations.
+            previous_headers: Response headers from the previous layer.
+            target_base: The target base URL resolved from routing rules.
+            layer_type: The type of the current layer.
+
+        Returns:
+            A tuple containing the active node configuration and a list of inactive siblings.
+        """
+        active_node = None
+        inactive_nodes = []
+
+        for node in siblings:
+            matched = False
+
+            if layer_type == "Cache Proxy":
+                # Match based on headers
+                match_header = node.get("match_header", "")
+                match_value = node.get("match_value", "")
+
+                if match_header and match_value:
+                    actual_value = previous_headers.get(match_header, "")
+                    if actual_value == match_value:
+                        matched = True
+                    # Case-insensitive match? Assuming strict for now, or maybe loose.
+                    # Usually headers are case-insensitive keys, values might be sensitive.
+                    elif actual_value.lower() == match_value.lower():
+                        matched = True
+
+            elif layer_type == "Application Backend":
+                # Match based on target host_url
+                # target_base matches node['host_url']
+                # Strip trailing slashes and schemes for comparison if needed
+                node_url = node.get("host_url", "").strip().rstrip("/")
+                target = target_base.strip().rstrip("/")
+
+                # Check for scheme mismatch. target_base often comes with scheme from RouteCalculator
+                # but node_url might be configured with or without.
+                # If node_url doesn't have scheme, try matching without scheme in target
+
+                parsed_target = urlparse(target)
+                target_no_scheme = parsed_target.netloc + parsed_target.path
+
+                parsed_node = urlparse(node_url)
+                node_no_scheme = parsed_node.netloc + parsed_node.path if parsed_node.scheme else node_url
+
+                # Try exact match, or match without scheme
+                if node_url == target or node_no_scheme == target_no_scheme:
+                    matched = True
+
+            if matched and not active_node:
+                active_node = node
+            else:
+                inactive_nodes.append(node)
+
+        # Fallback: if no node matched, maybe pick the first one?
+        # Or return None and let it fail?
+        # If active_node is None, we should probably warn and maybe pick first one as default?
+        if not active_node and siblings:
+            log.warning("No matching node found in siblings. Defaulting to first node.")
+            active_node = siblings[0]
+            inactive_nodes = siblings[1:]
+
+        return active_node, inactive_nodes
+
     def _process_layer_dynamic(
         self,
         layer_config: Dict[str, Any],
@@ -108,6 +182,7 @@ class CacheFlowEngine:
         target_path: str,
         target_host_header: Optional[str],
         user_agent: str,
+        previous_headers: Dict[str, str],
     ) -> Tuple[Dict[str, Any], str, str, Optional[str]]:
         """Processes a layer and determines the next hop.
 
@@ -117,18 +192,44 @@ class CacheFlowEngine:
             target_path: The path for the request.
             target_host_header: The host header to use for the request.
             user_agent: The user agent to use for the request.
+            previous_headers: The headers from the previous layer response.
 
         Returns:
             A tuple containing the result of the layer processing, the next
             base URL, the next path, and the next host header.
         """
         exec_layer = layer_config.copy()
+        siblings = []
+
+        # Check for multiple nodes
+        nodes = layer_config.get("nodes", [])
+        if nodes:
+            # We have multiple nodes. We need to select one.
+            active_node, inactive_nodes = self._select_node_from_siblings(
+                nodes, previous_headers, target_base, layer_config.get("layer_type", "")
+            )
+
+            # Merge active node config into exec_layer
+            # Active node attributes override layer defaults
+            if active_node:
+                exec_layer.update(active_node)
+                # Ensure we use the active node's URL if it's a Cache Proxy (where URL is defined in node)
+                # For App Backend, target_base comes from routing rules, but we matched matched it against node['host_url']
+                # So we should use that.
+                if exec_layer.get("layer_type") == "Cache Proxy":
+                     target_base = active_node.get("host_url", target_base)
+
+            siblings = inactive_nodes
+
         exec_layer["host_url"] = target_base
         if target_host_header:
             # If a host header is passed from the previous layer, it takes precedence.
             exec_layer["host_header"] = target_host_header
 
         result = self._process_layer(exec_layer, target_path, user_agent)
+
+        # Attach sibling info to result for visualization
+        result["siblings"] = siblings
 
         request_host = None
         if target_base:
@@ -180,6 +281,7 @@ class CacheFlowEngine:
         current_base = f"{parsed_entry.scheme}://{parsed_entry.netloc}"
         current_path = test_path
         current_host_header = None
+        previous_headers = {}
 
         processed_layers = 0
         while processed_layers < len(layers_config):
@@ -192,9 +294,13 @@ class CacheFlowEngine:
                     current_path,
                     current_host_header,
                     user_agent,
+                    previous_headers,
                 )
             )
             results.append(result)
+
+            # Update previous headers for next iteration
+            previous_headers = result.get("headers", {})
 
             is_last_layer = processed_layers == len(layers_config) - 1
 
@@ -224,7 +330,10 @@ class CacheFlowEngine:
                     layer["name"],
                 )
                 next_layer = layers_config[processed_layers + 1]
+
+                # Check if next layer has nodes
                 fallback_url = next_layer.get("host_url")
+
                 if fallback_url:
                     parsed_fallback = urlparse(
                         f"https://{fallback_url}"
@@ -237,6 +346,10 @@ class CacheFlowEngine:
                     current_path = test_path
                     current_host_header = None
                 else:
+                    # It might be a layer with multiple nodes where one needs to be picked?
+                    # But without routing rules from previous layer, we don't know which one.
+                    # Unless we use matching logic.
+                    # For now, let's assume valid config.
                     log.error(
                         "Next layer '%s' has no host_url to fall back to. "
                         "Stopping inspection.",

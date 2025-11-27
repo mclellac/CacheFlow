@@ -60,28 +60,66 @@ class GraphRenderer:
         r, g, b, _ = get_accent_color()
         cr.set_source_rgba(r, g, b, 0.8)
         cr.set_line_width(3)
-        for i in range(len(self.node_graph.nodes) - 1):
-            node_a = self.node_graph.nodes[i]
-            node_b = self.node_graph.nodes[i + 1]
 
-            start_x = node_a["x"] + node_a["width"]
-            start_y = node_a["y"] + node_a["height"] / 2
+        # We need to find the active node in each column/layer to connect them.
+        # self.node_graph.nodes is a flat list of positioned nodes with 'data'.
+        # We need to group them by 'layer' or simply find path from active to active.
 
-            end_x = node_b["x"]
-            end_y = node_b["y"] + node_b["height"] / 2
+        # Group nodes by X coordinate (or ID sequence, but X is safer if we reset layout)
+        # Actually, since set_data creates them in order of layers, we can iterate carefully.
+        # But flattening makes it hard to know which node connects to which if we don't know layers.
+        # However, NodeData now has is_active flag.
 
-            cr.move_to(start_x, start_y)
-            c1_x = start_x + 100
-            c1_y = start_y
-            c2_x = end_x - 100
-            c2_y = end_y
-            cr.curve_to(c1_x, c1_y, c2_x, c2_y, end_x, end_y)
-            cr.stroke()
+        # Let's assume nodes are sorted by X (layers).
+        # We want to connect active node of Layer N to active node of Layer N+1.
 
-            points = ConnectionPoints(
-                start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y
-            )
-            self._draw_connection_label(cr, node_b, points)
+        # First, organize nodes by layers. We can infer layers from X coordinate or index if we tracked it.
+        # Easier: Reconstruct layers from self.node_graph.nodes based on X position.
+
+        layers = {}
+        for node in self.node_graph.nodes:
+            x = node["x"]
+            if x not in layers:
+                layers[x] = []
+            layers[x].append(node)
+
+        sorted_xs = sorted(layers.keys())
+
+        for i in range(len(sorted_xs) - 1):
+            curr_x = sorted_xs[i]
+            next_x = sorted_xs[i+1]
+
+            curr_nodes = layers[curr_x]
+            next_nodes = layers[next_x]
+
+            # Find active node in current layer
+            active_curr = next((n for n in curr_nodes if n["data"].is_active), None)
+
+            # Find active node in next layer
+            active_next = next((n for n in next_nodes if n["data"].is_active), None)
+
+            if active_curr and active_next:
+                self._draw_connection_line(cr, active_curr, active_next)
+
+    def _draw_connection_line(self, cr, node_a, node_b):
+        start_x = node_a["x"] + node_a["width"]
+        start_y = node_a["y"] + node_a["height"] / 2
+
+        end_x = node_b["x"]
+        end_y = node_b["y"] + node_b["height"] / 2
+
+        cr.move_to(start_x, start_y)
+        c1_x = start_x + 100
+        c1_y = start_y
+        c2_x = end_x - 100
+        c2_y = end_y
+        cr.curve_to(c1_x, c1_y, c2_x, c2_y, end_x, end_y)
+        cr.stroke()
+
+        points = ConnectionPoints(
+            start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y
+        )
+        self._draw_connection_label(cr, node_b, points)
 
     def _draw_connection_label(
         self,
@@ -96,17 +134,19 @@ class GraphRenderer:
         if not request_url:
             return
 
+        # Calculate midpoint on Bezier curve
+        t = 0.5
         mid_x = (
-            0.125 * points.start_x
-            + 0.375 * points.c1_x
-            + 0.375 * points.c2_x
-            + 0.125 * points.end_x
+            (1 - t) ** 3 * points.start_x
+            + 3 * (1 - t) ** 2 * t * points.c1_x
+            + 3 * (1 - t) * t**2 * points.c2_x
+            + t**3 * points.end_x
         )
         mid_y = (
-            0.125 * points.start_y
-            + 0.375 * points.c1_y
-            + 0.375 * points.c2_y
-            + 0.125 * points.end_y
+            (1 - t) ** 3 * points.start_y
+            + 3 * (1 - t) ** 2 * t * points.c1_y
+            + 3 * (1 - t) * t**2 * points.c2_y
+            + t**3 * points.end_y
         )
 
         layout = PangoCairo.create_layout(cr)
@@ -115,8 +155,17 @@ class GraphRenderer:
 
         method = node_b["data"].request_method
         text = f"{method} {request_url}"
-        if request_host:
-            text += f"\nwith Host: {request_host}"
+
+        # Parse URLs to compare hosts
+        from urllib.parse import urlparse
+        try:
+            parsed_req = urlparse(request_url)
+            req_host = parsed_req.hostname
+        except ValueError:
+            req_host = None
+
+        if request_host and request_host != req_host:
+            text += f"\nHost: {request_host}"
 
         layout.set_text(text, -1)
 
@@ -124,31 +173,45 @@ class GraphRenderer:
         text_width = logical_rect.width / Pango.SCALE
         text_height = logical_rect.height / Pango.SCALE
 
+        # Determine orientation of the line at midpoint to avoid collision
+        # Simple derivative check
         dx = (
-            0.75 * (points.c1_x - points.start_x)
-            + 1.5 * (points.c2_x - points.c1_x)
-            + 0.75 * (points.end_x - points.c2_x)
+            3 * (1 - t) ** 2 * (points.c1_x - points.start_x)
+            + 6 * (1 - t) * t * (points.c2_x - points.c1_x)
+            + 3 * t**2 * (points.end_x - points.c2_x)
         )
         dy = (
-            0.75 * (points.c1_y - points.start_y)
-            + 1.5 * (points.c2_y - points.c1_y)
-            + 0.75 * (points.end_y - points.c2_y)
+            3 * (1 - t) ** 2 * (points.c1_y - points.start_y)
+            + 6 * (1 - t) * t * (points.c2_y - points.c1_y)
+            + 3 * t**2 * (points.end_y - points.c2_y)
         )
 
-        is_horizontal = abs(dx) >= abs(dy)
+        is_vertical_dominant = abs(dy) > abs(dx)
 
-        if is_horizontal:
-            text_x = mid_x - text_width / 2
-            text_y = mid_y - text_height - 5
-        else:
-            text_x = mid_x + 10
+        if is_vertical_dominant:
+            # Line is moving vertically, place text to side
+            # Try right side first
+            text_x = mid_x + 15
             text_y = mid_y - text_height / 2
-
-        if Adw.StyleManager.get_default().get_dark():
-            cr.set_source_rgba(0.8, 0.8, 0.8, 1)
         else:
-            cr.set_source_rgba(0.2, 0.2, 0.2, 1)
+            # Line is horizontal, place text above or below
+            # Place above to avoid overlapping nodes below
+            text_x = mid_x - text_width / 2
+            text_y = mid_y - text_height - 10
 
+        # Background for readability
+        if Adw.StyleManager.get_default().get_dark():
+            cr.set_source_rgba(0.2, 0.2, 0.2, 0.8)
+            text_color = (0.9, 0.9, 0.9, 1)
+        else:
+            cr.set_source_rgba(0.95, 0.95, 0.95, 0.8)
+            text_color = (0.1, 0.1, 0.1, 1)
+
+        # Draw background rect
+        cr.rectangle(text_x - 2, text_y - 2, text_width + 4, text_height + 4)
+        cr.fill()
+
+        cr.set_source_rgba(*text_color)
         cr.move_to(text_x, text_y)
         PangoCairo.show_layout(cr, layout)
 
@@ -157,6 +220,13 @@ class GraphRenderer:
         x, y, w, h = node["x"], node["y"], node["width"], node["height"]
         style_manager = Adw.StyleManager.get_default()
         is_dark = style_manager.get_dark()
+
+        is_active = node["data"].is_active
+
+        # If inactive, draw smaller "empty" box
+        if not is_active:
+            self._draw_inactive_node(cr, node, x, y, w, h, is_dark)
+            return
 
         if self.node_graph.selected_node_index == node["id"]:
             r, g, b, _ = get_accent_color()
@@ -173,7 +243,11 @@ class GraphRenderer:
         cr.fill()
 
         body_rgba = Gdk.RGBA()
-        body_rgba.parse(node["data"].body_color)
+        if node["data"].body_color:
+             body_rgba.parse(node["data"].body_color)
+        else:
+             body_rgba.parse("rgba(0,0,0,0)") # Fallback
+
         if body_rgba.alpha == 0:
             body_color = (
                 (0.8, 0.8, 0.85, 1) if not is_dark else (0.2, 0.2, 0.25, 1)
@@ -198,7 +272,11 @@ class GraphRenderer:
         cr.stroke()
 
         header_rgba = Gdk.RGBA()
-        header_rgba.parse(node["data"].header_color)
+        if node["data"].header_color:
+             header_rgba.parse(node["data"].header_color)
+        else:
+             header_rgba.parse("rgba(0,0,0,0)")
+
         if header_rgba.alpha == 0:
             header_color = (
                 (0.7, 0.7, 0.75, 1) if not is_dark else (0.3, 0.3, 0.35, 1)
@@ -250,6 +328,63 @@ class GraphRenderer:
         cr.show_text(f"{provider_name}")
 
         self._draw_node_text(cr, node, x, y, w, is_dark)
+
+    def _draw_inactive_node(self, cr, node, x, y, w, h, is_dark):
+        """Draws a smaller, dimmed version for inactive nodes."""
+        # Use a reduced height for inactive nodes if h is large, but h is passed from layout.
+        # Ideally layout should have calculated a smaller height.
+        # But we can just draw within the bounds.
+
+        # Dimmed header color
+        header_rgba = Gdk.RGBA()
+        if node["data"].header_color:
+             header_rgba.parse(node["data"].header_color)
+        else:
+             header_rgba.parse("rgba(0,0,0,0)")
+
+        alpha = 0.4
+        if header_rgba.alpha == 0:
+            header_color = (
+                (0.7, 0.7, 0.75, alpha) if not is_dark else (0.3, 0.3, 0.35, alpha)
+            )
+        else:
+            header_color = (
+                header_rgba.red,
+                header_rgba.green,
+                header_rgba.blue,
+                alpha,
+            )
+
+        cr.set_source_rgba(*header_color)
+        rounded_rectangle(cr, x, y, w, NODE_HEADER_HEIGHT, 10)
+        cr.fill_preserve()
+
+        border_color = (
+            (0.5, 0.5, 0.5, 0.3) if is_dark else (0.4, 0.4, 0.4, 0.3)
+        )
+        cr.set_source_rgba(*border_color)
+        cr.set_line_width(1)
+        cr.stroke()
+
+        # Text
+        if is_dark:
+            cr.set_source_rgba(1, 1, 1, 0.5)
+        else:
+            cr.set_source_rgba(0, 0, 0, 0.5)
+
+        cr.select_font_face(
+            "Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+        )
+        cr.set_font_size(14)
+        cr.move_to(x + PADDING, y + 22)
+        cr.show_text(node["data"].name)
+
+        cr.set_font_size(10)
+        cr.move_to(x + PADDING, y + 40)
+        provider_name = (
+            node["data"].provider if node["data"].provider else "Unknown"
+        )
+        cr.show_text(f"{provider_name}")
 
     def _draw_node_text(
         self,
