@@ -643,9 +643,8 @@ class LayerRow(Adw.PreferencesGroup):
         self.headers_group.set_visible(config["headers"])
 
         if selected_type == ProviderType.CDN:
-            self.url_row.set_title("Host URL")  # Hidden anyway
             self.default_backend_host_row.set_title("Default Origin Host (Fallback)")
-            self.default_backend_header_row.set_title("Default Origin Host Header (Optional)")
+            self.default_backend_header_row.set_title("Default Origin Host Header")
             self.routing_rules_group.set_title("Origins")
             self.routing_rules_group.set_subtitle("Configure origin servers and matching rules.")
             self.add_routing_rule_btn.set_tooltip_text("Add New Origin")
@@ -658,25 +657,7 @@ class LayerRow(Adw.PreferencesGroup):
             self.routing_rules_group.set_subtitle("Configure target pools (e.g. Cache Proxies) and matching rules.")
             self.add_routing_rule_btn.set_tooltip_text("Add New Target Pool")
             label_prefix = "Target"
-        elif selected_type == ProviderType.CACHE_PROXY:
-            self.url_row.set_title("Host URL")  # Hidden
-            self.default_backend_host_row.set_title("Default Origin Server (Fallback)")
-            self.default_backend_header_row.set_title("Default Origin Host Header (Optional)")
-            self.routing_rules_group.set_title("Cache Rules")
-            self.routing_rules_group.set_subtitle("Route requests to specific origin servers based on path.")
-            self.add_routing_rule_btn.set_tooltip_text("Add New Rule")
-            label_prefix = "Origin"
-        elif selected_type == ProviderType.APP_BACKEND:
-            self.url_row.set_title("Application Server Address (e.g. 192.168.1.50 or app.internal)")
-            # Default backend/routing hidden for App Backend
-            self.default_backend_host_row.set_title("Default Backend Host")
-            self.default_backend_header_row.set_title("Default Backend Host Header (Optional)")
-            self.routing_rules_group.set_title("Backend Rules")
-            self.routing_rules_group.set_subtitle("Define backend destinations based on request paths.")
-            self.add_routing_rule_btn.set_tooltip_text("Add New Backend")
-            label_prefix = "Backend"
         else:
-            # Fallback for unknown types
             self.url_row.set_title("Host URL")
             self.default_backend_host_row.set_title("Default Backend Host")
             self.default_backend_header_row.set_title("Default Backend Host Header (Optional)")
