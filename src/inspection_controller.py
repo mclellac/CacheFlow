@@ -78,7 +78,6 @@ class InspectionController:
             A list of NodeData objects.
         """
         processed_nodes: List[NodeData] = []
-        upstream_layer_for_analysis: Dict[str, Any] = None
         config_layers: List[Dict[str, Any]] = self.config.get("layers", [])
 
         for i, result in enumerate(results):
@@ -98,10 +97,21 @@ class InspectionController:
                 "headers": raw_headers,
             }
 
-            # Analyze the headers against the previous (upstream) layer.
+            # Identify the next layer (which is technically upstream in the request flow)
+            # to serve as the baseline for comparison.
+            baseline_layer = None
+            if i + 1 < len(results):
+                next_result = results[i + 1]
+                baseline_layer = {
+                    "name": next_result.get("name"),
+                    "headers": next_result.get("headers", {}),
+                }
+
+            # Analyze the headers against the baseline (next) layer.
+            # If baseline is None (last layer), all headers are treated as ADDED/original.
             report = self.analyzer.analyze_layer(
                 current_layer=current_layer_for_analysis,
-                upstream_layer=upstream_layer_for_analysis,
+                upstream_layer=baseline_layer,
             )
 
             # Convert the analysis report into the 4-tuple format required by NodeData.
@@ -128,7 +138,7 @@ class InspectionController:
                 "request_method": result.get("request_method"),
                 "provider": result.get("provider"),
                 "layer_type": result.get("layer_type"),
-                "upstream_layer": upstream_layer_for_analysis,
+                "upstream_layer": baseline_layer,
                 # Merge color properties from the layer's configuration
                 "header_color": layer_config.get("header_color"),
                 "body_color": layer_config.get("body_color"),
@@ -140,8 +150,5 @@ class InspectionController:
 
             node_data = NodeData(**node_args)
             processed_nodes.append(node_data)
-
-            # The current layer becomes the upstream layer for the next iteration.
-            upstream_layer_for_analysis = current_layer_for_analysis
 
         return processed_nodes
