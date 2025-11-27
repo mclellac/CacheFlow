@@ -262,17 +262,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     def _reorder_add_buttons(self):
         """Ensures Add buttons are at the end of their lists."""
-        self.group_cdn.remove(self.add_cdn_row)
-        self.group_cdn.add(self.add_cdn_row)
-
-        self.group_lb.remove(self.add_lb_row)
-        self.group_lb.add(self.add_lb_row)
-
-        self.group_proxy.remove(self.add_proxy_row)
-        self.group_proxy.add(self.add_proxy_row)
-
-        self.group_app.remove(self.add_app_row)
-        self.group_app.add(self.add_app_row)
+        # No-op since buttons are now in separate static groups at the bottom.
+        pass
 
     def create_layer_row(self, data):
         """Creates a LayerRow and adds it to the appropriate group."""
@@ -285,14 +276,14 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
         layer_type = data.get("layer_type", "CDN")
         if layer_type == "CDN":
-            self.group_cdn.add(row)
+            self.group_cdn.append(row)
         elif layer_type == "Load Balancer":
-            self.group_lb.add(row)
+            self.group_lb.append(row)
         elif layer_type == "Cache Proxy" or layer_type == "Caching Proxy":
             # Handle legacy naming if any
-            self.group_proxy.add(row)
+            self.group_proxy.append(row)
         elif layer_type == "Application Backend" or layer_type == "Backend":
-            self.group_app.add(row)
+            self.group_app.append(row)
         else:
             # Fallback for unknown types - add to App or CDN?
             # Let's add to App for safety, or log warning.
@@ -300,7 +291,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
                 "Unknown layer type '%s'. Defaulting to Application.",
                 layer_type,
             )
-            self.group_app.add(row)
+            self.group_app.append(row)
 
     def on_details_changed(self, *_):
         """Callback when domain details change."""

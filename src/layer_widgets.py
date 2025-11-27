@@ -394,7 +394,7 @@ class OriginRuleRow(ConfigRowMixin, Adw.ExpanderRow):
 
 
 @Gtk.Template(filename="src/ui/layer_row.ui")
-class LayerRow(Adw.ExpanderRow):
+class LayerRow(Adw.PreferencesGroup):
     """
     A widget representing a single configuration layer in the settings.
     Allows editing of layer properties like URL, headers, and colors.
@@ -777,7 +777,7 @@ class LayerRow(Adw.ExpanderRow):
             on_change=self.on_changed,
             on_delete=self.remove_header_row,
         )
-        self.headers_group.add(row)
+        self.headers_group.add_row(row)
         self.header_rows.append(row)
 
     def remove_header_row(self, row):
@@ -799,7 +799,7 @@ class LayerRow(Adw.ExpanderRow):
             on_change=self.on_changed,
             on_delete=self.remove_override_row,
         )
-        self.overrides_group.add(row)
+        self.overrides_group.add_row(row)
         self.override_rows.append(row)
 
     def remove_override_row(self, row):
@@ -820,7 +820,7 @@ class LayerRow(Adw.ExpanderRow):
             on_change=self.on_changed,
             on_delete=self.remove_path_match_row,
         )
-        self.path_match_group.add(row)
+        self.path_match_group.add_row(row)
         self.path_match_rows.append(row)
 
     def remove_path_match_row(self, row):
@@ -851,7 +851,7 @@ class LayerRow(Adw.ExpanderRow):
             on_change=self.on_changed,
             on_delete=self.remove_origin_rule_row,
         )
-        self.routing_rules_group.add(row)
+        self.routing_rules_group.add_row(row)
         self.origin_rule_rows.append(row)
 
     def remove_origin_rule_row(self, row):
@@ -877,7 +877,7 @@ class LayerRow(Adw.ExpanderRow):
             on_change=self.on_changed,
             on_delete=self.remove_node_row,
         )
-        self.nodes_group.add(row)
+        self.nodes_group.add_row(row)
         self.node_rows.append(row)
 
     def remove_node_row(self, row):
