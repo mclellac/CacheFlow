@@ -15,14 +15,29 @@ class RouteCalculator:
 
     @staticmethod
     def _apply_rule(
-        rule: Dict[str, Any], target_path: str
+        rule: Dict[str, Any],
+        target_path: str,
+        request_host: Optional[str] = None,
     ) -> Optional[Tuple[str, str, Optional[str]]]:
         """Applies a single routing rule."""
         path_match = rule.get("path_match")
-        if not (path_match and fnmatch.fnmatch(target_path, path_match)):
+        domain_match = rule.get("domain_match")
+
+        matched = False
+        if path_match and fnmatch.fnmatch(target_path, path_match):
+            matched = True
+            log.info("Routing rule matched path: %s", path_match)
+        elif (
+            domain_match
+            and request_host
+            and fnmatch.fnmatch(request_host, domain_match)
+        ):
+            matched = True
+            log.info("Routing rule matched domain: %s", domain_match)
+
+        if not matched:
             return None
 
-        log.info("Routing rule matched: %s", path_match)
         backend_host = rule.get("backend_host")
         path_rewrite = rule.get("path_rewrite")
         backend_host_header = rule.get("backend_host_header")
@@ -52,14 +67,18 @@ class RouteCalculator:
 
     @staticmethod
     def calculate_next_hop(
-        layer_config: Dict[str, Any], target_path: str
+        layer_config: Dict[str, Any],
+        target_path: str,
+        request_host: Optional[str] = None,
     ) -> Tuple[Optional[str], str, Optional[str]]:
         """
         Determines the next base URL, path, and host header.
         Returns: (next_base, next_path, next_host_header)
         """
         for rule in layer_config.get("routing_rules", []):
-            result = RouteCalculator._apply_rule(rule, target_path)
+            result = RouteCalculator._apply_rule(
+                rule, target_path, request_host
+            )
             if result:
                 return result
 

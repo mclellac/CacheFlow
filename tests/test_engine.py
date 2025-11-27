@@ -62,5 +62,31 @@ class TestCacheFlowEngine(unittest.TestCase):
         self.assertIn('default-backend.com', results[1]['url'])
         self.assertIn('/other', results[1]['url'])
 
+    @patch('requests.Session')
+    def test_domain_match_routing(self, mock_session):
+        self.config['layers'][0]['routing_rules'] = [
+            {
+                'domain_match': 'custom.domain.com',
+                'backend_host': 'domain-backend.com'
+            }
+        ]
+        # We need the entry point (or previous layer host) to match the domain
+        self.config['entry_point'] = 'custom.domain.com'
+        self.config['layers'][0]['host_url'] = 'custom.domain.com'
+
+        # Re-init engine with new config
+        self.engine = CacheFlowEngine(self.config)
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_session.return_value.get.return_value = mock_response
+        self.engine.session = mock_session.return_value
+
+        results = self.engine.run_inspection('/foo')
+
+        self.assertEqual(len(results), 2)
+        self.assertEqual(results[1]['name'], 'Backend')
+        self.assertIn('domain-backend.com', results[1]['url'])
+
 if __name__ == '__main__':
     unittest.main()
