@@ -246,16 +246,28 @@ class HeaderAnalyzer:
             )
 
             if key not in upstream_headers:
-                items.append(
-                    AnalysisItem(
-                        key=display_key,
-                        value=value,
-                        change_type="ADDED",
-                        description=f"New header. {info.description}",
-                        category=info.category,
-                        warning=warning,
+                if upstream_layer is None:
+                    items.append(
+                        AnalysisItem(
+                            key=display_key,
+                            value=value,
+                            change_type="UNCHANGED",
+                            description=f"Original header. {info.description}",
+                            category=info.category,
+                            warning=warning,
+                        )
                     )
-                )
+                else:
+                    items.append(
+                        AnalysisItem(
+                            key=display_key,
+                            value=value,
+                            change_type="ADDED",
+                            description=f"New header. {info.description}",
+                            category=info.category,
+                            warning=warning,
+                        )
+                    )
             elif upstream_headers[key] != value:
                 prev_val = upstream_headers[key]
                 items.append(
