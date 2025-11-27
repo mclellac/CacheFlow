@@ -145,6 +145,13 @@ class CacheFlowEngine:
                 # Strip trailing slashes and schemes for comparison if needed
                 node_url = node.get("host_url", "").rstrip("/")
                 target = target_base.rstrip("/")
+
+                # Normalize by removing scheme for comparison
+                if "://" in node_url:
+                    node_url = node_url.split("://", 1)[1]
+                if "://" in target:
+                    target = target.split("://", 1)[1]
+
                 if node_url == target:
                     matched = True
 

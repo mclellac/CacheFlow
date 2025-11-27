@@ -136,9 +136,9 @@ class InspectionController:
             active_node_args = {
                 "name": result.get("name"),
                 "headers": formatted_headers,
-                "request_url": result.get("request_url"),
-                "request_host": result.get("request_host"),
-                "request_method": result.get("request_method"),
+                "request_url": result.get("url"),
+                "request_host": result.get("sent_host_header"),
+                "request_method": result.get("method"),
                 "provider": result.get("provider"),
                 "layer_type": result.get("layer_type"),
                 "upstream_layer": baseline_layer,
