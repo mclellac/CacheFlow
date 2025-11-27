@@ -595,7 +595,7 @@ class LayerRow(Adw.PreferencesGroup):
 
         visibility = {
             ProviderType.CDN: {
-                "url": True,
+                "url": False,
                 "default_backend": True,
                 "routing": True,
                 "overrides": False,
@@ -643,15 +643,17 @@ class LayerRow(Adw.PreferencesGroup):
         self.headers_group.set_visible(config["headers"])
 
         if selected_type == ProviderType.CDN:
-            self.default_backend_host_row.set_title("Default Origin Host")
+            self.default_backend_host_row.set_title("Default Origin Host (Fallback)")
             self.default_backend_header_row.set_title("Default Origin Host Header")
-            self.routing_rules_group.set_title("Additional Origins")
+            self.routing_rules_group.set_title("Origins")
+            self.routing_rules_group.set_subtitle("Configure origin servers and matching rules.")
             self.add_routing_rule_btn.set_tooltip_text("Add New Origin")
             label_prefix = "Origin"
         else:
             self.default_backend_host_row.set_title("Default Backend Host")
             self.default_backend_header_row.set_title("Default Backend Host Header")
             self.routing_rules_group.set_title("Backend Rules")
+            self.routing_rules_group.set_subtitle("Define backend destinations based on request paths.")
             self.add_routing_rule_btn.set_tooltip_text("Add New Backend")
             label_prefix = "Backend"
 
