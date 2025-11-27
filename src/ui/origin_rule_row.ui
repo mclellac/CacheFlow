@@ -20,18 +20,18 @@
 
     <child>
       <object class="AdwEntryRow" id="host_entry">
-        <property name="title">Origin Host</property>
+        <property name="title">Target Host (e.g. backend.example.com)</property>
         <property name="text">localhost</property>
       </object>
     </child>
     <child>
       <object class="AdwEntryRow" id="host_header_entry">
-        <property name="title">Host Header</property>
+        <property name="title">Host Header (Optional)</property>
       </object>
     </child>
     <child>
       <object class="AdwEntryRow" id="rewrite_entry">
-        <property name="title">Path Rewrite</property>
+        <property name="title">Path Rewrite (Optional)</property>
       </object>
     </child>
 
