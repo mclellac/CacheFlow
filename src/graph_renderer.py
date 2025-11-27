@@ -188,16 +188,23 @@ class GraphRenderer:
 
         is_vertical_dominant = abs(dy) > abs(dx)
 
+        # Increase offsets to prevent overlapping
+        offset_dist = 25
+
         if is_vertical_dominant:
             # Line is moving vertically, place text to side
-            # Try right side first
-            text_x = mid_x + 15
+            # Check if moving left or right
+            # If end_x > start_x, it's moving right. mid point, tangent dx > 0
+            # If dx > 0, moving right.
+            # We want to place text on the "outside" of the curve if possible, or just consistently.
+            # Let's try to place it to the right if there is space.
+            text_x = mid_x + offset_dist
             text_y = mid_y - text_height / 2
         else:
             # Line is horizontal, place text above or below
             # Place above to avoid overlapping nodes below
             text_x = mid_x - text_width / 2
-            text_y = mid_y - text_height - 10
+            text_y = mid_y - text_height - offset_dist
 
         # Background for readability
         if Adw.StyleManager.get_default().get_dark():
@@ -326,10 +333,9 @@ class GraphRenderer:
         cr.show_text(f"{provider_name}")
 
         if is_active:
-             self._draw_node_text(cr, node, x, y, w, is_dark)
+            self._draw_node_text(cr, node, x, y, w, is_dark)
         else:
-             # Maybe draw a "Inactive" text?
-             pass
+            self._draw_inactive_node(cr, node, x, y, w, h, is_dark)
 
     def _draw_inactive_node(self, cr, node, x, y, w, h, is_dark):
         """Draws a smaller, dimmed version for inactive nodes."""
