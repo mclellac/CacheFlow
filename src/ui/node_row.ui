@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="adw" version="1.0"/>
+  <template class="NodeRow" parent="AdwExpanderRow">
+    <property name="title">Node</property>
+    <property name="subtitle">Configuration</property>
+
+    <child type="action">
+      <object class="GtkButton" id="delete_btn">
+        <property name="valign">center</property>
+        <property name="tooltip-text">Delete Node</property>
+        <child>
+          <object class="AdwButtonContent">
+            <property name="icon-name">user-trash-symbolic</property>
+          </object>
+        </child>
+        <style>
+          <class name="destructive-action"/>
+        </style>
+      </object>
+    </child>
+
+    <child>
+      <object class="AdwEntryRow" id="name_entry">
+        <property name="title">Name</property>
+      </object>
+    </child>
+    <child>
+      <object class="AdwEntryRow" id="host_entry">
+        <property name="title">Host URL</property>
+      </object>
+    </child>
+
+    <child>
+        <object class="AdwPreferencesGroup" id="match_group">
+            <property name="title">Routing Match</property>
+            <child>
+              <object class="AdwEntryRow" id="match_header_entry">
+                <property name="title">Match Header</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwEntryRow" id="match_value_entry">
+                <property name="title">Match Value</property>
+              </object>
+            </child>
+        </object>
+    </child>
+
+    <child>
+        <object class="AdwComboRow" id="provider_row">
+            <property name="title">Provider</property>
+        </object>
+    </child>
+
+    <child>
+      <object class="AdwActionRow" id="header_color_row">
+        <property name="title">Header Color</property>
+        <child type="suffix">
+             <object class="GtkColorButton" id="header_color_button">
+                <property name="valign">center</property>
+             </object>
+        </child>
+      </object>
+    </child>
+    <child>
+      <object class="AdwActionRow" id="body_color_row">
+        <property name="title">Body Color</property>
+        <child type="suffix">
+             <object class="GtkColorButton" id="body_color_button">
+                <property name="valign">center</property>
+             </object>
+        </child>
+      </object>
+    </child>
+
+  </template>
+</interface>

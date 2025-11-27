@@ -39,19 +39,20 @@ class TestInspectionController(unittest.TestCase):
 
         nodes = controller._process_results(results)
 
+        # process_results now returns a list of lists of nodes (layers)
         # Verify Origin (Last Node)
-        # Should compare vs None. All headers ADDED/Original.
-        origin = nodes[2]
+        # Should compare vs None. All headers UNCHANGED/Original (as it is the baseline).
+        origin = nodes[2][0] # First node in the layer list
         self.assertEqual(origin.name, "Origin")
         # Find header tuple: (key, value, change_type, note)
         server_header = next(h for h in origin.headers if h[0] == "Server")
-        self.assertEqual(server_header[2], "ADDED") # Change type
+        self.assertEqual(server_header[2], "UNCHANGED") # Change type
 
         # Verify Webfarm (Middle Node)
         # Should compare vs Origin.
         # Server: Nginx vs Nginx -> UNCHANGED
         # X-Webfarm: 1 vs (Missing) -> ADDED
-        webfarm = nodes[1]
+        webfarm = nodes[1][0]
         self.assertEqual(webfarm.name, "Webfarm")
         server_header = next(h for h in webfarm.headers if h[0] == "Server")
         self.assertEqual(server_header[2], "UNCHANGED")
@@ -62,7 +63,7 @@ class TestInspectionController(unittest.TestCase):
         # Should compare vs Webfarm.
         # Server: Akamai vs Nginx -> MODIFIED
         # X-Webfarm: 1 vs 1 -> UNCHANGED
-        akamai = nodes[0]
+        akamai = nodes[0][0]
         self.assertEqual(akamai.name, "Akamai")
         server_header = next(h for h in akamai.headers if h[0] == "Server")
         self.assertEqual(server_header[2], "MODIFIED")

@@ -49,6 +49,30 @@
     </child>
 
     <child>
+      <object class="AdwPreferencesGroup" id="nodes_group">
+        <property name="title">Nodes</property>
+        <property name="description">Configure multiple nodes for this layer.</property>
+        <child>
+            <object class="AdwActionRow" id="add_node_row">
+                <property name="title">Add New Node</property>
+                <property name="icon-name">list-add-symbolic</property>
+                <child type="suffix">
+                    <object class="GtkButton" id="add_node_btn">
+                        <property name="valign">center</property>
+                        <property name="tooltip-text">Add Node</property>
+                        <child>
+                            <object class="AdwButtonContent">
+                                <property name="icon-name">list-add-symbolic</property>
+                            </object>
+                        </child>
+                    </object>
+                </child>
+            </object>
+        </child>
+      </object>
+    </child>
+
+    <child>
       <object class="AdwActionRow" id="header_color_row">
         <property name="title">Header Color</property>
         <child type="suffix">

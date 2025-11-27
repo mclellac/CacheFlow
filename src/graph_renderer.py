@@ -60,28 +60,66 @@ class GraphRenderer:
         r, g, b, _ = get_accent_color()
         cr.set_source_rgba(r, g, b, 0.8)
         cr.set_line_width(3)
-        for i in range(len(self.node_graph.nodes) - 1):
-            node_a = self.node_graph.nodes[i]
-            node_b = self.node_graph.nodes[i + 1]
 
-            start_x = node_a["x"] + node_a["width"]
-            start_y = node_a["y"] + node_a["height"] / 2
+        # We need to find the active node in each column/layer to connect them.
+        # self.node_graph.nodes is a flat list of positioned nodes with 'data'.
+        # We need to group them by 'layer' or simply find path from active to active.
 
-            end_x = node_b["x"]
-            end_y = node_b["y"] + node_b["height"] / 2
+        # Group nodes by X coordinate (or ID sequence, but X is safer if we reset layout)
+        # Actually, since set_data creates them in order of layers, we can iterate carefully.
+        # But flattening makes it hard to know which node connects to which if we don't know layers.
+        # However, NodeData now has is_active flag.
 
-            cr.move_to(start_x, start_y)
-            c1_x = start_x + 100
-            c1_y = start_y
-            c2_x = end_x - 100
-            c2_y = end_y
-            cr.curve_to(c1_x, c1_y, c2_x, c2_y, end_x, end_y)
-            cr.stroke()
+        # Let's assume nodes are sorted by X (layers).
+        # We want to connect active node of Layer N to active node of Layer N+1.
 
-            points = ConnectionPoints(
-                start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y
-            )
-            self._draw_connection_label(cr, node_b, points)
+        # First, organize nodes by layers. We can infer layers from X coordinate or index if we tracked it.
+        # Easier: Reconstruct layers from self.node_graph.nodes based on X position.
+
+        layers = {}
+        for node in self.node_graph.nodes:
+            x = node["x"]
+            if x not in layers:
+                layers[x] = []
+            layers[x].append(node)
+
+        sorted_xs = sorted(layers.keys())
+
+        for i in range(len(sorted_xs) - 1):
+            curr_x = sorted_xs[i]
+            next_x = sorted_xs[i+1]
+
+            curr_nodes = layers[curr_x]
+            next_nodes = layers[next_x]
+
+            # Find active node in current layer
+            active_curr = next((n for n in curr_nodes if n["data"].is_active), None)
+
+            # Find active node in next layer
+            active_next = next((n for n in next_nodes if n["data"].is_active), None)
+
+            if active_curr and active_next:
+                self._draw_connection_line(cr, active_curr, active_next)
+
+    def _draw_connection_line(self, cr, node_a, node_b):
+        start_x = node_a["x"] + node_a["width"]
+        start_y = node_a["y"] + node_a["height"] / 2
+
+        end_x = node_b["x"]
+        end_y = node_b["y"] + node_b["height"] / 2
+
+        cr.move_to(start_x, start_y)
+        c1_x = start_x + 100
+        c1_y = start_y
+        c2_x = end_x - 100
+        c2_y = end_y
+        cr.curve_to(c1_x, c1_y, c2_x, c2_y, end_x, end_y)
+        cr.stroke()
+
+        points = ConnectionPoints(
+            start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y
+        )
+        self._draw_connection_label(cr, node_b, points)
 
     def _draw_connection_label(
         self,
@@ -158,32 +196,41 @@ class GraphRenderer:
         style_manager = Adw.StyleManager.get_default()
         is_dark = style_manager.get_dark()
 
+        is_active = node["data"].is_active
+
+        # Dim inactive nodes
+        alpha_mult = 1.0 if is_active else 0.5
+
         if self.node_graph.selected_node_index == node["id"]:
             r, g, b, _ = get_accent_color()
-            cr.set_source_rgba(r, g, b, 0.4)
+            cr.set_source_rgba(r, g, b, 0.4 * alpha_mult)
             rounded_rectangle(cr, x - 8, y - 8, w + 16, h + 16, 18)
             cr.fill()
-            cr.set_source_rgba(r, g, b, 1.0)
+            cr.set_source_rgba(r, g, b, 1.0 * alpha_mult)
             cr.set_line_width(3)
             rounded_rectangle(cr, x, y, w, h, 10)
             cr.stroke()
 
-        cr.set_source_rgba(0.0, 0.0, 0.0, 0.4)
+        cr.set_source_rgba(0.0, 0.0, 0.0, 0.4 * alpha_mult)
         rounded_rectangle(cr, x + 2, y + 3, w, h, 10)
         cr.fill()
 
         body_rgba = Gdk.RGBA()
-        body_rgba.parse(node["data"].body_color)
+        if node["data"].body_color:
+             body_rgba.parse(node["data"].body_color)
+        else:
+             body_rgba.parse("rgba(0,0,0,0)") # Fallback
+
         if body_rgba.alpha == 0:
             body_color = (
-                (0.8, 0.8, 0.85, 1) if not is_dark else (0.2, 0.2, 0.25, 1)
+                (0.8, 0.8, 0.85, 1 * alpha_mult) if not is_dark else (0.2, 0.2, 0.25, 1 * alpha_mult)
             )
         else:
             body_color = (
                 body_rgba.red,
                 body_rgba.green,
                 body_rgba.blue,
-                body_rgba.alpha,
+                body_rgba.alpha * alpha_mult,
             )
         cr.set_source_rgba(*body_color)
 
@@ -191,24 +238,28 @@ class GraphRenderer:
         cr.fill_preserve()
 
         border_color = (
-            (0.5, 0.5, 0.5, 0.8) if is_dark else (0.4, 0.4, 0.4, 0.8)
+            (0.5, 0.5, 0.5, 0.8 * alpha_mult) if is_dark else (0.4, 0.4, 0.4, 0.8 * alpha_mult)
         )
         cr.set_source_rgba(*border_color)
         cr.set_line_width(1)
         cr.stroke()
 
         header_rgba = Gdk.RGBA()
-        header_rgba.parse(node["data"].header_color)
+        if node["data"].header_color:
+             header_rgba.parse(node["data"].header_color)
+        else:
+             header_rgba.parse("rgba(0,0,0,0)")
+
         if header_rgba.alpha == 0:
             header_color = (
-                (0.7, 0.7, 0.75, 1) if not is_dark else (0.3, 0.3, 0.35, 1)
+                (0.7, 0.7, 0.75, 1 * alpha_mult) if not is_dark else (0.3, 0.3, 0.35, 1 * alpha_mult)
             )
         else:
             header_color = (
                 header_rgba.red,
                 header_rgba.green,
                 header_rgba.blue,
-                header_rgba.alpha,
+                header_rgba.alpha * alpha_mult,
             )
         cr.set_source_rgba(*header_color)
 
@@ -228,9 +279,9 @@ class GraphRenderer:
         cr.stroke()
 
         if is_dark:
-            cr.set_source_rgba(1, 1, 1, 1)
+            cr.set_source_rgba(1, 1, 1, 1 * alpha_mult)
         else:
-            cr.set_source_rgba(0, 0, 0, 1)
+            cr.set_source_rgba(0, 0, 0, 1 * alpha_mult)
         cr.select_font_face(
             "Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
         )
@@ -239,9 +290,9 @@ class GraphRenderer:
         cr.show_text(node["data"].name)
 
         cr.set_font_size(12)
-        cr.set_source_rgba(0.4, 0.4, 0.4, 1)
+        cr.set_source_rgba(0.4, 0.4, 0.4, 1 * alpha_mult)
         if is_dark:
-            cr.set_source_rgba(0.7, 0.7, 0.7, 1)
+            cr.set_source_rgba(0.7, 0.7, 0.7, 1 * alpha_mult)
 
         cr.move_to(x + PADDING, y + 42)
         provider_name = (
@@ -249,7 +300,11 @@ class GraphRenderer:
         )
         cr.show_text(f"{provider_name}")
 
-        self._draw_node_text(cr, node, x, y, w, is_dark)
+        if is_active:
+             self._draw_node_text(cr, node, x, y, w, is_dark)
+        else:
+             # Maybe draw a "Inactive" text?
+             pass
 
     def _draw_node_text(
         self,
