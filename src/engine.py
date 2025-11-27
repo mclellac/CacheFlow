@@ -130,8 +130,15 @@ class CacheFlowEngine:
 
         result = self._process_layer(exec_layer, target_path, user_agent)
 
+        request_host = None
+        if target_base:
+            parsed_base = urlparse(target_base)
+            request_host = parsed_base.hostname
+
         next_base, next_path, next_host_header = (
-            RouteCalculator.calculate_next_hop(layer_config, target_path)
+            RouteCalculator.calculate_next_hop(
+                layer_config, target_path, request_host
+            )
         )
 
         return result, next_base, next_path, next_host_header

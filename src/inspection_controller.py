@@ -78,20 +78,40 @@ class InspectionController:
             A list of NodeData objects.
         """
         processed_nodes: List[NodeData] = []
-        upstream_layer_for_analysis: Dict[str, Any] = None
         config_layers: List[Dict[str, Any]] = self.config.get("layers", [])
 
         for i, result in enumerate(results):
             # The analyzer needs the raw headers dict.
+            raw_headers = result.get("headers", {})
+            log.debug(
+                "Processing results for layer '%s'. Headers count: %d",
+                result.get("name"),
+                len(raw_headers),
+            )
+            log.debug(
+                "Raw headers for '%s': %s", result.get("name"), raw_headers
+            )
+
             current_layer_for_analysis = {
                 "name": result.get("name"),
-                "headers": result.get("headers", {}),
+                "headers": raw_headers,
             }
 
-            # Analyze the headers against the previous (upstream) layer.
+            # Identify the next layer (which is technically upstream in the request flow)
+            # to serve as the baseline for comparison.
+            baseline_layer = None
+            if i + 1 < len(results):
+                next_result = results[i + 1]
+                baseline_layer = {
+                    "name": next_result.get("name"),
+                    "headers": next_result.get("headers", {}),
+                }
+
+            # Analyze the headers against the baseline (next) layer.
+            # If baseline is None (last layer), all headers are treated as ADDED/original.
             report = self.analyzer.analyze_layer(
                 current_layer=current_layer_for_analysis,
-                upstream_layer=upstream_layer_for_analysis,
+                upstream_layer=baseline_layer,
             )
 
             # Convert the analysis report into the 4-tuple format required by NodeData.
@@ -99,6 +119,11 @@ class InspectionController:
                 (item.key, item.value, item.change_type, item.description)
                 for item in report.items
             ]
+            log.debug(
+                "Formatted headers for '%s': %d items",
+                result.get("name"),
+                len(formatted_headers),
+            )
 
             # Find the corresponding layer in the original config to get UI settings.
             # This assumes the order of results matches the order of layers.
@@ -113,7 +138,7 @@ class InspectionController:
                 "request_method": result.get("request_method"),
                 "provider": result.get("provider"),
                 "layer_type": result.get("layer_type"),
-                "upstream_layer": upstream_layer_for_analysis,
+                "upstream_layer": baseline_layer,
                 # Merge color properties from the layer's configuration
                 "header_color": layer_config.get("header_color"),
                 "body_color": layer_config.get("body_color"),
@@ -125,8 +150,5 @@ class InspectionController:
 
             node_data = NodeData(**node_args)
             processed_nodes.append(node_data)
-
-            # The current layer becomes the upstream layer for the next iteration.
-            upstream_layer_for_analysis = current_layer_for_analysis
 
         return processed_nodes

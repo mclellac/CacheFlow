@@ -2,7 +2,7 @@
 <interface>
   <requires lib="gtk" version="4.0"/>
   <requires lib="adw" version="1.0"/>
-  <template class="DomainMatchRow" parent="Adw.PreferencesRow">
+  <template class="DomainMatchRow" parent="BaseEntryRow">
     <property name="activatable">False</property>
     <child>
       <object class="GtkEntry" id="pat_entry">

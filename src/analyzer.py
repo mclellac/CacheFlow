@@ -168,12 +168,13 @@ class HeaderAnalyzer:
         return ""
 
     def _check_missing_security_headers(
-        self, headers: Dict[str, str]
+        self, headers: Dict[str, str], ignore_keys: Optional[set] = None
     ) -> List[AnalysisItem]:
         """Checks for missing security headers.
 
         Args:
             headers: All headers for the current layer.
+            ignore_keys: A set of keys to ignore (e.g. already marked removed).
 
         Returns:
             A list of AnalysisItem objects for each missing security header.
@@ -185,9 +186,10 @@ class HeaderAnalyzer:
             "x-content-type-options",
             "x-frame-options",
         ]
+        ignore = ignore_keys or set()
 
         for key in security_headers:
-            if key not in headers:
+            if key not in headers and key not in ignore:
                 info = get_header_info(key)
                 items.append(
                     AnalysisItem(
@@ -281,10 +283,23 @@ class HeaderAnalyzer:
                     )
                 )
 
+        removed_keys = set()
         for key, value in upstream_headers.items():
             if key not in current_headers:
+                removed_keys.add(key)
                 display_key = original_keys.get(key, key)
                 info = get_header_info(key)
+
+                warning = ""
+                # If a security header is removed, flag it as a risk
+                if key in [
+                    "strict-transport-security",
+                    "content-security-policy",
+                    "x-content-type-options",
+                    "x-frame-options",
+                ]:
+                    warning = "Security Risk: Recommended header removed."
+
                 items.append(
                     AnalysisItem(
                         key=display_key,
@@ -293,13 +308,13 @@ class HeaderAnalyzer:
                         description=f"Header removed in this layer. "
                         f"{info.description}",
                         category=info.category,
-                        warning="",
+                        warning=warning,
                     )
                 )
 
         if current_headers:
             missing_items = self._check_missing_security_headers(
-                current_headers
+                current_headers, ignore_keys=removed_keys
             )
             items.extend(missing_items)
 
