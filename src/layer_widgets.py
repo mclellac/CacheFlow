@@ -643,9 +643,8 @@ class LayerRow(Adw.PreferencesGroup):
         self.headers_group.set_visible(config["headers"])
 
         if selected_type == ProviderType.CDN:
-            self.url_row.set_title("Host URL")  # Hidden anyway
             self.default_backend_host_row.set_title("Default Origin Host (Fallback)")
-            self.default_backend_header_row.set_title("Default Origin Host Header (Optional)")
+            self.default_backend_header_row.set_title("Default Origin Host Header")
             self.routing_rules_group.set_title("Origins")
             self.routing_rules_group.set_subtitle("Configure origin servers and matching rules.")
             self.add_routing_rule_btn.set_tooltip_text("Add New Origin")
