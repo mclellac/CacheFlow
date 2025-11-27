@@ -112,6 +112,7 @@ class InspectionController:
             report = self.analyzer.analyze_layer(
                 current_layer=current_layer_for_analysis,
                 upstream_layer=baseline_layer,
+                is_edge=(i == 0),
             )
 
             # Convert the analysis report into the 4-tuple format required by NodeData.

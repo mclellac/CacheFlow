@@ -208,12 +208,14 @@ class HeaderAnalyzer:
         self,
         current_layer: Dict[str, Any],
         upstream_layer: Optional[Dict[str, Any]],
+        is_edge: bool = False,
     ) -> AnalysisReport:
         """Analyzes the headers of a layer against an upstream layer.
 
         Args:
             current_layer: The layer to analyze.
             upstream_layer: The upstream layer to compare against.
+            is_edge: Whether this layer is the edge (client-facing) layer.
 
         Returns:
             An AnalysisReport object containing the analysis results.
@@ -246,16 +248,28 @@ class HeaderAnalyzer:
             )
 
             if key not in upstream_headers:
-                items.append(
-                    AnalysisItem(
-                        key=display_key,
-                        value=value,
-                        change_type="ADDED",
-                        description=f"New header. {info.description}",
-                        category=info.category,
-                        warning=warning,
+                if upstream_layer is None:
+                    items.append(
+                        AnalysisItem(
+                            key=display_key,
+                            value=value,
+                            change_type="UNCHANGED",
+                            description=f"Original header. {info.description}",
+                            category=info.category,
+                            warning=warning,
+                        )
                     )
-                )
+                else:
+                    items.append(
+                        AnalysisItem(
+                            key=display_key,
+                            value=value,
+                            change_type="ADDED",
+                            description=f"New header. {info.description}",
+                            category=info.category,
+                            warning=warning,
+                        )
+                    )
             elif upstream_headers[key] != value:
                 prev_val = upstream_headers[key]
                 items.append(
@@ -297,7 +311,7 @@ class HeaderAnalyzer:
                     )
                 )
 
-        if current_headers:
+        if current_headers and is_edge:
             missing_items = self._check_missing_security_headers(
                 current_headers
             )
