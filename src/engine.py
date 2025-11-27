@@ -137,7 +137,11 @@ class CacheFlowEngine:
                     actual_value = previous_headers.get(match_header, "")
 
                     # Also check against request Host header if configured
-                    if not actual_value and match_header.lower() == "host" and target_host_header:
+                    if (
+                        not actual_value
+                        and match_header.lower() == "host"
+                        and target_host_header
+                    ):
                         actual_value = target_host_header
 
                     if actual_value == match_value:
@@ -172,7 +176,9 @@ class CacheFlowEngine:
         # Or return None and let it fail?
         # If active_node is None, we should probably warn and maybe pick first one as default?
         if not active_node and siblings:
-            log.warning("No matching node found in siblings. Defaulting to first node.")
+            log.warning(
+                "No matching node found in siblings. Defaulting to first node."
+            )
             active_node = siblings[0]
             inactive_nodes = siblings[1:]
 
@@ -224,7 +230,7 @@ class CacheFlowEngine:
                 # For App Backend, target_base comes from routing rules, but we matched matched it against node['host_url']
                 # So we should use that.
                 if exec_layer.get("layer_type") == "Cache Proxy":
-                     target_base = active_node.get("host_url", target_base)
+                    target_base = active_node.get("host_url", target_base)
 
             siblings = inactive_nodes
 
@@ -443,7 +449,9 @@ class CacheFlowEngine:
         # Disable automatic compression to match curl behavior and avoid missing headers
         # from servers that vary responses based on Accept-Encoding.
         # Only set if not explicitly configured by the user.
-        has_accept_encoding = any(k.lower() == "accept-encoding" for k in headers)
+        has_accept_encoding = any(
+            k.lower() == "accept-encoding" for k in headers
+        )
         if not has_accept_encoding:
             headers["Accept-Encoding"] = None
 

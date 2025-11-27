@@ -87,16 +87,20 @@ class GraphRenderer:
 
         for i in range(len(sorted_xs) - 1):
             curr_x = sorted_xs[i]
-            next_x = sorted_xs[i+1]
+            next_x = sorted_xs[i + 1]
 
             curr_nodes = layers[curr_x]
             next_nodes = layers[next_x]
 
             # Find active node in current layer
-            active_curr = next((n for n in curr_nodes if n["data"].is_active), None)
+            active_curr = next(
+                (n for n in curr_nodes if n["data"].is_active), None
+            )
 
             # Find active node in next layer
-            active_next = next((n for n in next_nodes if n["data"].is_active), None)
+            active_next = next(
+                (n for n in next_nodes if n["data"].is_active), None
+            )
 
             if active_curr and active_next:
                 self._draw_connection_line(cr, active_curr, active_next)
@@ -158,6 +162,7 @@ class GraphRenderer:
 
         # Parse URLs to compare hosts
         from urllib.parse import urlparse
+
         try:
             parsed_req = urlparse(request_url)
             req_host = parsed_req.hostname
@@ -249,13 +254,15 @@ class GraphRenderer:
 
         body_rgba = Gdk.RGBA()
         if node["data"].body_color:
-             body_rgba.parse(node["data"].body_color)
+            body_rgba.parse(node["data"].body_color)
         else:
-             body_rgba.parse("rgba(0,0,0,0)") # Fallback
+            body_rgba.parse("rgba(0,0,0,0)")  # Fallback
 
         if body_rgba.alpha == 0:
             body_color = (
-                (0.8, 0.8, 0.85, 1 * alpha_mult) if not is_dark else (0.2, 0.2, 0.25, 1 * alpha_mult)
+                (0.8, 0.8, 0.85, 1 * alpha_mult)
+                if not is_dark
+                else (0.2, 0.2, 0.25, 1 * alpha_mult)
             )
         else:
             body_color = (
@@ -270,7 +277,9 @@ class GraphRenderer:
         cr.fill_preserve()
 
         border_color = (
-            (0.5, 0.5, 0.5, 0.8 * alpha_mult) if is_dark else (0.4, 0.4, 0.4, 0.8 * alpha_mult)
+            (0.5, 0.5, 0.5, 0.8 * alpha_mult)
+            if is_dark
+            else (0.4, 0.4, 0.4, 0.8 * alpha_mult)
         )
         cr.set_source_rgba(*border_color)
         cr.set_line_width(1)
@@ -278,13 +287,15 @@ class GraphRenderer:
 
         header_rgba = Gdk.RGBA()
         if node["data"].header_color:
-             header_rgba.parse(node["data"].header_color)
+            header_rgba.parse(node["data"].header_color)
         else:
-             header_rgba.parse("rgba(0,0,0,0)")
+            header_rgba.parse("rgba(0,0,0,0)")
 
         if header_rgba.alpha == 0:
             header_color = (
-                (0.7, 0.7, 0.75, 1 * alpha_mult) if not is_dark else (0.3, 0.3, 0.35, 1 * alpha_mult)
+                (0.7, 0.7, 0.75, 1 * alpha_mult)
+                if not is_dark
+                else (0.3, 0.3, 0.35, 1 * alpha_mult)
             )
         else:
             header_color = (
@@ -346,14 +357,16 @@ class GraphRenderer:
         # Dimmed header color
         header_rgba = Gdk.RGBA()
         if node["data"].header_color:
-             header_rgba.parse(node["data"].header_color)
+            header_rgba.parse(node["data"].header_color)
         else:
-             header_rgba.parse("rgba(0,0,0,0)")
+            header_rgba.parse("rgba(0,0,0,0)")
 
         alpha = 0.4
         if header_rgba.alpha == 0:
             header_color = (
-                (0.7, 0.7, 0.75, alpha) if not is_dark else (0.3, 0.3, 0.35, alpha)
+                (0.7, 0.7, 0.75, alpha)
+                if not is_dark
+                else (0.3, 0.3, 0.35, alpha)
             )
         else:
             header_color = (

@@ -6,30 +6,31 @@ including the LayerRow for editing layer details.
 from gi.repository import Gtk, Adw, Gdk
 from .providers.base import ProviderType
 from .providers import get_providers_by_type
+from .layer_strategies import get_strategy
 
 # Default Colors Constants
 DEFAULT_LAYER_COLORS = {
     ProviderType.CDN: {
-        "header_color": "#613583", # Purple 5
-        "body_color": "#9141ac",   # Purple 4
+        "header_color": "#613583",  # Purple 5
+        "body_color": "#9141ac",  # Purple 4
     },
     ProviderType.LOAD_BALANCER: {
-        "header_color": "#1c71d8", # Blue 4
-        "body_color": "#3584e4",   # Blue 3
+        "header_color": "#1c71d8",  # Blue 4
+        "body_color": "#3584e4",  # Blue 3
     },
     ProviderType.CACHE_PROXY: {
-        "header_color": "#e66100", # Orange 4
-        "body_color": "#ff7800",   # Orange 3
+        "header_color": "#e66100",  # Orange 4
+        "body_color": "#ff7800",  # Orange 3
     },
     ProviderType.APP_BACKEND: {
-        "header_color": "#26a269", # Green 5
-        "body_color": "#2ec27e",   # Green 4
+        "header_color": "#26a269",  # Green 5
+        "body_color": "#2ec27e",  # Green 4
     },
 }
 
 DEFAULT_DIFF_COLORS = {
-    "added_text_color": "#2ec27e",   # Green 4
-    "modified_text_color": "#e66100", # Orange 4
+    "added_text_color": "#2ec27e",  # Green 4
+    "modified_text_color": "#e66100",  # Orange 4
     "removed_text_color": "#e01b24",  # Red 4
 }
 
@@ -159,7 +160,14 @@ class NodeRow(ConfigRowMixin, Adw.ExpanderRow):
     body_color_button = Gtk.Template.Child()
     delete_btn = Gtk.Template.Child()
 
-    def __init__(self, node_data=None, layer_type=ProviderType.CDN, on_change=None, on_delete=None, **kwargs):
+    def __init__(
+        self,
+        node_data=None,
+        layer_type=ProviderType.CDN,
+        on_change=None,
+        on_delete=None,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.setup_mixin(on_change, on_delete)
         self._loading = True
@@ -182,7 +190,7 @@ class NodeRow(ConfigRowMixin, Adw.ExpanderRow):
         if node_data:
             self.load_data(node_data)
         else:
-            self.on_name_changed(self.name_entry) # Set initial title
+            self.on_name_changed(self.name_entry)  # Set initial title
 
             # Init default colors to transparent if not set
             if not self.header_color_button.get_rgba():
@@ -201,14 +209,20 @@ class NodeRow(ConfigRowMixin, Adw.ExpanderRow):
         self.provider_row.set_visible(is_backend)
 
         if is_backend:
-             # Populate providers if backend
+            # Populate providers if backend
             providers = get_providers_by_type(ProviderType.APP_BACKEND)
             if self.provider_model.get_n_items() == 0:
                 for p in providers:
                     self.provider_model.append(p.name)
                 # Static list of cloud providers as fallbacks
                 known_names = [p.name for p in providers]
-                for cloud in ["AWS", "Azure", "Google Cloud", "OpenShift", "VM"]:
+                for cloud in [
+                    "AWS",
+                    "Azure",
+                    "Google Cloud",
+                    "OpenShift",
+                    "VM",
+                ]:
                     if cloud not in known_names:
                         self.provider_model.append(cloud)
 
@@ -234,9 +248,14 @@ class NodeRow(ConfigRowMixin, Adw.ExpanderRow):
                     break
             if not found:
                 self.provider_model.append(provider)
-                self.provider_row.set_selected(self.provider_model.get_n_items() - 1)
+                self.provider_row.set_selected(
+                    self.provider_model.get_n_items() - 1
+                )
 
-        for key, btn in [("header_color", self.header_color_button), ("body_color", self.body_color_button)]:
+        for key, btn in [
+            ("header_color", self.header_color_button),
+            ("body_color", self.body_color_button),
+        ]:
             rgba = Gdk.RGBA()
             if not (data.get(key) and rgba.parse(data[key])):
                 rgba.parse("rgba(0,0,0,0)")
@@ -510,7 +529,7 @@ class LayerRow(Adw.PreferencesGroup):
             self.on_type_changed(None, None)
             # Apply defaults if new layer and no data
             if not layer_data:
-                 self._apply_default_colors()
+                self._apply_default_colors()
 
         # Ensure defaults are set if colors are transparent
         self._ensure_color_defaults()
@@ -530,7 +549,7 @@ class LayerRow(Adw.PreferencesGroup):
         # Layer Colors
         for key, btn in [
             ("header_color", self.header_color_button),
-            ("body_color", self.body_color_button)
+            ("body_color", self.body_color_button),
         ]:
             if not btn.get_rgba() or btn.get_rgba().alpha == 0:
                 default_hex = defaults.get(key)
@@ -543,15 +562,15 @@ class LayerRow(Adw.PreferencesGroup):
         diff_map = {
             "added_text_color": self.added_text_color_button,
             "modified_text_color": self.modified_text_color_button,
-            "removed_text_color": self.removed_text_color_button
+            "removed_text_color": self.removed_text_color_button,
         }
         for key, btn in diff_map.items():
             if not btn.get_rgba() or btn.get_rgba().alpha == 0:
                 default_hex = DEFAULT_DIFF_COLORS.get(key)
                 if default_hex:
-                     rgba = Gdk.RGBA()
-                     rgba.parse(default_hex)
-                     btn.set_rgba(rgba)
+                    rgba = Gdk.RGBA()
+                    rgba.parse(default_hex)
+                    btn.set_rgba(rgba)
 
     def _apply_default_colors(self):
         """Force apply default colors (for new layers)."""
@@ -561,7 +580,10 @@ class LayerRow(Adw.PreferencesGroup):
         selected_type = self.types_list[type_idx]
         defaults = DEFAULT_LAYER_COLORS.get(selected_type, {})
 
-        for key, btn in [("header_color", self.header_color_button), ("body_color", self.body_color_button)]:
+        for key, btn in [
+            ("header_color", self.header_color_button),
+            ("body_color", self.body_color_button),
+        ]:
             val = defaults.get(key)
             if val:
                 rgba = Gdk.RGBA()
@@ -569,16 +591,15 @@ class LayerRow(Adw.PreferencesGroup):
                 btn.set_rgba(rgba)
 
         for key, btn in [
-             ("added_text_color", self.added_text_color_button),
-             ("modified_text_color", self.modified_text_color_button),
-             ("removed_text_color", self.removed_text_color_button)
+            ("added_text_color", self.added_text_color_button),
+            ("modified_text_color", self.modified_text_color_button),
+            ("removed_text_color", self.removed_text_color_button),
         ]:
             val = DEFAULT_DIFF_COLORS.get(key)
             if val:
                 rgba = Gdk.RGBA()
                 rgba.parse(val)
                 btn.set_rgba(rgba)
-
 
     def on_type_changed(self, _row, _param):
         """Updates the provider list based on the selected type."""
@@ -587,84 +608,45 @@ class LayerRow(Adw.PreferencesGroup):
             return
 
         selected_type = self.types_list[selected_idx]
+        strategy = get_strategy(selected_type)
+        visibility = strategy.get_visibility()
+        labels = strategy.get_labels()
 
-        # Configure Visibility and Labels based on Type
-        # Logic:
-        # CDN: Hide almost everything except Origins.
-        # LB/Proxy/Backend: Standard visibility.
+        self.url_row.set_visible(visibility["url"])
+        self.default_backend_host_row.set_visible(
+            visibility["default_backend"]
+        )
+        self.default_backend_header_row.set_visible(
+            visibility["default_backend"]
+        )
+        self.routing_rules_group.set_visible(visibility["routing"])
+        self.overrides_group.set_visible(visibility["overrides"])
+        self.path_match_group.set_visible(visibility["path_match"])
+        self.nodes_group.set_visible(visibility["nodes"])
+        self.headers_group.set_visible(visibility["headers"])
 
-        visibility = {
-            ProviderType.CDN: {
-                "url": False,
-                "default_backend": True,
-                "routing": True,
-                "overrides": False,
-                "path_match": False,
-                "nodes": False,
-                "headers": False, # Explicitly hide for CDN
-            },
-            ProviderType.CACHE_PROXY: {
-                "url": False,
-                "default_backend": True,
-                "routing": True,
-                "overrides": True,
-                "path_match": True,
-                "nodes": True,
-                "headers": True,
-            },
-            ProviderType.LOAD_BALANCER: {
-                "url": True,
-                "default_backend": True,
-                "routing": True,
-                "overrides": True,
-                "path_match": True,
-                "nodes": False,
-                "headers": True,
-            },
-            ProviderType.APP_BACKEND: {
-                "url": True,
-                "default_backend": False,
-                "routing": False,
-                "overrides": False,
-                "path_match": False,
-                "nodes": False,
-                "headers": True,
-            },
-        }
-        config = visibility.get(selected_type, visibility[ProviderType.CDN])
+        if "url_title" in labels:
+            self.url_row.set_title(labels["url_title"])
+        if "default_backend_host_title" in labels:
+            self.default_backend_host_row.set_title(
+                labels["default_backend_host_title"]
+            )
+        if "default_backend_header_title" in labels:
+            self.default_backend_header_row.set_title(
+                labels["default_backend_header_title"]
+            )
+        if "routing_rules_title" in labels:
+            self.routing_rules_group.set_title(labels["routing_rules_title"])
+        if "routing_rules_subtitle" in labels:
+            self.routing_rules_group.set_subtitle(
+                labels["routing_rules_subtitle"]
+            )
+        if "add_routing_rule_tooltip" in labels:
+            self.add_routing_rule_btn.set_tooltip_text(
+                labels["add_routing_rule_tooltip"]
+            )
 
-        self.url_row.set_visible(config["url"])
-        self.default_backend_host_row.set_visible(config["default_backend"])
-        self.default_backend_header_row.set_visible(config["default_backend"])
-        self.routing_rules_group.set_visible(config["routing"])
-        self.overrides_group.set_visible(config["overrides"])
-        self.path_match_group.set_visible(config["path_match"])
-        self.nodes_group.set_visible(config["nodes"])
-        self.headers_group.set_visible(config["headers"])
-
-        if selected_type == ProviderType.CDN:
-            self.default_backend_host_row.set_title("Default Origin Host (Fallback)")
-            self.default_backend_header_row.set_title("Default Origin Host Header")
-            self.routing_rules_group.set_title("Origins")
-            self.routing_rules_group.set_subtitle("Configure origin servers and matching rules.")
-            self.add_routing_rule_btn.set_tooltip_text("Add New Origin")
-            label_prefix = "Origin"
-        elif selected_type == ProviderType.LOAD_BALANCER:
-            self.url_row.set_title("Load Balancer Hostname (e.g. lb.example.com)")
-            self.default_backend_host_row.set_title("Default Target Host (Fallback)")
-            self.default_backend_header_row.set_title("Default Target Host Header (Optional)")
-            self.routing_rules_group.set_title("Target Pools")
-            self.routing_rules_group.set_subtitle("Configure target pools (e.g. Cache Proxies) and matching rules.")
-            self.add_routing_rule_btn.set_tooltip_text("Add New Target Pool")
-            label_prefix = "Target"
-        else:
-            self.url_row.set_title("Host URL")
-            self.default_backend_host_row.set_title("Default Backend Host")
-            self.default_backend_header_row.set_title("Default Backend Host Header (Optional)")
-            self.routing_rules_group.set_title("Backend Rules")
-            self.routing_rules_group.set_subtitle("Define backend destinations based on request paths.")
-            self.add_routing_rule_btn.set_tooltip_text("Add New Backend")
-            label_prefix = "Backend"
+        label_prefix = labels.get("rule_label_prefix", "Backend")
 
         for row in self.origin_rule_rows:
             row.set_label_prefix(label_prefix)
@@ -728,7 +710,7 @@ class LayerRow(Adw.PreferencesGroup):
         self._load_overrides(data)
         self._load_path_matches(data)
         self._load_routing_rules(data)
-        self._load_nodes(data) # New
+        self._load_nodes(data)  # New
         self._loading = False
 
     def _load_type_and_provider(self, data):
@@ -957,7 +939,11 @@ class LayerRow(Adw.PreferencesGroup):
         """Adds a node entry row."""
         # Determine current layer type
         type_idx = self.type_row.get_selected()
-        current_type = self.types_list[type_idx] if 0 <= type_idx < len(self.types_list) else ProviderType.CDN
+        current_type = (
+            self.types_list[type_idx]
+            if 0 <= type_idx < len(self.types_list)
+            else ProviderType.CDN
+        )
 
         row = NodeRow(
             node_data=node_data,
@@ -996,7 +982,9 @@ class LayerRow(Adw.PreferencesGroup):
             "provider": selected_provider,
             "name": self.name_row.get_text(),
             "description": self.desc_row.get_text(),
-            "host_url": self.url_row.get_text() if self.url_row.get_visible() else "",
+            "host_url": (
+                self.url_row.get_text() if self.url_row.get_visible() else ""
+            ),
             "default_backend_host": self.default_backend_host_row.get_text(),
             "default_backend_host_header": self.default_backend_header_row.get_text(),
             "header_color": self.header_color_button.get_rgba().to_string(),
@@ -1009,7 +997,7 @@ class LayerRow(Adw.PreferencesGroup):
             "host_overrides": [],
             "path_match_only": [],
             "routing_rules": [],
-            "nodes": [], # New
+            "nodes": [],  # New
         }
 
         for row in self.header_rows:
@@ -1038,7 +1026,9 @@ class LayerRow(Adw.PreferencesGroup):
                 if origin_data["backend_host"]:
                     base_rule = {
                         "backend_host": origin_data["backend_host"],
-                        "backend_host_header": origin_data["backend_host_header"],
+                        "backend_host_header": origin_data[
+                            "backend_host_header"
+                        ],
                         "path_rewrite": origin_data["path_rewrite"],
                     }
                     for path_match in origin_data["path_matches"]:
