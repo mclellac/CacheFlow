@@ -3,13 +3,13 @@ This module serves as the entry point for the CacheFlow application.
 It defines the CacheFlowApplication class and the main execution function.
 """
 
-from .preferences import PreferencesWindow
-from .window import Window
-from gi.repository import Gtk, Gio, Adw, GLib
 import sys
 import os
 import logging
 import gi
+from gi.repository import Gtk, Gio, Adw, GLib
+from .preferences import PreferencesWindow
+from .window import Window
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")

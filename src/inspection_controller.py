@@ -147,12 +147,18 @@ class InspectionController:
                 # But engine merges config into result dict, so we can use result directly if it has them
                 # Or rely on layer_config.
                 # Let's prefer result properties if they exist (engine merged active node props), fall back to layer_config
-                "header_color": result.get("header_color") or layer_config.get("header_color"),
-                "body_color": result.get("body_color") or layer_config.get("body_color"),
-                "text_color": result.get("text_color") or layer_config.get("text_color"),
-                "added_text_color": result.get("added_text_color") or layer_config.get("added_text_color"),
-                "removed_text_color": result.get("removed_text_color") or layer_config.get("removed_text_color"),
-                "modified_text_color": result.get("modified_text_color") or layer_config.get("modified_text_color"),
+                "header_color": result.get("header_color")
+                or layer_config.get("header_color"),
+                "body_color": result.get("body_color")
+                or layer_config.get("body_color"),
+                "text_color": result.get("text_color")
+                or layer_config.get("text_color"),
+                "added_text_color": result.get("added_text_color")
+                or layer_config.get("added_text_color"),
+                "removed_text_color": result.get("removed_text_color")
+                or layer_config.get("removed_text_color"),
+                "modified_text_color": result.get("modified_text_color")
+                or layer_config.get("modified_text_color"),
             }
 
             nodes_in_this_layer = [NodeData(**active_node_args)]
@@ -160,16 +166,22 @@ class InspectionController:
             # Process Siblings
             siblings = result.get("siblings", [])
             for sibling in siblings:
-                 # Sibling nodes are inactive and have no headers/results
+                # Sibling nodes are inactive and have no headers/results
                 sibling_args = {
                     "name": sibling.get("name", "Unknown"),
-                    "headers": [], # No headers for inactive nodes
+                    "headers": [],  # No headers for inactive nodes
                     "provider": sibling.get("provider"),
-                    "layer_type": result.get("layer_type"), # Same type as active
+                    "layer_type": result.get(
+                        "layer_type"
+                    ),  # Same type as active
                     "is_active": False,
-                    "header_color": sibling.get("header_color") or layer_config.get("header_color"),
-                    "body_color": sibling.get("body_color") or layer_config.get("body_color"),
-                    "text_color": layer_config.get("text_color"), # Use layer default for text
+                    "header_color": sibling.get("header_color")
+                    or layer_config.get("header_color"),
+                    "body_color": sibling.get("body_color")
+                    or layer_config.get("body_color"),
+                    "text_color": layer_config.get(
+                        "text_color"
+                    ),  # Use layer default for text
                 }
                 nodes_in_this_layer.append(NodeData(**sibling_args))
 
