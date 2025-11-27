@@ -7,6 +7,32 @@ from gi.repository import Gtk, Adw, Gdk
 from .providers.base import ProviderType
 from .providers import get_providers_by_type
 
+# Default Colors Constants
+DEFAULT_LAYER_COLORS = {
+    ProviderType.CDN: {
+        "header_color": "#613583", # Purple 5
+        "body_color": "#9141ac",   # Purple 4
+    },
+    ProviderType.LOAD_BALANCER: {
+        "header_color": "#1c71d8", # Blue 4
+        "body_color": "#3584e4",   # Blue 3
+    },
+    ProviderType.CACHE_PROXY: {
+        "header_color": "#e66100", # Orange 4
+        "body_color": "#ff7800",   # Orange 3
+    },
+    ProviderType.APP_BACKEND: {
+        "header_color": "#26a269", # Green 5
+        "body_color": "#2ec27e",   # Green 4
+    },
+}
+
+DEFAULT_DIFF_COLORS = {
+    "added_text_color": "#2ec27e",   # Green 4
+    "modified_text_color": "#e66100", # Orange 4
+    "removed_text_color": "#e01b24",  # Red 4
+}
+
 
 class ConfigRowMixin:
     """Mixin for configuration rows with change and delete handling."""
@@ -177,21 +203,10 @@ class NodeRow(ConfigRowMixin, Adw.ExpanderRow):
         if is_backend:
              # Populate providers if backend
             providers = get_providers_by_type(ProviderType.APP_BACKEND)
-            # We can also include other types if needed, but requirements say "different providers"
-            # The current list of providers might be limited.
-            # If we need cloud providers (AWS, Azure), we assume they are added to the system
-            # or we just list generic ones.
-            # For now, let's list all APP_BACKEND providers.
             if self.provider_model.get_n_items() == 0:
                 for p in providers:
                     self.provider_model.append(p.name)
-                # Also maybe allow generic ones?
-                # The user requirement: "some applications can run in OpenShift, some might run on a VM, some might run in AWS, Azure or Google Cloud."
-                # This suggests we might need new Provider types or just strings.
-                # Assuming they are implemented or just string values for now.
-                # Since we don't have explicit AWS/Azure providers in code yet, maybe we should add basic ones or just allow strings?
-                # AdwComboRow requires a model.
-                # Let's add some static options if they don't exist in the provider list.
+                # Static list of cloud providers as fallbacks
                 known_names = [p.name for p in providers]
                 for cloud in ["AWS", "Azure", "Google Cloud", "OpenShift", "VM"]:
                     if cloud not in known_names:
@@ -431,7 +446,7 @@ class LayerRow(Adw.PreferencesGroup):
     routing_rules_group = Gtk.Template.Child()
     add_routing_rule_btn = Gtk.Template.Child()
 
-    default_backend_group = Gtk.Template.Child()
+    # Flattened Default Backend Group (Removed AdwExpanderRow)
     default_backend_host_row = Gtk.Template.Child()
     default_backend_header_row = Gtk.Template.Child()
 
@@ -493,19 +508,77 @@ class LayerRow(Adw.PreferencesGroup):
         # Force update provider list if empty (e.g. new layer)
         if self.provider_model.get_n_items() == 0:
             self.on_type_changed(None, None)
+            # Apply defaults if new layer and no data
+            if not layer_data:
+                 self._apply_default_colors()
 
-        for button in [
-            self.header_color_button,
-            self.body_color_button,
-            self.text_color_button,
-            self.added_text_color_button,
-            self.removed_text_color_button,
-            self.modified_text_color_button,
-        ]:
-            if not button.get_rgba():
-                button.set_rgba(Gdk.RGBA(0, 0, 0, 0))
+        # Ensure defaults are set if colors are transparent
+        self._ensure_color_defaults()
 
         self._loading = False
+
+    def _ensure_color_defaults(self):
+        """Sets default colors if current ones are transparent/unset."""
+        # Check if type is selected
+        type_idx = self.type_row.get_selected()
+        if type_idx < 0 or type_idx >= len(self.types_list):
+            return
+
+        selected_type = self.types_list[type_idx]
+        defaults = DEFAULT_LAYER_COLORS.get(selected_type, {})
+
+        # Layer Colors
+        for key, btn in [
+            ("header_color", self.header_color_button),
+            ("body_color", self.body_color_button)
+        ]:
+            if not btn.get_rgba() or btn.get_rgba().alpha == 0:
+                default_hex = defaults.get(key)
+                if default_hex:
+                    rgba = Gdk.RGBA()
+                    rgba.parse(default_hex)
+                    btn.set_rgba(rgba)
+
+        # Diff Text Colors
+        diff_map = {
+            "added_text_color": self.added_text_color_button,
+            "modified_text_color": self.modified_text_color_button,
+            "removed_text_color": self.removed_text_color_button
+        }
+        for key, btn in diff_map.items():
+            if not btn.get_rgba() or btn.get_rgba().alpha == 0:
+                default_hex = DEFAULT_DIFF_COLORS.get(key)
+                if default_hex:
+                     rgba = Gdk.RGBA()
+                     rgba.parse(default_hex)
+                     btn.set_rgba(rgba)
+
+    def _apply_default_colors(self):
+        """Force apply default colors (for new layers)."""
+        type_idx = self.type_row.get_selected()
+        if type_idx < 0 or type_idx >= len(self.types_list):
+            return
+        selected_type = self.types_list[type_idx]
+        defaults = DEFAULT_LAYER_COLORS.get(selected_type, {})
+
+        for key, btn in [("header_color", self.header_color_button), ("body_color", self.body_color_button)]:
+            val = defaults.get(key)
+            if val:
+                rgba = Gdk.RGBA()
+                rgba.parse(val)
+                btn.set_rgba(rgba)
+
+        for key, btn in [
+             ("added_text_color", self.added_text_color_button),
+             ("modified_text_color", self.modified_text_color_button),
+             ("removed_text_color", self.removed_text_color_button)
+        ]:
+            val = DEFAULT_DIFF_COLORS.get(key)
+            if val:
+                rgba = Gdk.RGBA()
+                rgba.parse(val)
+                btn.set_rgba(rgba)
+
 
     def on_type_changed(self, _row, _param):
         """Updates the provider list based on the selected type."""
@@ -517,21 +590,18 @@ class LayerRow(Adw.PreferencesGroup):
 
         # Configure Visibility and Labels based on Type
         # Logic:
-        # CDN: No Nodes.
-        # LB: No Nodes (Requirement only mentions Proxy/Backend, but LB could have them too? Let's stick to reqs).
-        # Cache Proxy: Nodes Enabled.
-        # App Backend: Nodes Enabled.
-
-        has_nodes = selected_type in [ProviderType.CACHE_PROXY, ProviderType.APP_BACKEND]
+        # CDN: Hide almost everything except Origins.
+        # LB/Proxy/Backend: Standard visibility.
 
         visibility = {
             ProviderType.CDN: {
-                "url": True,
+                "url": False,
                 "default_backend": True,
                 "routing": True,
                 "overrides": False,
                 "path_match": False,
                 "nodes": False,
+                "headers": False, # Explicitly hide for CDN
             },
             ProviderType.CACHE_PROXY: {
                 "url": False,
@@ -540,6 +610,7 @@ class LayerRow(Adw.PreferencesGroup):
                 "overrides": True,
                 "path_match": True,
                 "nodes": True,
+                "headers": True,
             },
             ProviderType.LOAD_BALANCER: {
                 "url": True,
@@ -548,6 +619,7 @@ class LayerRow(Adw.PreferencesGroup):
                 "overrides": True,
                 "path_match": True,
                 "nodes": False,
+                "headers": True,
             },
             ProviderType.APP_BACKEND: {
                 "url": True,
@@ -556,24 +628,30 @@ class LayerRow(Adw.PreferencesGroup):
                 "overrides": False,
                 "path_match": False,
                 "nodes": False,
+                "headers": True,
             },
         }
         config = visibility.get(selected_type, visibility[ProviderType.CDN])
 
         self.url_row.set_visible(config["url"])
-        self.default_backend_group.set_visible(config["default_backend"])
+        self.default_backend_host_row.set_visible(config["default_backend"])
+        self.default_backend_header_row.set_visible(config["default_backend"])
         self.routing_rules_group.set_visible(config["routing"])
         self.overrides_group.set_visible(config["overrides"])
         self.path_match_group.set_visible(config["path_match"])
         self.nodes_group.set_visible(config["nodes"])
+        self.headers_group.set_visible(config["headers"])
 
         if selected_type == ProviderType.CDN:
-            self.default_backend_group.set_title("Default Origin")
+            self.default_backend_host_row.set_title("Default Origin Target")
+            self.default_backend_header_row.set_title("Default Origin Host Header")
             self.routing_rules_group.set_title("Origin Rules")
             self.add_routing_rule_btn.set_tooltip_text("Add New Origin")
             label_prefix = "Origin"
         else:
-            self.default_backend_group.set_title("Default Destination")
+            self.url_row.set_title("Host URL")
+            self.default_backend_host_row.set_title("Default Backend Host")
+            self.default_backend_header_row.set_title("Default Backend Host Header")
             self.routing_rules_group.set_title("Backend Rules")
             self.add_routing_rule_btn.set_tooltip_text("Add New Backend")
             label_prefix = "Backend"
