@@ -107,6 +107,7 @@ class CacheFlowEngine:
         previous_headers: Dict[str, str],
         target_base: str,
         layer_type: str,
+        target_host_header: Optional[str] = None,
     ) -> Tuple[Dict[str, Any], List[Dict[str, Any]]]:
         """Selects the active node from a list of siblings based on routing criteria.
 
@@ -115,6 +116,7 @@ class CacheFlowEngine:
             previous_headers: Response headers from the previous layer.
             target_base: The target base URL resolved from routing rules.
             layer_type: The type of the current layer.
+            target_host_header: The host header of the current request.
 
         Returns:
             A tuple containing the active node configuration and a list of inactive siblings.
@@ -131,7 +133,13 @@ class CacheFlowEngine:
                 match_value = node.get("match_value", "")
 
                 if match_header and match_value:
+                    # Check against previous response headers
                     actual_value = previous_headers.get(match_header, "")
+
+                    # Also check against request Host header if configured
+                    if not actual_value and match_header.lower() == "host" and target_host_header:
+                        actual_value = target_host_header
+
                     if actual_value == match_value:
                         matched = True
                     # Case-insensitive match? Assuming strict for now, or maybe loose.
@@ -145,6 +153,13 @@ class CacheFlowEngine:
                 # Strip trailing slashes and schemes for comparison if needed
                 node_url = node.get("host_url", "").rstrip("/")
                 target = target_base.rstrip("/")
+
+                # Normalize by removing scheme for comparison
+                if "://" in node_url:
+                    node_url = node_url.split("://", 1)[1]
+                if "://" in target:
+                    target = target.split("://", 1)[1]
+
                 if node_url == target:
                     matched = True
 
@@ -194,7 +209,11 @@ class CacheFlowEngine:
         if nodes:
             # We have multiple nodes. We need to select one.
             active_node, inactive_nodes = self._select_node_from_siblings(
-                nodes, previous_headers, target_base, layer_config.get("layer_type", "")
+                nodes,
+                previous_headers,
+                target_base,
+                layer_config.get("layer_type", ""),
+                target_host_header,
             )
 
             # Merge active node config into exec_layer
@@ -420,6 +439,14 @@ class CacheFlowEngine:
         url = base_url + test_path
         headers = layer.get("custom_headers", {}).copy()
         headers["User-Agent"] = user_agent
+
+        # Disable automatic compression to match curl behavior and avoid missing headers
+        # from servers that vary responses based on Accept-Encoding.
+        # Only set if not explicitly configured by the user.
+        has_accept_encoding = any(k.lower() == "accept-encoding" for k in headers)
+        if not has_accept_encoding:
+            headers["Accept-Encoding"] = None
+
         if host_header_override:
             headers["Host"] = host_header_override
 
