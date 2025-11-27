@@ -134,17 +134,19 @@ class GraphRenderer:
         if not request_url:
             return
 
+        # Calculate midpoint on Bezier curve
+        t = 0.5
         mid_x = (
-            0.125 * points.start_x
-            + 0.375 * points.c1_x
-            + 0.375 * points.c2_x
-            + 0.125 * points.end_x
+            (1 - t) ** 3 * points.start_x
+            + 3 * (1 - t) ** 2 * t * points.c1_x
+            + 3 * (1 - t) * t**2 * points.c2_x
+            + t**3 * points.end_x
         )
         mid_y = (
-            0.125 * points.start_y
-            + 0.375 * points.c1_y
-            + 0.375 * points.c2_y
-            + 0.125 * points.end_y
+            (1 - t) ** 3 * points.start_y
+            + 3 * (1 - t) ** 2 * t * points.c1_y
+            + 3 * (1 - t) * t**2 * points.c2_y
+            + t**3 * points.end_y
         )
 
         layout = PangoCairo.create_layout(cr)
@@ -153,8 +155,17 @@ class GraphRenderer:
 
         method = node_b["data"].request_method
         text = f"{method} {request_url}"
-        if request_host:
-            text += f"\nwith Host: {request_host}"
+
+        # Parse URLs to compare hosts
+        from urllib.parse import urlparse
+        try:
+            parsed_req = urlparse(request_url)
+            req_host = parsed_req.hostname
+        except ValueError:
+            req_host = None
+
+        if request_host and request_host != req_host:
+            text += f"\nHost: {request_host}"
 
         layout.set_text(text, -1)
 
@@ -162,31 +173,45 @@ class GraphRenderer:
         text_width = logical_rect.width / Pango.SCALE
         text_height = logical_rect.height / Pango.SCALE
 
+        # Determine orientation of the line at midpoint to avoid collision
+        # Simple derivative check
         dx = (
-            0.75 * (points.c1_x - points.start_x)
-            + 1.5 * (points.c2_x - points.c1_x)
-            + 0.75 * (points.end_x - points.c2_x)
+            3 * (1 - t) ** 2 * (points.c1_x - points.start_x)
+            + 6 * (1 - t) * t * (points.c2_x - points.c1_x)
+            + 3 * t**2 * (points.end_x - points.c2_x)
         )
         dy = (
-            0.75 * (points.c1_y - points.start_y)
-            + 1.5 * (points.c2_y - points.c1_y)
-            + 0.75 * (points.end_y - points.c2_y)
+            3 * (1 - t) ** 2 * (points.c1_y - points.start_y)
+            + 6 * (1 - t) * t * (points.c2_y - points.c1_y)
+            + 3 * t**2 * (points.end_y - points.c2_y)
         )
 
-        is_horizontal = abs(dx) >= abs(dy)
+        is_vertical_dominant = abs(dy) > abs(dx)
 
-        if is_horizontal:
-            text_x = mid_x - text_width / 2
-            text_y = mid_y - text_height - 5
-        else:
-            text_x = mid_x + 10
+        if is_vertical_dominant:
+            # Line is moving vertically, place text to side
+            # Try right side first
+            text_x = mid_x + 15
             text_y = mid_y - text_height / 2
-
-        if Adw.StyleManager.get_default().get_dark():
-            cr.set_source_rgba(0.8, 0.8, 0.8, 1)
         else:
-            cr.set_source_rgba(0.2, 0.2, 0.2, 1)
+            # Line is horizontal, place text above or below
+            # Place above to avoid overlapping nodes below
+            text_x = mid_x - text_width / 2
+            text_y = mid_y - text_height - 10
 
+        # Background for readability
+        if Adw.StyleManager.get_default().get_dark():
+            cr.set_source_rgba(0.2, 0.2, 0.2, 0.8)
+            text_color = (0.9, 0.9, 0.9, 1)
+        else:
+            cr.set_source_rgba(0.95, 0.95, 0.95, 0.8)
+            text_color = (0.1, 0.1, 0.1, 1)
+
+        # Draw background rect
+        cr.rectangle(text_x - 2, text_y - 2, text_width + 4, text_height + 4)
+        cr.fill()
+
+        cr.set_source_rgba(*text_color)
         cr.move_to(text_x, text_y)
         PangoCairo.show_layout(cr, layout)
 
@@ -305,6 +330,63 @@ class GraphRenderer:
         else:
              # Maybe draw a "Inactive" text?
              pass
+
+    def _draw_inactive_node(self, cr, node, x, y, w, h, is_dark):
+        """Draws a smaller, dimmed version for inactive nodes."""
+        # Use a reduced height for inactive nodes if h is large, but h is passed from layout.
+        # Ideally layout should have calculated a smaller height.
+        # But we can just draw within the bounds.
+
+        # Dimmed header color
+        header_rgba = Gdk.RGBA()
+        if node["data"].header_color:
+             header_rgba.parse(node["data"].header_color)
+        else:
+             header_rgba.parse("rgba(0,0,0,0)")
+
+        alpha = 0.4
+        if header_rgba.alpha == 0:
+            header_color = (
+                (0.7, 0.7, 0.75, alpha) if not is_dark else (0.3, 0.3, 0.35, alpha)
+            )
+        else:
+            header_color = (
+                header_rgba.red,
+                header_rgba.green,
+                header_rgba.blue,
+                alpha,
+            )
+
+        cr.set_source_rgba(*header_color)
+        rounded_rectangle(cr, x, y, w, NODE_HEADER_HEIGHT, 10)
+        cr.fill_preserve()
+
+        border_color = (
+            (0.5, 0.5, 0.5, 0.3) if is_dark else (0.4, 0.4, 0.4, 0.3)
+        )
+        cr.set_source_rgba(*border_color)
+        cr.set_line_width(1)
+        cr.stroke()
+
+        # Text
+        if is_dark:
+            cr.set_source_rgba(1, 1, 1, 0.5)
+        else:
+            cr.set_source_rgba(0, 0, 0, 0.5)
+
+        cr.select_font_face(
+            "Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+        )
+        cr.set_font_size(14)
+        cr.move_to(x + PADDING, y + 22)
+        cr.show_text(node["data"].name)
+
+        cr.set_font_size(10)
+        cr.move_to(x + PADDING, y + 40)
+        provider_name = (
+            node["data"].provider if node["data"].provider else "Unknown"
+        )
+        cr.show_text(f"{provider_name}")
 
     def _draw_node_text(
         self,
