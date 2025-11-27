@@ -22,6 +22,15 @@ class NodeData:
             headers: A list of tuples, each containing (key, value, change_type, note).
             **kwargs: Additional attributes like colors and request details.
         """
+        import logging
+
+        log = logging.getLogger(__name__)
+        log.debug(
+            "Initializing NodeData for '%s' with %d headers.",
+            name,
+            len(headers),
+        )
+
         self.name = name
         self.headers = headers
         self.body_color = kwargs.get("body_color", "")
