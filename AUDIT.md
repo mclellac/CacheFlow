@@ -1,35 +1,63 @@
-# Code Audit & Improvement Plan
+# Codebase Audit Report
 
-This document tracks the findings of a comprehensive code audit and outlines the plan to address them.
+This document records the findings of a full code audit performed on the CacheFlow project.
 
-## Initial Audit (2025-11-26)
+## 1. Dead Code
 
-### 1. Code Style & Conformance
+### Unused UI Templates
+- **File**: `src/ui/varnish_backend_row.ui`
+- **Finding**: This UI template defines a class `VarnishBackendRow`, but there is no corresponding Python class in the codebase. The functionality appears to have been refactored into generic `NodeRow` or `OriginRuleRow` widgets.
+- **Action**: Verify if strictly needed (unlikely) and delete to avoid confusion.
 
-* **PEP8:** The codebase is largely compliant, but a full pass is needed to catch minor inconsistencies in spacing and line length.
-* **Docstrings:** Docstrings are present but do not consistently follow the Google Style Guide. Many are missing parameter descriptions and return value explanations.
-* **Inline Comments:** The project's `AGENTS.md` explicitly forbids inline comments, but some still exist. These need to be removed or converted into docstrings.
+### Compatibility Artifacts
+- **File**: `src/config_manager.py`
+- **Finding**: The `_pack_layers` method still packs an empty `varnish_backends` list:
+  ```python
+  dict_builder.add_value(GLib.Variant("{sv}", ("varnish_backends", GLib.Variant("aa{sv}", []))))
+  ```
+- **Context**: Retained for backward compatibility with older configuration schemas.
 
-### 2. UI/UX Issues & Bugs
+## 2. Code Quality & Linting (Pylint)
 
-* **[BUG] Analyze Button is not styled:**
-  * **File:** `src/ui/header_dialog.ui`
-  * **Issue:** The "Analyze" button is a standard `GtkButton`, not a styled Adwaita button. It does not use the system accent color, making it look out of place.
-  * **Resolution:** Convert the button to use the `.suggested-action` style class.
+The codebase achieved a high Pylint score (**9.74/10**), but several stylistic and minor issues remain.
 
-* **[BUG] Analysis Feature is Incomplete:**
-  * **Files:** `src/header_dialog.py`, `src/window.py`, `src_analysis_dialog.py`
-  * **Issue:** The `HeaderDialog` correctly emits an `analyze-clicked` signal, but no handler is connected to it in the main window. The `HeaderAnalysisDialog`, which is fully capable of displaying the analysis, is never instantiated or presented to the user.
-  * **Resolution:** Implement the signal handler in `window.py` to create and show the `HeaderAnalysisDialog` when the button is clicked.
+### Style Violations
+- **Line Length**: Multiple files exceed the 100 character limit (e.g., `src/graph_renderer.py`, `src/analyzer.py`, `src/engine.py`).
+- **Indentation**: Inconsistent indentation (13 spaces instead of 12) found in `src/graph_renderer.py` and `src/node_graph.py`.
+- **Import Order**: Imports in `src/main.py` and `src/node_graph.py` do not strictly follow the standard library -> third party -> local grouping.
 
-### 3. Architectural Improvements
+### Complexity
+- **Too Many Branches/Statements**:
+  - `src/graph_renderer.py`: Drawing logic is complex with many conditionals.
+  - `src/layer_widgets.py`: The `LayerRow` class is very large (>1000 lines) and handles too many responsibilities (UI setup, data loading, saving logic for multiple types). It has "Too many public methods" and "Too many branches".
 
-* **UI/Logic Separation:** While `AGENTS.md` mandates UI separation, there are instances of UI logic (e.g., Pango attribute manipulation in `header_dialog.py`) that could be further abstracted for clarity. This is a lower priority but should be noted for future refactoring.
+### Specific Code Issues
+- **Unused Arguments**: `src/graph_renderer.py:340` (Argument `h` is unused).
+- **Mutable Default Arguments**: None explicitly flagged, but checked manually.
+- **Exception Handling**: Broad exception handling (`Exception`) is used in `src/exporters.py` and `src/config_manager.py` but is correctly caught and logged.
 
-## Action Plan
+## 3. Architecture & Design
 
-* [X] **Task 1:** Fix the "Analyze" button style in `header_dialog.ui`.
-* [X] **Task 2:** Connect the `analyze-clicked` signal in `window.py` to launch the `HeaderAnalysisDialog`.
-* [X] **Task 3:** Perform a full codebase scan for PEP8 violations and fix them.
-* [X] **Task 4:** Review and update all major docstrings to conform to the Google Style Guide.
-* [X] **Task 5:** Remove all inline comments.
+### UI Separation
+- **Status**: Excellent. The project strictly follows the separation of UI (XML templates) and Logic (Python classes). No hardcoded widget construction was found in Python files.
+
+### Configuration Management
+- **Status**: Robust. Configuration is centralized in `ConfigManager` and uses `GSettings` correctly with complex types (`aa{sv}`).
+- **Note**: The persistence of `host_overrides` and `routing_rules` as lists of dictionaries (`aa{ss}`) within the layer variant is well-structured.
+
+### Analysis Logic
+- **Status**: The `HeaderAnalyzer` correctly identifies header changes.
+- **Testing**: Tests confirm that the "Origin" layer (last layer) correctly reports headers as `UNCHANGED` (Original) rather than `ADDED`, respecting the logic that the origin is the baseline.
+
+## 4. Security
+
+- **Input Handling**: The application uses `yaml.safe_load` for importing configurations, preventing code execution vulnerabilities.
+- **SSL/TLS**: SSL verification is enforced by default in `requests` but can be optionally disabled by the user via settings (`verify_ssl`). This is explicitly handled in `src/engine.py`.
+- **Secrets**: No hardcoded secrets were found.
+
+## 5. Recommendations
+
+1.  **Delete Dead Code**: Remove `src/ui/varnish_backend_row.ui`.
+2.  **Refactor `LayerRow`**: The `LayerRow` class in `src/layer_widgets.py` is becoming a "God Class" for layer configuration. Consider splitting it into smaller, type-specific sub-components (e.g., `CDNConfigStrategy`, `ProxyConfigStrategy`) to reduce complexity.
+3.  **Standardize Formatting**: Run a formatter (like `black`) to fix indentation and line length issues automatically.
+4.  **Fix Imports**: Reorder imports in `src/main.py` and `src/node_graph.py` to satisfy pylint.
