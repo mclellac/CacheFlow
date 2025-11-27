@@ -427,6 +427,14 @@ class CacheFlowEngine:
         url = base_url + test_path
         headers = layer.get("custom_headers", {}).copy()
         headers["User-Agent"] = user_agent
+
+        # Disable automatic compression to match curl behavior and avoid missing headers
+        # from servers that vary responses based on Accept-Encoding.
+        # Only set if not explicitly configured by the user.
+        has_accept_encoding = any(k.lower() == "accept-encoding" for k in headers)
+        if not has_accept_encoding:
+            headers["Accept-Encoding"] = None
+
         if host_header_override:
             headers["Host"] = host_header_override
 

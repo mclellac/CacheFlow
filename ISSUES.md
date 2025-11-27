@@ -13,7 +13,7 @@
 - [x] **Fix Backend Selection**: Path-based routing fixed in `src/engine.py` by normalizing URLs (stripping scheme) before comparison.
 
 ## Header Diff / Analysis
-- [x] **Missing Cache-Control**: Tests confirmed `Cache-Control` is detected correctly if present. The routing fix likely resolved the issue of it "missing" by selecting the correct node.
+- [x] **Missing Cache-Control**: Fixed in `src/engine.py` by suppressing `Accept-Encoding` header to match `curl` behavior, preventing servers from serving varying content (e.g. compressed) that lacks cache headers.
 - [x] **Diff Accuracy**: Verified via existing tests and manual analysis logic.
 
 ## Plan - Completed
@@ -27,3 +27,5 @@
     -   Improved text positioning.
 4.  **Fix Header Analyzer (`src/analyzer.py`)**:
     -   Confirmed behavior with tests.
+5.  **Fix Missing Headers (`src/engine.py`)**:
+    -   Implemented `Accept-Encoding` suppression to resolve missing headers in compressed responses.
