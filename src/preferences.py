@@ -262,17 +262,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     def _reorder_add_buttons(self):
         """Ensures Add buttons are at the end of their lists."""
-        self.group_cdn.remove(self.add_cdn_row)
-        self.group_cdn.add(self.add_cdn_row)
-
-        self.group_lb.remove(self.add_lb_row)
-        self.group_lb.add(self.add_lb_row)
-
-        self.group_proxy.remove(self.add_proxy_row)
-        self.group_proxy.add(self.add_proxy_row)
-
-        self.group_app.remove(self.add_app_row)
-        self.group_app.add(self.add_app_row)
+        # No-op since buttons are now in separate static groups at the bottom.
+        pass
 
     def create_layer_row(self, data):
         """Creates a LayerRow and adds it to the appropriate group."""
@@ -285,14 +276,14 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
         layer_type = data.get("layer_type", "CDN")
         if layer_type == "CDN":
-            self.group_cdn.add(row)
+            self.group_cdn.append(row)
         elif layer_type == "Load Balancer":
-            self.group_lb.add(row)
+            self.group_lb.append(row)
         elif layer_type == "Cache Proxy" or layer_type == "Caching Proxy":
             # Handle legacy naming if any
-            self.group_proxy.add(row)
+            self.group_proxy.append(row)
         elif layer_type == "Application Backend" or layer_type == "Backend":
-            self.group_app.add(row)
+            self.group_app.append(row)
         else:
             # Fallback for unknown types - add to App or CDN?
             # Let's add to App for safety, or log warning.
@@ -300,7 +291,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
                 "Unknown layer type '%s'. Defaulting to Application.",
                 layer_type,
             )
-            self.group_app.add(row)
+            self.group_app.append(row)
 
     def on_details_changed(self, *_):
         """Callback when domain details change."""
@@ -403,12 +394,35 @@ class PreferencesWindow(Adw.PreferencesWindow):
         elif layer_type == "Application Backend":
             provider = "Apache"
 
+        # Default colors based on layer type
+        header_color = "rgba(0,0,0,0)"
+        body_color = "rgba(0,0,0,0)"
+
+        if layer_type == "CDN":
+            header_color = "rgba(0, 122, 204, 1.0)"
+            body_color = "rgba(0, 122, 204, 0.8)"
+        elif layer_type == "Load Balancer":
+            header_color = "rgba(142, 68, 173, 1.0)"  # Purple
+            body_color = "rgba(142, 68, 173, 0.8)"
+        elif layer_type == "Cache Proxy" or layer_type == "Caching Proxy":
+            header_color = "rgba(22, 160, 133, 1.0)"  # Teal
+            body_color = "rgba(22, 160, 133, 0.8)"
+        elif layer_type == "Application Backend" or layer_type == "Backend":
+            header_color = "rgba(39, 174, 96, 1.0)"  # Green
+            body_color = "rgba(39, 174, 96, 0.8)"
+
         new_data = {
             "name": f"New {layer_type}",
             "description": "",
             "layer_type": layer_type,
             "provider": provider,
             "host_url": "http://localhost",
+            "header_color": header_color,
+            "body_color": body_color,
+            "text_color": "rgba(255, 255, 255, 1.0)",
+            "added_text_color": "rgba(46, 204, 113, 1.0)",
+            "removed_text_color": "rgba(231, 76, 60, 1.0)",
+            "modified_text_color": "rgba(243, 156, 18, 1.0)",
             "custom_headers": {},
             "host_overrides": [],
             "path_match_only": [],

@@ -18,12 +18,12 @@ DEFAULT_LAYERS = [
         "host_url": "https://www.example.com",
         "default_backend_host": "cache.examplefarm.com",
         "default_backend_host_header": "origin.example.com",
-        "header_color": "rgba(128, 0, 128, 0.8)",
-        "body_color": "rgba(128, 0, 128, 0.6)",
+        "header_color": "rgba(0, 122, 204, 1.0)",  # Blue for CDN
+        "body_color": "rgba(0, 122, 204, 0.8)",
         "text_color": "rgba(255, 255, 255, 1.0)",
-        "added_text_color": "rgba(173, 255, 47, 1.0)",
-        "removed_text_color": "rgba(255, 99, 71, 1.0)",
-        "modified_text_color": "rgba(255, 215, 0, 1.0)",
+        "added_text_color": "rgba(46, 204, 113, 1.0)",  # Green
+        "removed_text_color": "rgba(231, 76, 60, 1.0)",  # Red
+        "modified_text_color": "rgba(243, 156, 18, 1.0)",  # Orange
         "custom_headers": {
             "Pragma": "akamai-x-get-request-id, akamai-x-cache-on, "
             "akamai-x-cache-key"
@@ -40,12 +40,12 @@ DEFAULT_LAYERS = [
         "host_url": "http://cache.examplefarm.com",
         "default_backend_host": "",
         "default_backend_host_header": "",
-        "header_color": "rgba(0, 128, 128, 0.8)",
-        "body_color": "rgba(0, 128, 128, 0.6)",
+        "header_color": "rgba(22, 160, 133, 1.0)",  # Teal/Green for Proxy
+        "body_color": "rgba(22, 160, 133, 0.8)",
         "text_color": "rgba(255, 255, 255, 1.0)",
-        "added_text_color": "rgba(173, 255, 47, 1.0)",
-        "removed_text_color": "rgba(255, 99, 71, 1.0)",
-        "modified_text_color": "rgba(255, 215, 0, 1.0)",
+        "added_text_color": "rgba(46, 204, 113, 1.0)",
+        "removed_text_color": "rgba(231, 76, 60, 1.0)",
+        "modified_text_color": "rgba(243, 156, 18, 1.0)",
         "custom_headers": {
             "X-Varnish-Debug": "true",
             "X-Origin-Auth": "secret-token-123",

@@ -2,12 +2,11 @@
 <interface>
   <requires lib="gtk" version="4.0"/>
   <requires lib="adw" version="1.0"/>
-  <template class="LayerRow" parent="AdwExpanderRow">
+  <template class="LayerRow" parent="AdwPreferencesGroup">
     <property name="title">Layer Name</property>
-    <property name="subtitle">New Layer</property>
-    <property name="show-enable-switch">False</property>
+    <property name="description">New Layer</property>
 
-    <child type="suffix">
+    <property name="header-suffix">
       <object class="GtkButton" id="delete_btn">
         <property name="valign">center</property>
         <property name="tooltip-text">Delete Layer</property>
@@ -20,7 +19,7 @@
           <class name="destructive-action"/>
         </style>
       </object>
-    </child>
+    </property>
 
     <child>
       <object class="AdwComboRow" id="type_row">
@@ -133,9 +132,9 @@
       </object>
     </child>
     <child>
-      <object class="AdwPreferencesGroup" id="headers_group">
+      <object class="AdwExpanderRow" id="headers_group">
         <property name="title">Custom Headers</property>
-        <property name="description">Inject or override headers for requests to this layer.</property>
+        <property name="subtitle">Inject or override headers for requests to this layer.</property>
         <child>
             <object class="AdwActionRow" id="add_header_row">
                 <property name="title">Add New Header</property>
@@ -156,9 +155,9 @@
       </object>
     </child>
     <child>
-      <object class="AdwPreferencesGroup" id="overrides_group">
+      <object class="AdwExpanderRow" id="overrides_group">
         <property name="title">Host Overrides</property>
-        <property name="description">Force a different Host header for specific path patterns.</property>
+        <property name="subtitle">Force a different Host header for specific path patterns.</property>
         <child>
             <object class="AdwActionRow" id="add_override_row">
                 <property name="title">Add New Override</property>
@@ -179,9 +178,9 @@
       </object>
     </child>
     <child>
-      <object class="AdwPreferencesGroup" id="path_match_group">
+      <object class="AdwExpanderRow" id="path_match_group">
         <property name="title">Path Match Only</property>
-        <property name="description">Only process requests where the path matches one of these patterns.</property>
+        <property name="subtitle">Only process requests where the path matches one of these patterns.</property>
         <child>
             <object class="AdwActionRow" id="add_path_match_row">
                 <property name="title">Add New Path Match</property>
@@ -225,9 +224,9 @@
       </object>
     </child>
     <child>
-      <object class="AdwPreferencesGroup" id="default_backend_group">
+      <object class="AdwExpanderRow" id="default_backend_group">
         <property name="title">Default Destination</property>
-        <property name="description">The destination for requests that do not match any routing rules.</property>
+        <property name="subtitle">The destination for requests that do not match any routing rules.</property>
         <child>
             <object class="AdwEntryRow" id="default_backend_host_row">
                 <property name="title">Host</property>
