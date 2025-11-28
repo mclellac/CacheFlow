@@ -134,22 +134,37 @@ class GraphRenderer:
         self, cr, node_a, node_b, hop_index: int, total_hops: int
     ):
         start_x = node_a["x"] + node_a["width"]
-        start_y = node_a["y"] + node_a["height"] / 2
+        base_start_y = node_a["y"] + node_a["height"] / 2
 
         end_x = node_b["x"]
-        end_y = node_b["y"] + node_b["height"] / 2
+        base_end_y = node_b["y"] + node_b["height"] / 2
 
-        c1_x = start_x + 100
-        c1_y = start_y
-        c2_x = end_x - 100
-        c2_y = end_y
+        line_offset = 10
+
+        # === Request Line (Top) ===
+        req_start_y = base_start_y - line_offset
+        req_end_y = base_end_y - line_offset
+
+        req_c1_x = start_x + 100
+        req_c1_y = req_start_y
+        req_c2_x = end_x - 100
+        req_c2_y = req_end_y
+
+        # === Response Line (Bottom) ===
+        resp_start_y = base_start_y + line_offset
+        resp_end_y = base_end_y + line_offset
+
+        resp_c1_x = start_x + 100
+        resp_c1_y = resp_start_y
+        resp_c2_x = end_x - 100
+        resp_c2_y = resp_end_y
 
         intro_alpha = self.node_graph.intro_progress
         r, g, b, _ = get_accent_color()
 
         cr.save()
 
-        # Line drawing
+        # Common line width logic
         line_width = 5
         if node_b["data"].is_active:
             pulse = (math.sin(self.node_graph.animation_time * 5.0) + 1) / 2
@@ -157,115 +172,83 @@ class GraphRenderer:
 
         cr.set_line_width(line_width)
         cr.set_source_rgba(r, g, b, 0.8 * intro_alpha)
-        cr.move_to(start_x, start_y)
-        cr.curve_to(c1_x, c1_y, c2_x, c2_y, end_x, end_y)
+
+        # Draw Request Line
+        cr.move_to(start_x, req_start_y)
+        cr.curve_to(req_c1_x, req_c1_y, req_c2_x, req_c2_y, end_x, req_end_y)
         cr.stroke()
 
-        # Animation: Request -> Response Ping Pong
-        if intro_alpha > 0.8 and total_hops > 0:
-            cycle_duration = 2.5  # Full cycle time
-            # Normalized cycle progress (0.0 to 1.0)
-            cycle_progress = (
-                self.node_graph.animation_time % cycle_duration
-            ) / cycle_duration
+        # Draw Response Line
+        cr.move_to(start_x, resp_start_y)
+        cr.curve_to(resp_c1_x, resp_c1_y, resp_c2_x, resp_c2_y, end_x, resp_end_y)
+        cr.stroke()
 
-            # Packet Group Definition
-            dots = 3
-            spacing = 0.04  # Spacing in t-units per hop
-            # Total length of the group in "hop units" approx = dots * spacing * something?
-            # Actually spacing is in t (0-1). So length is ~0.12 hop units.
+        # Animations
+        if intro_alpha > 0.8:
+            t = (self.node_graph.animation_time * 0.5) % 1.0
 
-            # Phases
-            # 0.0 - 0.45: Forward Travel (Client -> Backend)
-            # 0.45 - 0.55: Turnaround / Pause at Backend
-            # 0.55 - 1.0: Backward Travel (Backend -> Client)
+            # Request Packet (Forward: 0 -> 1)
+            req_px, req_py = self._get_bezier_point(
+                t,
+                (start_x, req_start_y),
+                (req_c1_x, req_c1_y),
+                (req_c2_x, req_c2_y),
+                (end_x, req_end_y),
+            )
 
-            if cycle_progress < 0.45:
-                # Forward Phase
-                # Map 0.0-0.45 -> 0.0 to 1.0 relative progress
-                phase_p = cycle_progress / 0.45
-                # Range: 0 to total_hops + buffer to let tail arrive
-                # We want the tail (at pos - length) to reach total_hops.
-                # So lead needs to reach total_hops + length.
-                group_len = (dots - 1) * spacing
-                target_pos = total_hops + group_len
+            # Request packet color - White
+            cr.set_source_rgba(1.0, 1.0, 1.0, 1.0)
+            cr.arc(req_px, req_py, 4, 0, 2 * math.pi)
+            cr.fill()
 
-                current_hop_pos = phase_p * target_pos
+            # Response Packet (Backward: 1 -> 0)
+            resp_t = 1.0 - t
+            resp_px, resp_py = self._get_bezier_point(
+                resp_t,
+                (start_x, resp_start_y),
+                (resp_c1_x, resp_c1_y),
+                (resp_c2_x, resp_c2_y),
+                (end_x, resp_end_y),
+            )
 
-                local_t = current_hop_pos - hop_index
-
-                # Check visibility
-                if -0.5 < local_t < 1.5:
-                    cr.set_source_rgba(0.2, 0.9, 0.2, 1.0) # Green
-                    self._draw_packet_group(
-                         cr, local_t, start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y,
-                         dots=dots, spacing=spacing
-                     )
-
-            elif cycle_progress < 0.55:
-                # Turnaround Phase - Show packets at the end (Backend)
-                # Effectively they are "processing" or turning around.
-                # We can either hide them or show them static at the end.
-                # Showing them static at the very end of the last hop.
-                # Last hop index = total_hops - 1.
-                # Position relative to last hop = 1.0 + group_len (fully arrived).
-
-                # Actually, let's just let them "wait" at the destination.
-                # If we want them to "turn around", maybe we show them changing color?
-                # Let's keep it simple: They disappear into the node and reappear?
-                # Or just pause.
-                pass
-
+            # Response packet color - Status Code Color
+            status_code = (
+                node_b["data"].status_code if node_b["data"] else 200
+            )
+            if status_code and status_code >= 400:
+                cr.set_source_rgba(0.9, 0.2, 0.2, 1.0)  # Red
+            elif status_code and status_code >= 300:
+                cr.set_source_rgba(1.0, 0.8, 0.2, 1.0)  # Yellow
             else:
-                # Backward Phase
-                # Map 0.55-1.0 -> 0.0 to 1.0 relative progress
-                phase_p = (cycle_progress - 0.55) / 0.45
+                cr.set_source_rgba(0.2, 0.9, 0.2, 1.0)  # Green
 
-                # Reverse logic
-                # Start at total_hops + group_len (fully inside backend)
-                # End at 0 - group_len (fully back at client)
-
-                group_len = (dots - 1) * spacing
-                start_pos = total_hops + group_len
-                end_pos = -group_len # Go past 0 to let tail finish
-
-                current_hop_pos = start_pos - (phase_p * (start_pos - end_pos))
-
-                local_t = current_hop_pos - hop_index
-
-                if -0.5 < local_t < 1.5:
-                    cr.set_source_rgba(0.0, 0.8, 1.0, 1.0) # Electric Blue
-                    self._draw_packet_group(
-                        cr, local_t, start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y,
-                        reverse=True, dots=dots, spacing=spacing
-                    )
+            cr.arc(resp_px, resp_py, 4, 0, 2 * math.pi)
+            cr.fill()
 
         cr.restore()
 
+        # Label attaches to Request Line
         points = ConnectionPoints(
-            start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y
+            start_x,
+            req_start_y,
+            req_c1_x,
+            req_c1_y,
+            req_c2_x,
+            req_c2_y,
+            end_x,
+            req_end_y,
         )
 
         if self.node_graph.show_connection_labels:
             self._draw_connection_label(cr, node_b, points)
 
     def _draw_packet_group(
-        self,
-        cr,
-        t_lead,
-        start_x,
-        start_y,
-        c1_x,
-        c1_y,
-        c2_x,
-        c2_y,
-        end_x,
-        end_y,
-        reverse=False,
-        dots=3,
-        spacing=0.04,
+        self, cr, t_lead, start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y, reverse=False
     ):
-        """Draws a group of close-together dots representing a packet."""
+        """Draws 3 close-together dots representing a packet group."""
+        dots = 3
+        spacing = 0.04
+
         for i in range(dots):
             # Calculate t for this dot
             if reverse:
@@ -363,7 +346,7 @@ class GraphRenderer:
         is_vertical_dominant = abs(dy) > abs(dx)
 
         # Increase offsets to prevent overlapping
-        offset_dist = 25
+        offset_dist = 35
 
         if is_vertical_dominant:
             # Line is moving vertically, place text to side
