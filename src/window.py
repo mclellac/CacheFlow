@@ -33,6 +33,7 @@ class Window(Adw.ApplicationWindow):
     config_switcher = Gtk.Template.Child()
     content_stack = Gtk.Template.Child()
     toast_overlay = Gtk.Template.Child()
+    show_all_nodes_button = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -57,6 +58,9 @@ class Window(Adw.ApplicationWindow):
         self.connect("close-request", self.on_close_request)
         self.node_graph.connect(
             "node-double-clicked", self._on_node_double_clicked
+        )
+        self.show_all_nodes_button.connect(
+            "toggled", self.on_show_all_nodes_toggled
         )
 
         # Listen for setting changes (e.g. from Preferences) to refresh switcher
@@ -310,6 +314,15 @@ class Window(Adw.ApplicationWindow):
 
         self.set_inspection_in_progress(False)
         return GLib.SOURCE_REMOVE
+
+    def on_show_all_nodes_toggled(self, button):
+        """Callback for when the show all nodes button is toggled.
+
+        Args:
+            button: The button that emitted the signal.
+        """
+        is_active = button.get_active()
+        self.node_graph.set_show_all_nodes(is_active)
 
     def on_inspection_failed(self, exception: Exception) -> bool:
         """Callback for when an inspection fails.

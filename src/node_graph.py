@@ -60,6 +60,7 @@ class NodeGraph(Gtk.DrawingArea):
         self.gestures = GraphGestures(self)
 
         self.settings = Gio.Settings.new("com.github.mclellac.CacheFlow")
+        self.show_all_nodes = False
         log.debug("NodeGraph initialized.")
         self.set_draw_func(self._on_draw)
 
@@ -90,6 +91,11 @@ class NodeGraph(Gtk.DrawingArea):
         action_group.add_action(action_export)
 
         self.insert_action_group("node-graph", action_group)
+
+    def set_show_all_nodes(self, visible: bool) -> None:
+        """Sets whether to show all nodes or just the active path."""
+        self.show_all_nodes = visible
+        self.set_data(self.layers_data)
 
     def reset_layout(self) -> None:
         """Resets the layout (scale and offset)."""
@@ -247,6 +253,14 @@ class NodeGraph(Gtk.DrawingArea):
             else:
                 # Should not happen with new controller but safety check
                 nodes_in_col = [layer_nodes]
+
+            if not self.show_all_nodes:
+                nodes_in_col = [n for n in nodes_in_col if n.is_active]
+
+            # If no nodes are active in this layer (shouldn't happen for visited layers),
+            # we might end up with empty column.
+            if not nodes_in_col:
+                continue
 
             # Find max width in this column
             max_col_width = NODE_WIDTH
