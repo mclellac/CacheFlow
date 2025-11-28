@@ -48,10 +48,14 @@ class GraphRenderer:
         self._draw_connections(cr)
 
         for node in self.node_graph.nodes:
-            self._draw_node(cr, node)
+            if node.get("is_client"):
+                self._draw_client_node(cr, node)
+            else:
+                self._draw_node(cr, node)
 
         for node in self.node_graph.nodes:
-            self._draw_resize_handle(cr, node)
+            if not node.get("is_client"):
+                self._draw_resize_handle(cr, node)
 
         cr.restore()
 
@@ -59,12 +63,23 @@ class GraphRenderer:
         """Draws lines connecting the nodes."""
         r, g, b, _ = get_accent_color()
         cr.set_source_rgba(r, g, b, 0.8)
-        cr.set_line_width(3)
+        cr.set_line_width(5)
 
         # Group nodes by layer_index
         layers = {}
         max_layer_index = -1
+        min_layer_index = 0
+
+        # Check for client node (index -1)
+        client_node = next((n for n in self.node_graph.nodes if n.get("is_client")), None)
+        if client_node:
+            layers[-1] = [client_node]
+            min_layer_index = -1
+
         for node in self.node_graph.nodes:
+            # Skip client node as we already handled it
+            if node.get("is_client"):
+                continue
             idx = node.get("layer_index", 0)
             if idx not in layers:
                 layers[idx] = []
@@ -73,7 +88,7 @@ class GraphRenderer:
                 max_layer_index = idx
 
         # Iterate through layer indices
-        for i in range(max_layer_index):
+        for i in range(min_layer_index, max_layer_index):
             curr_nodes = layers.get(i, [])
             next_nodes = layers.get(i + 1, [])
 
@@ -81,9 +96,13 @@ class GraphRenderer:
                 continue
 
             # Find active node in current layer
-            active_curr = next(
-                (n for n in curr_nodes if n["data"].is_active), None
-            )
+            active_curr = None
+            if i == -1: # Client node is always active
+                active_curr = curr_nodes[0]
+            else:
+                active_curr = next(
+                    (n for n in curr_nodes if n["data"].is_active), None
+                )
 
             # Find active node in next layer
             active_next = next(
@@ -120,6 +139,12 @@ class GraphRenderer:
         points: ConnectionPoints,
     ) -> None:
         """Draws the label on the connection line."""
+
+        # If node_b is the first real node (layer 0), it's connected from Client.
+        # We need to display the request URL, but maybe formatted differently?
+        # Actually node_b["data"] contains the request URL that reached this node.
+        # So it should be fine.
+
         request_url = node_b["data"].request_url
         request_host = node_b["data"].request_host
 
@@ -479,3 +504,43 @@ class GraphRenderer:
         cr.line_to(x + RESIZE_HANDLE_SIZE, y + RESIZE_HANDLE_SIZE)
         cr.close_path()
         cr.fill()
+
+    def _draw_client_node(
+        self, cr: cairo.Context, node: Dict[str, Any]
+    ) -> None:
+        """Draws the client/user node."""
+        x, y, w, h = node["x"], node["y"], node["width"], node["height"]
+        center_x = x + w / 2
+        center_y = y + h / 2
+
+        style_manager = Adw.StyleManager.get_default()
+        is_dark = style_manager.get_dark()
+
+        # Color based on theme
+        if is_dark:
+            cr.set_source_rgba(0.9, 0.9, 0.9, 1.0)
+            text_color = (1.0, 1.0, 1.0, 1.0)
+        else:
+            cr.set_source_rgba(0.2, 0.2, 0.2, 1.0)
+            text_color = (0.0, 0.0, 0.0, 1.0)
+
+        # Draw a simple user icon (circle head, arc body)
+        # Head
+        cr.arc(center_x, center_y - 20, 15, 0, 2 * 3.14159)
+        cr.fill()
+
+        # Body
+        cr.arc(center_x, center_y + 35, 30, 3.14159, 2 * 3.14159)
+        cr.fill()
+
+        # Text "Client" below
+        cr.set_source_rgba(*text_color)
+        cr.select_font_face(
+            "Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+        )
+        cr.set_font_size(14)
+
+        text = "Client"
+        extents = cr.text_extents(text)
+        cr.move_to(center_x - extents.width / 2, y + h + 20)
+        cr.show_text(text)

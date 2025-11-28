@@ -246,6 +246,23 @@ class NodeGraph(Gtk.DrawingArea):
         # Each layer gets an X position.
         # Nodes within a layer get Y positions.
 
+        # Prepend a client node
+        client_node = {
+            "id": node_id_counter,
+            "layer_index": -1,
+            "x": 50.0,
+            "y": 50.0 + (NODE_HEADER_HEIGHT / 2),
+            "width": 100,
+            "height": 100,
+            "data": None,  # Special marker for client node
+            "min_width": 100,
+            "is_client": True,
+        }
+        self.nodes.append(client_node)
+        node_id_counter += 1
+
+        x += 100 + GAP_X
+
         for layer_nodes in layers_data:
             # First, check if input is List[List] or just List (backward compat for old linear list)
             if isinstance(layer_nodes, list):
@@ -280,6 +297,7 @@ class NodeGraph(Gtk.DrawingArea):
                 node_height = NODE_HEADER_HEIGHT + PADDING
                 if header_count > 0:
                     node_height += header_count * LINE_HEIGHT
+                node_height += PADDING
 
                 nodes_dimensions.append(
                     {
@@ -311,6 +329,7 @@ class NodeGraph(Gtk.DrawingArea):
                     "height": dim["height"],
                     "data": dim["data"],
                     "min_width": dim["width"],  # Stored for reference
+                    "is_client": False,
                 }
 
                 # If we want to force uniform width per column:
