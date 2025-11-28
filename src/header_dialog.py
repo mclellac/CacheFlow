@@ -51,7 +51,10 @@ class HeaderDialog(Adw.ApplicationWindow):
         self.analyze_button.connect("clicked", self._on_analyze_clicked)
 
         if heading and heading != "Headers":
-            self.window_title.set_title(f"Headers for {heading}")
+            title_text = f"Headers for {heading}"
+            if node_data and node_data.status_code:
+                title_text += f" (Status: {node_data.status_code})"
+            self.window_title.set_title(title_text)
 
         self.model = Gio.ListStore(item_type=HeaderItem)
         headers_to_split = ["x-akamai-session-info", "content-security-policy"]

@@ -583,8 +583,9 @@ class CacheFlowEngine:
                 allow_redirects=False,
                 verify=self.verify_ssl,
             )
-            # Raise HTTPError for bad responses (4xx or 5xx)
-            response.raise_for_status()
+
+            # We do NOT call response.raise_for_status() because we want to capture
+            # and analyze 4xx/5xx responses as valid results from the infrastructure layer.
 
             layer_result.update(
                 {
@@ -592,7 +593,7 @@ class CacheFlowEngine:
                     "headers": dict(response.headers),
                 }
             )
-            log.debug("Request successful. Status: %s", response.status_code)
+            log.debug("Request completed. Status: %s", response.status_code)
 
         except requests.exceptions.SSLError as e:
             self._handle_error(layer_result, ERR_SSL, e, "ssl")
@@ -602,16 +603,6 @@ class CacheFlowEngine:
         except requests.exceptions.ConnectionError as e:
             msg = ERR_CONNECTION.format(params.target_ip)
             self._handle_error(layer_result, msg, e, "connection")
-        except requests.exceptions.HTTPError as e:
-            # For 4xx/5xx errors, we still want to record the response
-            layer_result.update(
-                {
-                    "status_code": e.response.status_code,
-                    "headers": dict(e.response.headers),
-                }
-            )
-            msg = f"HTTP Error: {e.response.status_code}"
-            self._handle_error(layer_result, msg, e, "http_error")
         except requests.exceptions.RequestException as e:
             # Catch any other `requests` specific exceptions
             self._handle_error(
