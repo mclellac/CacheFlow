@@ -126,6 +126,8 @@ class GraphRenderer:
         if not request_url:
             return
 
+        cr.save()
+
         # Calculate midpoint on Bezier curve
         t = 0.5
         mid_x = (
@@ -214,6 +216,7 @@ class GraphRenderer:
         cr.set_source_rgba(*text_color)
         cr.move_to(text_x, text_y)
         PangoCairo.show_layout(cr, layout)
+        cr.restore()
 
     def _draw_node(self, cr: cairo.Context, node: Dict[str, Any]) -> None:
         """Draws a single node."""

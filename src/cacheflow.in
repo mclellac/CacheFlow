@@ -16,8 +16,17 @@ localedir = '@localedir@'
 sys.path.insert(1, pkgdatadir)
 sys.path.insert(1, pythondir)
 signal.signal(signal.SIGINT, signal.SIG_DFL)
-locale.bindtextdomain('cacheflow', localedir)
-locale.textdomain('cacheflow')
+
+try:
+    locale.bindtextdomain('cacheflow', localedir)
+    locale.textdomain('cacheflow')
+except AttributeError:
+    # macOS/libintl compatibility: locale module might not have bindtextdomain.
+    if hasattr(gettext, 'bindtextdomain'):
+        gettext.bindtextdomain('cacheflow', localedir)
+    if hasattr(gettext, 'textdomain'):
+        gettext.textdomain('cacheflow')
+
 gettext.install('cacheflow', localedir)
 
 # This block must run first, before any other application modules are imported.
