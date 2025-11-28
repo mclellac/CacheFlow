@@ -128,74 +128,109 @@ class GraphRenderer:
 
     def _draw_connection_line(self, cr, node_a, node_b):
         start_x = node_a["x"] + node_a["width"]
-        start_y = node_a["y"] + node_a["height"] / 2
+        base_start_y = node_a["y"] + node_a["height"] / 2
 
         end_x = node_b["x"]
-        end_y = node_b["y"] + node_b["height"] / 2
+        base_end_y = node_b["y"] + node_b["height"] / 2
 
-        c1_x = start_x + 100
-        c1_y = start_y
-        c2_x = end_x - 100
-        c2_y = end_y
+        line_offset = 10
 
-        # Intro animation: simple opacity fade-in
+        # === Request Line (Top) ===
+        req_start_y = base_start_y - line_offset
+        req_end_y = base_end_y - line_offset
+
+        req_c1_x = start_x + 100
+        req_c1_y = req_start_y
+        req_c2_x = end_x - 100
+        req_c2_y = req_end_y
+
+        # === Response Line (Bottom) ===
+        resp_start_y = base_start_y + line_offset
+        resp_end_y = base_end_y + line_offset
+
+        resp_c1_x = start_x + 100
+        resp_c1_y = resp_start_y
+        resp_c2_x = end_x - 100
+        resp_c2_y = resp_end_y
+
         intro_alpha = self.node_graph.intro_progress
-        # Or reveal effect?
-        # A reveal effect on a bezier curve is complex to do perfectly with Cairo without flattening.
-        # Let's use opacity for now, or dash if we want to get fancy.
+        r, g, b, _ = get_accent_color()
 
         cr.save()
-        # Draw the line
-        cr.move_to(start_x, start_y)
-        cr.curve_to(c1_x, c1_y, c2_x, c2_y, end_x, end_y)
 
-        # Pulse effect for active connection
-        # Only if node_b is active (it should be if we are drawing this line)
+        # Common line width logic
+        line_width = 5
         if node_b["data"].is_active:
-             # Modulate alpha or width
-             pulse = (math.sin(self.node_graph.animation_time * 5.0) + 1) / 2  # 0 to 1
-             cr.set_line_width(5 + pulse * 2)
-        else:
-             cr.set_line_width(5)
+            pulse = (math.sin(self.node_graph.animation_time * 5.0) + 1) / 2
+            line_width = 5 + pulse * 2
 
-        # Apply intro opacity
-        # We need to get the current source color to preserve it but change alpha
-        # However, _draw_connections sets the color before calling this.
-        # But we can just 'paint_with_alpha' or similar if we were drawing to a group.
-        # Easier: assume the caller set the color.
-        # But we want to modify alpha.
-        # Let's get the current color
-        # This is a bit tricky in pure pycairo if we don't know the color.
-        # But _draw_connections sets it to accent color with 0.8 alpha.
-        r, g, b, _ = get_accent_color()
+        cr.set_line_width(line_width)
         cr.set_source_rgba(r, g, b, 0.8 * intro_alpha)
 
+        # Draw Request Line
+        cr.move_to(start_x, req_start_y)
+        cr.curve_to(req_c1_x, req_c1_y, req_c2_x, req_c2_y, end_x, req_end_y)
         cr.stroke()
 
-        # Flowing Data Packets
-        # Only draw if connection is fully established (intro done or mostly done)
+        # Draw Response Line
+        cr.move_to(start_x, resp_start_y)
+        cr.curve_to(resp_c1_x, resp_c1_y, resp_c2_x, resp_c2_y, end_x, resp_end_y)
+        cr.stroke()
+
+        # Animations
         if intro_alpha > 0.8:
-            packet_t = (self.node_graph.animation_time * 0.5) % 1.0
-            px, py = self._get_bezier_point(
-                packet_t, (start_x, start_y), (c1_x, c1_y), (c2_x, c2_y), (end_x, end_y)
+            t = (self.node_graph.animation_time * 0.5) % 1.0
+
+            # Request Packet (Forward: 0 -> 1)
+            req_px, req_py = self._get_bezier_point(
+                t,
+                (start_x, req_start_y),
+                (req_c1_x, req_c1_y),
+                (req_c2_x, req_c2_y),
+                (end_x, req_end_y),
             )
 
-            # Determine packet color based on status
-            status_code = node_b["data"].status_code if node_b["data"] else 200
-            if status_code and status_code >= 400:
-                cr.set_source_rgba(0.9, 0.2, 0.2, 1.0) # Red
-            elif status_code and status_code >= 300:
-                cr.set_source_rgba(1.0, 0.8, 0.2, 1.0) # Yellow
-            else:
-                cr.set_source_rgba(0.2, 0.9, 0.2, 1.0) # Green
+            # Request packet color - White
+            cr.set_source_rgba(1.0, 1.0, 1.0, 1.0)
+            cr.arc(req_px, req_py, 4, 0, 2 * math.pi)
+            cr.fill()
 
-            cr.arc(px, py, 4, 0, 2 * math.pi)
+            # Response Packet (Backward: 1 -> 0)
+            resp_t = 1.0 - t
+            resp_px, resp_py = self._get_bezier_point(
+                resp_t,
+                (start_x, resp_start_y),
+                (resp_c1_x, resp_c1_y),
+                (resp_c2_x, resp_c2_y),
+                (end_x, resp_end_y),
+            )
+
+            # Response packet color - Status Code Color
+            status_code = (
+                node_b["data"].status_code if node_b["data"] else 200
+            )
+            if status_code and status_code >= 400:
+                cr.set_source_rgba(0.9, 0.2, 0.2, 1.0)  # Red
+            elif status_code and status_code >= 300:
+                cr.set_source_rgba(1.0, 0.8, 0.2, 1.0)  # Yellow
+            else:
+                cr.set_source_rgba(0.2, 0.9, 0.2, 1.0)  # Green
+
+            cr.arc(resp_px, resp_py, 4, 0, 2 * math.pi)
             cr.fill()
 
         cr.restore()
 
+        # Label attaches to Request Line
         points = ConnectionPoints(
-            start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y
+            start_x,
+            req_start_y,
+            req_c1_x,
+            req_c1_y,
+            req_c2_x,
+            req_c2_y,
+            end_x,
+            req_end_y,
         )
 
         if self.node_graph.show_connection_labels:
@@ -282,7 +317,7 @@ class GraphRenderer:
         is_vertical_dominant = abs(dy) > abs(dx)
 
         # Increase offsets to prevent overlapping
-        offset_dist = 25
+        offset_dist = 35
 
         if is_vertical_dominant:
             # Line is moving vertically, place text to side
