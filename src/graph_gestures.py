@@ -96,6 +96,22 @@ class GraphGestures:
         self.mouse_x = x
         self.mouse_y = y
 
+        wx = (x - self.node_graph.offset_x) / self.node_graph.scale
+        wy = (y - self.node_graph.offset_y) / self.node_graph.scale
+
+        hovered_id = None
+        for node in reversed(self.node_graph.nodes):
+            if (
+                node["x"] <= wx <= node["x"] + node["width"]
+                and node["y"] <= wy <= node["y"] + node["height"]
+            ):
+                hovered_id = node["id"]
+                break
+
+        if self.node_graph.hovered_node_id != hovered_id:
+            self.node_graph.hovered_node_id = hovered_id
+            self.node_graph.queue_draw()
+
     def _on_scroll(
         self, _controller: Gtk.EventControllerScroll, _dx: float, dy: float
     ) -> bool:

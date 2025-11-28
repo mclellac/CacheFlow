@@ -5,6 +5,7 @@ This module handles the rendering logic for the NodeGraph widget.
 from typing import Dict, Any
 from urllib.parse import urlparse
 
+import math
 import cairo
 from gi.repository import Adw, Pango, PangoCairo, GLib, Gdk
 from .utils import get_accent_color
@@ -59,6 +60,18 @@ class GraphRenderer:
                 self._draw_resize_handle(cr, node)
 
         cr.restore()
+
+    def _get_bezier_point(self, t, p0, p1, p2, p3):
+        """Calculates a point on a cubic Bezier curve at time t."""
+        u = 1 - t
+        tt = t * t
+        uu = u * u
+        uuu = uu * u
+        ttt = tt * t
+
+        x = uuu * p0[0] + 3 * uu * t * p1[0] + 3 * u * tt * p2[0] + ttt * p3[0]
+        y = uuu * p0[1] + 3 * uu * t * p1[1] + 3 * u * tt * p2[1] + ttt * p3[1]
+        return x, y
 
     def _draw_connections(self, cr: cairo.Context) -> None:
         """Draws lines connecting the nodes."""
@@ -120,13 +133,66 @@ class GraphRenderer:
         end_x = node_b["x"]
         end_y = node_b["y"] + node_b["height"] / 2
 
-        cr.move_to(start_x, start_y)
         c1_x = start_x + 100
         c1_y = start_y
         c2_x = end_x - 100
         c2_y = end_y
+
+        # Intro animation: simple opacity fade-in
+        intro_alpha = self.node_graph.intro_progress
+        # Or reveal effect?
+        # A reveal effect on a bezier curve is complex to do perfectly with Cairo without flattening.
+        # Let's use opacity for now, or dash if we want to get fancy.
+
+        cr.save()
+        # Draw the line
+        cr.move_to(start_x, start_y)
         cr.curve_to(c1_x, c1_y, c2_x, c2_y, end_x, end_y)
+
+        # Pulse effect for active connection
+        # Only if node_b is active (it should be if we are drawing this line)
+        if node_b["data"].is_active:
+             # Modulate alpha or width
+             pulse = (math.sin(self.node_graph.animation_time * 5.0) + 1) / 2  # 0 to 1
+             cr.set_line_width(5 + pulse * 2)
+        else:
+             cr.set_line_width(5)
+
+        # Apply intro opacity
+        # We need to get the current source color to preserve it but change alpha
+        # However, _draw_connections sets the color before calling this.
+        # But we can just 'paint_with_alpha' or similar if we were drawing to a group.
+        # Easier: assume the caller set the color.
+        # But we want to modify alpha.
+        # Let's get the current color
+        # This is a bit tricky in pure pycairo if we don't know the color.
+        # But _draw_connections sets it to accent color with 0.8 alpha.
+        r, g, b, _ = get_accent_color()
+        cr.set_source_rgba(r, g, b, 0.8 * intro_alpha)
+
         cr.stroke()
+
+        # Flowing Data Packets
+        # Only draw if connection is fully established (intro done or mostly done)
+        if intro_alpha > 0.8:
+            packet_t = (self.node_graph.animation_time * 0.5) % 1.0
+            px, py = self._get_bezier_point(
+                packet_t, (start_x, start_y), (c1_x, c1_y), (c2_x, c2_y), (end_x, end_y)
+            )
+
+            # Determine packet color based on status
+            status_code = node_b["data"].status_code if node_b["data"] else 200
+            if status_code and status_code >= 400:
+                cr.set_source_rgba(0.9, 0.2, 0.2, 1.0) # Red
+            elif status_code and status_code >= 300:
+                cr.set_source_rgba(1.0, 0.8, 0.2, 1.0) # Yellow
+            else:
+                cr.set_source_rgba(0.2, 0.9, 0.2, 1.0) # Green
+
+            cr.arc(px, py, 4, 0, 2 * math.pi)
+            cr.fill()
+
+        cr.restore()
 
         points = ConnectionPoints(
             start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y
@@ -258,9 +324,25 @@ class GraphRenderer:
 
         is_active = node["data"].is_active
 
+        # Pop-in animation
+        # Scale from center
+        scale_factor = self.node_graph.intro_progress
+        # Hover effect
+        if self.node_graph.hovered_node_id == node["id"]:
+            scale_factor *= 1.05
+
+        if scale_factor != 1.0:
+            cx = x + w / 2
+            cy = y + h / 2
+            cr.save()
+            cr.translate(cx, cy)
+            cr.scale(scale_factor, scale_factor)
+            cr.translate(-cx, -cy)
+
         # Dim inactive nodes
         alpha_mult = 1.0 if is_active else 0.5
 
+        # Selected state
         if self.node_graph.selected_node_index == node["id"]:
             r, g, b, _ = get_accent_color()
             # Multi-pass stroke for glow effect
@@ -275,6 +357,15 @@ class GraphRenderer:
             # Hard border
             cr.set_source_rgba(r, g, b, 1.0 * alpha_mult)
             cr.set_line_width(5)
+            rounded_rectangle(cr, x, y, w, h, 10)
+            cr.stroke()
+        elif is_active:
+            # Active Path Pulse
+            # Subtle pulse on the border
+            pulse = (math.sin(self.node_graph.animation_time * 3.0) + 1) / 2 * 0.5 # 0.0 to 0.5
+            r, g, b, _ = get_accent_color()
+            cr.set_source_rgba(r, g, b, 0.3 + pulse * 0.3)
+            cr.set_line_width(3)
             rounded_rectangle(cr, x, y, w, h, 10)
             cr.stroke()
 
@@ -408,6 +499,9 @@ class GraphRenderer:
             self._draw_node_text(cr, node, x, y, w, is_dark)
         else:
             self._draw_inactive_node(cr, node, x, y, w, h, is_dark)
+
+        if scale_factor != 1.0:
+            cr.restore()
 
     def _draw_inactive_node(self, cr, node, x, y, w, h, is_dark):
         """Draws a smaller, dimmed version for inactive nodes."""
