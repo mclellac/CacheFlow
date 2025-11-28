@@ -102,6 +102,7 @@ class GraphRenderer:
                 max_layer_index = idx
 
         # Iterate through layer indices
+        total_hops = max_layer_index - min_layer_index
         for i in range(min_layer_index, max_layer_index):
             curr_nodes = layers.get(i, [])
             next_nodes = layers.get(i + 1, [])
@@ -111,7 +112,7 @@ class GraphRenderer:
 
             # Find active node in current layer
             active_curr = None
-            if i == -1: # Client node is always active
+            if i == -1:  # Client node is always active
                 active_curr = curr_nodes[0]
             else:
                 active_curr = next(
@@ -124,9 +125,14 @@ class GraphRenderer:
             )
 
             if active_curr and active_next:
-                self._draw_connection_line(cr, active_curr, active_next)
+                hop_index = i - min_layer_index
+                self._draw_connection_line(
+                    cr, active_curr, active_next, hop_index, total_hops
+                )
 
-    def _draw_connection_line(self, cr, node_a, node_b):
+    def _draw_connection_line(
+        self, cr, node_a, node_b, hop_index: int, total_hops: int
+    ):
         start_x = node_a["x"] + node_a["width"]
         start_y = node_a["y"] + node_a["height"] / 2
 
@@ -138,59 +144,72 @@ class GraphRenderer:
         c2_x = end_x - 100
         c2_y = end_y
 
-        # Intro animation: simple opacity fade-in
         intro_alpha = self.node_graph.intro_progress
-        # Or reveal effect?
-        # A reveal effect on a bezier curve is complex to do perfectly with Cairo without flattening.
-        # Let's use opacity for now, or dash if we want to get fancy.
+        r, g, b, _ = get_accent_color()
 
         cr.save()
-        # Draw the line
+
+        # Line drawing
+        line_width = 5
+        if node_b["data"].is_active:
+            pulse = (math.sin(self.node_graph.animation_time * 5.0) + 1) / 2
+            line_width = 5 + pulse * 2
+
+        cr.set_line_width(line_width)
+        cr.set_source_rgba(r, g, b, 0.8 * intro_alpha)
         cr.move_to(start_x, start_y)
         cr.curve_to(c1_x, c1_y, c2_x, c2_y, end_x, end_y)
-
-        # Pulse effect for active connection
-        # Only if node_b is active (it should be if we are drawing this line)
-        if node_b["data"].is_active:
-             # Modulate alpha or width
-             pulse = (math.sin(self.node_graph.animation_time * 5.0) + 1) / 2  # 0 to 1
-             cr.set_line_width(5 + pulse * 2)
-        else:
-             cr.set_line_width(5)
-
-        # Apply intro opacity
-        # We need to get the current source color to preserve it but change alpha
-        # However, _draw_connections sets the color before calling this.
-        # But we can just 'paint_with_alpha' or similar if we were drawing to a group.
-        # Easier: assume the caller set the color.
-        # But we want to modify alpha.
-        # Let's get the current color
-        # This is a bit tricky in pure pycairo if we don't know the color.
-        # But _draw_connections sets it to accent color with 0.8 alpha.
-        r, g, b, _ = get_accent_color()
-        cr.set_source_rgba(r, g, b, 0.8 * intro_alpha)
-
         cr.stroke()
 
-        # Flowing Data Packets
-        # Only draw if connection is fully established (intro done or mostly done)
-        if intro_alpha > 0.8:
-            packet_t = (self.node_graph.animation_time * 0.5) % 1.0
-            px, py = self._get_bezier_point(
-                packet_t, (start_x, start_y), (c1_x, c1_y), (c2_x, c2_y), (end_x, end_y)
-            )
+        # Animation: Request -> Response Ping Pong
+        if intro_alpha > 0.8 and total_hops > 0:
+            cycle_duration = 2.0  # Faster cycle
+            # Normalized cycle progress (0.0 to 1.0)
+            cycle_progress = (
+                self.node_graph.animation_time % cycle_duration
+            ) / cycle_duration
 
-            # Determine packet color based on status
-            status_code = node_b["data"].status_code if node_b["data"] else 200
-            if status_code and status_code >= 400:
-                cr.set_source_rgba(0.9, 0.2, 0.2, 1.0) # Red
-            elif status_code and status_code >= 300:
-                cr.set_source_rgba(1.0, 0.8, 0.2, 1.0) # Yellow
+            # Phase 1: Request (Forward) - 0.0 to 0.5
+            # Phase 2: Response (Backward) - 0.5 to 1.0
+            is_forward = cycle_progress < 0.5
+
+            # Map global progress to hop progress
+            if is_forward:
+                # Forward: 0 -> total_hops
+                # Normalized forward time: 0.0 to 1.0 over the 0.5 cycle
+                fwd_progress = cycle_progress * 2
+                current_hop_pos = fwd_progress * total_hops
+
+                # Check if packets are in this hop
+                # We want a group of 3 dots.
+                # Lead dot is at 'local_t'.
+                local_t = current_hop_pos - hop_index
+
+                if -0.2 < local_t < 1.2: # Draw if any part of group is visible
+                     # Request Colors: Green
+                     cr.set_source_rgba(0.2, 0.9, 0.2, 1.0)
+                     self._draw_packet_group(
+                         cr, local_t, start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y
+                     )
+
             else:
-                cr.set_source_rgba(0.2, 0.9, 0.2, 1.0) # Green
+                # Backward: total_hops -> 0
+                # Normalized backward time: 0.0 to 1.0 over the 0.5 cycle
+                bwd_progress = (cycle_progress - 0.5) * 2
+                # Reverse position: from total_hops down to 0
+                current_hop_pos = total_hops * (1.0 - bwd_progress)
 
-            cr.arc(px, py, 4, 0, 2 * math.pi)
-            cr.fill()
+                local_t = current_hop_pos - hop_index
+
+                if -0.2 < local_t < 1.2:
+                    # Response Colors: Electric Blue
+                    cr.set_source_rgba(0.0, 0.8, 1.0, 1.0)
+                    # For backward, we draw at local_t, but since we want the dots to trail
+                    # "behind" the movement (which is decreasing t), the trailing dots
+                    # should be at t + delta.
+                    self._draw_packet_group(
+                        cr, local_t, start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y, reverse=True
+                    )
 
         cr.restore()
 
@@ -200,6 +219,29 @@ class GraphRenderer:
 
         if self.node_graph.show_connection_labels:
             self._draw_connection_label(cr, node_b, points)
+
+    def _draw_packet_group(
+        self, cr, t_lead, start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y, reverse=False
+    ):
+        """Draws 3 close-together dots representing a packet group."""
+        dots = 3
+        spacing = 0.04
+
+        for i in range(dots):
+            # Calculate t for this dot
+            if reverse:
+                # Moving backwards (decreasing t), so trails are at t + spacing
+                t = t_lead + (i * spacing)
+            else:
+                # Moving forwards (increasing t), so trails are at t - spacing
+                t = t_lead - (i * spacing)
+
+            if 0.0 <= t <= 1.0:
+                px, py = self._get_bezier_point(
+                    t, (start_x, start_y), (c1_x, c1_y), (c2_x, c2_y), (end_x, end_y)
+                )
+                cr.arc(px, py, 4, 0, 2 * math.pi)
+                cr.fill()
 
     def _draw_connection_label(
         self,
