@@ -51,6 +51,7 @@ class NodeGraph(Gtk.DrawingArea):
             []
         )  # Store original layers data structure
         self.selected_node_index: Optional[int] = None
+        self.hovered_node_id: Optional[int] = None
         self.scale = 1.0
         self.offset_x = 0
         self.offset_y = 0
@@ -62,6 +63,12 @@ class NodeGraph(Gtk.DrawingArea):
         self.settings = Gio.Settings.new("com.github.mclellac.CacheFlow")
         self.show_all_nodes = False
         self.show_connection_labels = True
+
+        # Animation state
+        self.animation_time = 0.0
+        self.intro_progress = 0.0
+        self.add_tick_callback(self._on_tick)
+
         log.debug("NodeGraph initialized.")
         self.set_draw_func(self._on_draw)
 
@@ -227,6 +234,26 @@ class NodeGraph(Gtk.DrawingArea):
         log.debug("System style (light/dark) changed, queueing redraw.")
         self.queue_draw()
 
+    def _on_tick(self, _widget: Gtk.Widget, frame_clock: Gdk.FrameClock) -> bool:
+        """Handles the animation tick.
+
+        Args:
+            _widget: The widget that received the tick.
+            frame_clock: The frame clock.
+
+        Returns:
+            True to continue calling this function.
+        """
+        self.animation_time += 0.01
+
+        if self.intro_progress < 1.0:
+            self.intro_progress += 0.05
+            if self.intro_progress > 1.0:
+                self.intro_progress = 1.0
+
+        self.queue_draw()
+        return True
+
     def set_data(self, layers_data: List[List[Any]]) -> None:
         """Sets the data for the nodes and arranges them.
 
@@ -236,6 +263,7 @@ class NodeGraph(Gtk.DrawingArea):
         log.info("Setting graph data with %d layers.", len(layers_data))
         self.layers_data = layers_data
         self.nodes = []
+        self.intro_progress = 0.0  # Reset intro animation
         x = 50.0
 
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 0, 0)
