@@ -61,6 +61,7 @@ class NodeGraph(Gtk.DrawingArea):
 
         self.settings = Gio.Settings.new("com.github.mclellac.CacheFlow")
         self.show_all_nodes = False
+        self.show_connection_labels = True
         log.debug("NodeGraph initialized.")
         self.set_draw_func(self._on_draw)
 
@@ -96,6 +97,11 @@ class NodeGraph(Gtk.DrawingArea):
         """Sets whether to show all nodes or just the active path."""
         self.show_all_nodes = visible
         self.set_data(self.layers_data)
+
+    def set_show_connection_labels(self, visible: bool) -> None:
+        """Sets whether to show connection labels."""
+        self.show_connection_labels = visible
+        self.queue_draw()
 
     def reset_layout(self) -> None:
         """Resets the layout (scale and offset)."""

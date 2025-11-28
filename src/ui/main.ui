@@ -27,6 +27,13 @@
               </object>
             </child>
             <child type="end">
+              <object class="GtkToggleButton" id="show_labels_button">
+                <property name="icon-name">text-x-generic-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Show Connection Labels</property>
+                <property name="active">True</property>
+              </object>
+            </child>
+            <child type="end">
               <object class="GtkMenuButton">
                 <property name="icon-name">open-menu-symbolic</property>
                 <property name="menu-model">
