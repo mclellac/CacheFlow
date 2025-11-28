@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 @Gtk.Template(
     resource_path="/com/github/mclellac/CacheFlow/ui/analysis_dialog.ui"
 )
-class HeaderAnalysisDialog(Adw.Dialog):
+class HeaderAnalysisDialog(Adw.Window):
     """
     Dialog to display header analysis.
     """
@@ -27,8 +27,11 @@ class HeaderAnalysisDialog(Adw.Dialog):
     stack = Gtk.Template.Child()
     list_view = Gtk.Template.Child()
 
-    def __init__(self, current_layer, upstream_layer, **kwargs):
+    def __init__(self, current_layer, upstream_layer, transient_for=None, **kwargs):
         super().__init__(**kwargs)
+
+        if transient_for:
+            self.set_transient_for(transient_for)
 
         self.analyzer = HeaderAnalyzer()
         self.model = Gio.ListStore(item_type=AnalysisWrapper)
@@ -37,10 +40,9 @@ class HeaderAnalysisDialog(Adw.Dialog):
         width = self.settings.get_int("analyzer-width")
         height = self.settings.get_int("analyzer-height")
         if width > 0 and height > 0:
-            self.set_content_width(width)
-            self.set_content_height(height)
+            self.set_default_size(width, height)
 
-        self.connect("closed", self._on_closed)
+        self.connect("close-request", self._on_close_request)
 
         # Run analysis
         report = self.analyzer.analyze_layer(current_layer, upstream_layer)
@@ -60,8 +62,9 @@ class HeaderAnalysisDialog(Adw.Dialog):
         factory = create_header_list_factory(is_analysis=True)
         self.list_view.set_factory(factory)
 
-    def _on_closed(self, _dialog):
-        width = self.get_content_width()
-        height = self.get_content_height()
+    def _on_close_request(self, _window):
+        width = self.get_width()
+        height = self.get_height()
         self.settings.set_int("analyzer-width", width)
         self.settings.set_int("analyzer-height", height)
+        return False

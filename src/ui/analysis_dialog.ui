@@ -2,49 +2,54 @@
 <interface>
   <requires lib="gtk" version="4.0"/>
   <requires lib="adw" version="1.0"/>
-  <template class="HeaderAnalysisDialog" parent="AdwDialog">
-    <property name="content-width">800</property>
-    <property name="content-height">600</property>
-    <child type="title">
-      <object class="AdwHeaderBar">
-        <child type="title">
-          <object class="AdwWindowTitle" id="window_title">
-            <property name="title">Header Analysis</property>
-          </object>
-        </child>
-      </object>
-    </child>
-    <child>
-      <object class="GtkStack" id="stack">
-        <child>
-          <object class="GtkStackPage">
-            <property name="name">empty</property>
-            <property name="child">
-              <object class="AdwStatusPage">
-                <property name="icon-name">text-x-generic-symbolic</property>
-                <property name="title">No Analysis Available</property>
-                <property name="description">Select a layer to analyze.</property>
+  <template class="HeaderAnalysisDialog" parent="AdwWindow">
+    <property name="default-width">800</property>
+    <property name="default-height">600</property>
+    <property name="modal">True</property>
+    <property name="content">
+      <object class="AdwToolbarView">
+        <child type="top">
+          <object class="AdwHeaderBar">
+            <property name="title-widget">
+              <object class="AdwWindowTitle" id="window_title">
+                <property name="title">Header Analysis</property>
               </object>
             </property>
           </object>
         </child>
-        <child>
-          <object class="GtkStackPage">
-            <property name="name">list</property>
-            <property name="child">
-              <object class="GtkScrolledWindow">
-                <property name="hscrollbar-policy">never</property>
-                <child>
-                  <object class="GtkListView" id="list_view">
-                    <property name="enable-rubberband">False</property>
-                    <property name="single-click-activate">False</property>
+        <property name="content">
+          <object class="GtkStack" id="stack">
+            <child>
+              <object class="GtkStackPage">
+                <property name="name">empty</property>
+                <property name="child">
+                  <object class="AdwStatusPage">
+                    <property name="icon-name">text-x-generic-symbolic</property>
+                    <property name="title">No Analysis Available</property>
+                    <property name="description">Select a layer to analyze.</property>
                   </object>
-                </child>
+                </property>
               </object>
-            </property>
+            </child>
+            <child>
+              <object class="GtkStackPage">
+                <property name="name">list</property>
+                <property name="child">
+                  <object class="GtkScrolledWindow">
+                    <property name="hscrollbar-policy">never</property>
+                    <child>
+                      <object class="GtkListView" id="list_view">
+                        <property name="enable-rubberband">False</property>
+                        <property name="single-click-activate">False</property>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+              </object>
+            </child>
           </object>
-        </child>
+        </property>
       </object>
-    </child>
+    </property>
   </template>
 </interface>
