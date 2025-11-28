@@ -61,36 +61,24 @@ class GraphRenderer:
         cr.set_source_rgba(r, g, b, 0.8)
         cr.set_line_width(3)
 
-        # We need to find the active node in each column/layer to connect them.
-        # self.node_graph.nodes is a flat list of positioned nodes with 'data'.
-        # We need to group them by 'layer' or simply find path from active to active.
-
-        # Group nodes by X coordinate (or ID sequence, but X is safer if we reset layout)
-        # Actually, since set_data creates them in order of layers, we can iterate carefully.
-        # But flattening makes it hard to know which node connects to which if we don't know layers.
-        # However, NodeData now has is_active flag.
-
-        # Let's assume nodes are sorted by X (layers).
-        # We want to connect active node of Layer N to active node of Layer N+1.
-
-        # First, organize nodes by layers. We can infer layers from X coordinate or index if we tracked it.
-        # Easier: Reconstruct layers from self.node_graph.nodes based on X position.
-
+        # Group nodes by layer_index
         layers = {}
+        max_layer_index = -1
         for node in self.node_graph.nodes:
-            x = node["x"]
-            if x not in layers:
-                layers[x] = []
-            layers[x].append(node)
+            idx = node.get("layer_index", 0)
+            if idx not in layers:
+                layers[idx] = []
+            layers[idx].append(node)
+            if idx > max_layer_index:
+                max_layer_index = idx
 
-        sorted_xs = sorted(layers.keys())
+        # Iterate through layer indices
+        for i in range(max_layer_index):
+            curr_nodes = layers.get(i, [])
+            next_nodes = layers.get(i + 1, [])
 
-        for i in range(len(sorted_xs) - 1):
-            curr_x = sorted_xs[i]
-            next_x = sorted_xs[i + 1]
-
-            curr_nodes = layers[curr_x]
-            next_nodes = layers[next_x]
+            if not curr_nodes or not next_nodes:
+                continue
 
             # Find active node in current layer
             active_curr = next(

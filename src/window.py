@@ -140,8 +140,10 @@ class Window(Adw.ApplicationWindow):
         # Upstream layer is now attached to node_data
         upstream_layer = node_data.upstream_layer
 
-        dialog = HeaderAnalysisDialog(current_layer, upstream_layer)
-        dialog.present(parent_win)
+        dialog = HeaderAnalysisDialog(
+            current_layer, upstream_layer, transient_for=parent_win
+        )
+        dialog.present()
 
     def setup_actions(self):
         """Sets up window-scope actions."""

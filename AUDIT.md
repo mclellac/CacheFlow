@@ -49,6 +49,20 @@ The codebase achieved a high Pylint score (**9.74/10**), but several stylistic a
 - **Status**: The `HeaderAnalyzer` correctly identifies header changes.
 - **Testing**: Tests confirm that the "Origin" layer (last layer) correctly reports headers as `UNCHANGED` (Original) rather than `ADDED`, respecting the logic that the origin is the baseline.
 
+### Analyzer Window Usability
+- **File**: `src/analysis_dialog.py` / `src/ui/analysis_dialog.ui`
+- **Finding**: The Analyzer is implemented as an `Adw.Dialog`, which lacks resizing capabilities and standard window controls (close button) when not strictly controlled by a parent context.
+- **Action**: Refactor to use `Adw.Window` to allow resizing and standard window management behavior.
+
+### Node Graph Drawing
+- **File**: `src/graph_utils.py`
+- **Finding**: The `rounded_rectangle` function uses a rough approximation of PI (`3.14`), which may cause rendering artifacts in corner arcs.
+- **Action**: Update to use `math.pi`.
+
+- **File**: `src/graph_renderer.py`
+- **Finding**: The connection drawing logic (`_draw_connections`) relies on floating-point `x` coordinates to group nodes into layers. This is fragile and can lead to missing connections if coordinate precision varies or if empty layers disrupt the layout.
+- **Action**: Refactor to use explicit `layer_index` stored in the node data.
+
 ## 4. Security
 
 - **Input Handling**: The application uses `yaml.safe_load` for importing configurations, preventing code execution vulnerabilities.
@@ -61,3 +75,5 @@ The codebase achieved a high Pylint score (**9.74/10**), but several stylistic a
 2.  **Refactor `LayerRow`**: The `LayerRow` class in `src/layer_widgets.py` is becoming a "God Class" for layer configuration. Consider splitting it into smaller, type-specific sub-components (e.g., `CDNConfigStrategy`, `ProxyConfigStrategy`) to reduce complexity.
 3.  **Standardize Formatting**: Run a formatter (like `black`) to fix indentation and line length issues automatically.
 4.  **Fix Imports**: Reorder imports in `src/main.py` and `src/node_graph.py` to satisfy pylint.
+5.  **Refactor Analyzer**: Convert `HeaderAnalysisDialog` to `Adw.Window` for better usability.
+6.  **Fix Graph Drawing**: Improve `NodeGraph` robustness by using `layer_index` and `math.pi`.
