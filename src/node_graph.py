@@ -6,7 +6,7 @@ as a node-based graph using Cairo.
 from .graph_gestures import GraphGestures
 from .graph_renderer import GraphRenderer
 from .exporters import GraphExporter
-from gi.repository import Gtk, Adw, Gio, GLib, GObject
+from gi.repository import Gtk, Gdk, Adw, Gio, GLib, GObject
 import logging
 from typing import List, Dict, Tuple, Any, Optional
 
