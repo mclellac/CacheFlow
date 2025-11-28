@@ -189,25 +189,49 @@ class GraphGestures:
         wx = (screen_x - self.node_graph.offset_x) / self.node_graph.scale
         wy = (screen_y - self.node_graph.offset_y) / self.node_graph.scale
 
+        should_redraw = False
+
         if self.dragging_node:
             target_x = wx - self.drag_offset_x
             target_y = wy - self.drag_offset_y
-            self.dragging_node["x"] = round(target_x / 20) * 20
-            self.dragging_node["y"] = round(target_y / 20) * 20
+            new_x = round(target_x / 20) * 20
+            new_y = round(target_y / 20) * 20
+
+            if (
+                new_x != self.dragging_node["x"]
+                or new_y != self.dragging_node["y"]
+            ):
+                self.dragging_node["x"] = new_x
+                self.dragging_node["y"] = new_y
+                should_redraw = True
 
         elif self.resizing_node:
             min_w = self.resizing_node.get("min_width", 150)
-            self.resizing_node["width"] = max(
-                min_w, wx - self.resizing_node["x"]
-            )
-            self.resizing_node["height"] = max(
-                100, wy - self.resizing_node["y"]
-            )
-        elif self.is_panning:
-            self.node_graph.offset_x = self.pan_start_offset_x + offset_x
-            self.node_graph.offset_y = self.pan_start_offset_y + offset_y
+            new_width = max(min_w, wx - self.resizing_node["x"])
+            new_height = max(100, wy - self.resizing_node["y"])
 
-        self.node_graph.queue_draw()
+            if (
+                new_width != self.resizing_node["width"]
+                or new_height != self.resizing_node["height"]
+            ):
+                self.resizing_node["width"] = new_width
+                self.resizing_node["height"] = new_height
+                should_redraw = True
+
+        elif self.is_panning:
+            new_offset_x = self.pan_start_offset_x + offset_x
+            new_offset_y = self.pan_start_offset_y + offset_y
+
+            if (
+                new_offset_x != self.node_graph.offset_x
+                or new_offset_y != self.node_graph.offset_y
+            ):
+                self.node_graph.offset_x = new_offset_x
+                self.node_graph.offset_y = new_offset_y
+                should_redraw = True
+
+        if should_redraw:
+            self.node_graph.queue_draw()
 
     def _on_drag_end(
         self, gesture: Gtk.GestureDrag, offset_x: float, offset_y: float

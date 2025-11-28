@@ -231,11 +231,18 @@ class GraphRenderer:
 
         if self.node_graph.selected_node_index == node["id"]:
             r, g, b, _ = get_accent_color()
-            cr.set_source_rgba(r, g, b, 0.4 * alpha_mult)
-            rounded_rectangle(cr, x - 8, y - 8, w + 16, h + 16, 18)
-            cr.fill()
+            # Multi-pass stroke for glow effect
+            for i in range(3):
+                alpha = (0.3 - (i * 0.1)) * alpha_mult
+                width = 8 + (i * 4)
+                cr.set_source_rgba(r, g, b, alpha)
+                cr.set_line_width(width)
+                rounded_rectangle(cr, x, y, w, h, 10)
+                cr.stroke()
+
+            # Hard border
             cr.set_source_rgba(r, g, b, 1.0 * alpha_mult)
-            cr.set_line_width(3)
+            cr.set_line_width(5)
             rounded_rectangle(cr, x, y, w, h, 10)
             cr.stroke()
 
