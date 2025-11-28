@@ -3,7 +3,7 @@ This module handles data export and import functionality.
 """
 
 import logging
-from typing import Callable, List, Any, Optional
+from typing import Callable, List, Any, Optional, Union, Dict
 
 import yaml
 from gi.repository import Gtk, GObject
@@ -58,7 +58,7 @@ class ConfigExporter(BaseExporter):
 
     def export_config(
         self,
-        data: List[Any],
+        data: Any,
         default_filename: str = "config.yaml",
         on_success: Optional[Callable[[str], None]] = None,
     ) -> None:
@@ -86,7 +86,9 @@ class ConfigExporter(BaseExporter):
             default_filename,
         )
 
-    def import_config(self, on_success: Callable[[List[Any]], None]) -> None:
+    def import_config(
+        self, on_success: Callable[[Union[List[Any], Dict[str, Any]]], None]
+    ) -> None:
         """Imports configuration data from a YAML file."""
         filter_yaml = Gtk.FileFilter()
         filter_yaml.set_name("YAML files")
@@ -96,20 +98,23 @@ class ConfigExporter(BaseExporter):
         def on_file_selected(filepath: str) -> None:
             try:
                 with open(filepath, "r", encoding="utf-8") as f:
-                    layers_data = yaml.safe_load(f)
+                    data = yaml.safe_load(f)
 
-                if not isinstance(layers_data, list):
-                    raise ValueError("Imported data must be a list of layers.")
+                if not isinstance(data, (list, dict)):
+                    raise ValueError(
+                        "Imported data must be a list or a dictionary."
+                    )
 
-                # Validate that items are dictionaries (basic check)
-                for item in layers_data:
-                    if not isinstance(item, dict):
-                        raise ValueError(
-                            "Imported list contains non-dictionary items."
-                        )
+                if isinstance(data, list):
+                    # Validate that items are dictionaries (basic check)
+                    for item in data:
+                        if not isinstance(item, dict):
+                            raise ValueError(
+                                "Imported list contains non-dictionary items."
+                            )
 
                 log.info("Configuration imported from %s", filepath)
-                on_success(layers_data)
+                on_success(data)
             except Exception as e:  # pylint: disable=broad-exception-caught
                 log.error("Failed to import configuration: %s", e)
 
