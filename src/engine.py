@@ -300,22 +300,78 @@ class CacheFlowEngine:
         while processed_layers < len(layers_config):
             layer = layers_config[processed_layers]
 
-            result, next_base, next_path, next_hh = (
-                self._process_layer_dynamic(
-                    layer,
-                    current_base,
-                    current_path,
-                    current_host_header,
-                    user_agent,
+            # Detect if this layer and subsequent layers are all "Application Backend"
+            # If so, treat them as siblings (candidates) for the next hop
+            backend_candidates = []
+            if layer.get("layer_type") == "Application Backend":
+                backend_candidates.append(layer)
+                lookahead = processed_layers + 1
+                while lookahead < len(layers_config):
+                    next_l = layers_config[lookahead]
+                    if next_l.get("layer_type") == "Application Backend":
+                        backend_candidates.append(next_l)
+                        lookahead += 1
+                    else:
+                        break
+
+            if len(backend_candidates) > 1:
+                # We have multiple backend candidates. Select the one matching current_base.
+                active_layer, inactive_layers = self._select_node_from_siblings(
+                    backend_candidates,
                     previous_headers,
+                    current_base,
+                    "Application Backend",
+                    current_host_header,
                 )
-            )
-            results.append(result)
+
+                if not active_layer:
+                    # If no match found, default to the first one (or error out?)
+                    # _select_node_from_siblings defaults to first one already if no match.
+                    active_layer = backend_candidates[0]
+                    inactive_layers = backend_candidates[1:]
+
+                # Execute the active layer
+                # We construct a temporary config for processing that merges active layer properties
+                # But here active_layer IS the layer config.
+                result, next_base, next_path, next_hh = (
+                    self._process_layer_dynamic(
+                        active_layer,
+                        current_base,
+                        current_path,
+                        current_host_header,
+                        user_agent,
+                        previous_headers,
+                    )
+                )
+
+                # Add inactive layers as siblings to the result
+                if "siblings" not in result:
+                    result["siblings"] = []
+                result["siblings"].extend(inactive_layers)
+
+                results.append(result)
+
+                # Skip the processed backend layers
+                processed_layers += len(backend_candidates)
+            else:
+                # Normal processing
+                result, next_base, next_path, next_hh = (
+                    self._process_layer_dynamic(
+                        layer,
+                        current_base,
+                        current_path,
+                        current_host_header,
+                        user_agent,
+                        previous_headers,
+                    )
+                )
+                results.append(result)
+                processed_layers += 1
 
             # Update previous headers for next iteration
             previous_headers = result.get("headers", {})
 
-            is_last_layer = processed_layers == len(layers_config) - 1
+            is_last_layer = processed_layers >= len(layers_config)
 
             if next_base:
                 current_base = next_base
@@ -342,7 +398,16 @@ class CacheFlowEngine:
                     "Falling back to next layer's host.",
                     layer["name"],
                 )
-                next_layer = layers_config[processed_layers + 1]
+                next_layer = layers_config[processed_layers]
+                # Note: processed_layers is now the index of the NEXT layer (because we incremented it)
+
+                # Wait, if processed_layers was incremented, then layers_config[processed_layers] IS the next layer.
+                # In original code: processed_layers += 1 was at the END.
+                # So layers_config[processed_layers + 1] was correct.
+                # Now processed_layers is already pointing to the next one.
+
+                # Correction:
+                next_layer = layers_config[processed_layers]
 
                 # Check if next layer has nodes
                 fallback_url = next_layer.get("host_url")
@@ -372,8 +437,6 @@ class CacheFlowEngine:
             else:
                 # Last layer and no next hop, we're done.
                 break
-
-            processed_layers += 1
 
         return results
 
