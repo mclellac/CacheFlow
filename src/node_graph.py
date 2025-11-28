@@ -234,6 +234,7 @@ class NodeGraph(Gtk.DrawingArea):
         cr.set_font_size(16)
 
         node_id_counter = 0
+        layer_index = 0
 
         # Calculate layout
         # Each layer gets an X position.
@@ -285,6 +286,7 @@ class NodeGraph(Gtk.DrawingArea):
             for dim in nodes_dimensions:
                 node = {
                     "id": node_id_counter,
+                    "layer_index": layer_index,
                     "x": x,
                     "y": y,
                     "width": dim[
@@ -306,6 +308,7 @@ class NodeGraph(Gtk.DrawingArea):
                 y += dim["height"] + GAP_Y
 
             x += max_col_width + GAP_X
+            layer_index += 1
 
         self.queue_draw()
 

@@ -2,6 +2,7 @@
 This module provides utility classes and functions for the NodeGraph widget.
 """
 
+import math
 from typing import NamedTuple, Dict, Tuple, Optional
 from gi.repository import Gdk
 
@@ -51,19 +52,19 @@ def rounded_rectangle(
         corners = {"tl": True, "tr": True, "bl": True, "br": True}
     cr.new_path()
     if corners.get("tl", True):
-        cr.arc(x + r, y + r, r, 2 * (3.14 / 2), 3 * (3.14 / 2))
+        cr.arc(x + r, y + r, r, math.pi, 1.5 * math.pi)
     else:
         cr.move_to(x, y)
     if corners.get("tr", True):
-        cr.arc(x + w - r, y + r, r, 3 * (3.14 / 2), 4 * (3.14 / 2))
+        cr.arc(x + w - r, y + r, r, 1.5 * math.pi, 2 * math.pi)
     else:
         cr.line_to(x + w, y)
     if corners.get("br", True):
-        cr.arc(x + w - r, y + h - r, r, 0, 1 * (3.14 / 2))
+        cr.arc(x + w - r, y + h - r, r, 0, 0.5 * math.pi)
     else:
         cr.line_to(x + w, y + h)
     if corners.get("bl", True):
-        cr.arc(x + r, y + h - r, r, 1 * (3.14 / 2), 2 * (3.14 / 2))
+        cr.arc(x + r, y + h - r, r, 0.5 * math.pi, math.pi)
     else:
         cr.line_to(x, y + h)
     cr.close_path()
