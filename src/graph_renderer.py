@@ -3,6 +3,7 @@ This module handles the rendering logic for the NodeGraph widget.
 """
 
 from typing import Dict, Any
+from urllib.parse import urlparse
 
 import cairo
 from gi.repository import Adw, Pango, PangoCairo, GLib, Gdk
@@ -174,16 +175,20 @@ class GraphRenderer:
         font_desc = Pango.FontDescription("Sans 12")
         layout.set_font_description(font_desc)
 
-        method = node_b["data"].request_method
-        text = f"{method} {request_url}"
+        method = node_b["data"].request_method or ""
+        # Sanitize URLs and avoid processing if too long
+        if request_url and len(request_url) > 2000:
+            display_url = request_url[:100] + "..."
+        else:
+            display_url = request_url
+
+        text = f"{method} {display_url}"
 
         # Parse URLs to compare hosts
-        from urllib.parse import urlparse
-
         try:
             parsed_req = urlparse(request_url)
             req_host = parsed_req.hostname
-        except ValueError:
+        except (ValueError, AttributeError):
             req_host = None
 
         if request_host and request_host != req_host:

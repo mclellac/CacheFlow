@@ -128,6 +128,12 @@ class GraphGestures:
 
         wx = (start_x - self.node_graph.offset_x) / self.node_graph.scale
         wy = (start_y - self.node_graph.offset_y) / self.node_graph.scale
+        log.debug(
+            "Hit testing %d nodes at world coords (%.2f, %.2f).",
+            len(self.node_graph.nodes),
+            wx,
+            wy,
+        )
 
         for node in reversed(self.node_graph.nodes):
             node_x, node_y, node_w, node_h = (
@@ -174,6 +180,7 @@ class GraphGestures:
             self.node_graph.selected_node_index = None
             self.node_graph.queue_draw()
 
+        log.debug("No node hit. Starting panning.")
         self.is_panning = True
         self.pan_start_x = start_x
         self.pan_start_y = start_y
