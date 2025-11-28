@@ -102,6 +102,7 @@ class GraphRenderer:
                 max_layer_index = idx
 
         # Iterate through layer indices
+        total_hops = max_layer_index - min_layer_index
         for i in range(min_layer_index, max_layer_index):
             curr_nodes = layers.get(i, [])
             next_nodes = layers.get(i + 1, [])
@@ -111,7 +112,7 @@ class GraphRenderer:
 
             # Find active node in current layer
             active_curr = None
-            if i == -1: # Client node is always active
+            if i == -1:  # Client node is always active
                 active_curr = curr_nodes[0]
             else:
                 active_curr = next(
@@ -124,9 +125,14 @@ class GraphRenderer:
             )
 
             if active_curr and active_next:
-                self._draw_connection_line(cr, active_curr, active_next)
+                hop_index = i - min_layer_index
+                self._draw_connection_line(
+                    cr, active_curr, active_next, hop_index, total_hops
+                )
 
-    def _draw_connection_line(self, cr, node_a, node_b):
+    def _draw_connection_line(
+        self, cr, node_a, node_b, hop_index: int, total_hops: int
+    ):
         start_x = node_a["x"] + node_a["width"]
         base_start_y = node_a["y"] + node_a["height"] / 2
 
@@ -235,6 +241,29 @@ class GraphRenderer:
 
         if self.node_graph.show_connection_labels:
             self._draw_connection_label(cr, node_b, points)
+
+    def _draw_packet_group(
+        self, cr, t_lead, start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y, reverse=False
+    ):
+        """Draws 3 close-together dots representing a packet group."""
+        dots = 3
+        spacing = 0.04
+
+        for i in range(dots):
+            # Calculate t for this dot
+            if reverse:
+                # Moving backwards (decreasing t), so trails are at t + spacing
+                t = t_lead + (i * spacing)
+            else:
+                # Moving forwards (increasing t), so trails are at t - spacing
+                t = t_lead - (i * spacing)
+
+            if 0.0 <= t <= 1.0:
+                px, py = self._get_bezier_point(
+                    t, (start_x, start_y), (c1_x, c1_y), (c2_x, c2_y), (end_x, end_y)
+                )
+                cr.arc(px, py, 4, 0, 2 * math.pi)
+                cr.fill()
 
     def _draw_connection_label(
         self,
