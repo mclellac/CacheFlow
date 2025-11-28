@@ -147,7 +147,10 @@ class GraphGestures:
                 self.resizing_node = node
                 self.node_graph.selected_node_index = node["id"]
                 self.node_graph.queue_draw()
-                log.debug("Resizing node '%s'.", node["data"].name)
+                node_name = (
+                    node["data"].name if node["data"] else "Client (User)"
+                )
+                log.debug("Resizing node '%s'.", node_name)
                 gesture.set_state(Gtk.EventSequenceState.CLAIMED)
                 return
 
@@ -160,7 +163,10 @@ class GraphGestures:
                 self.node_graph.queue_draw()
                 self.drag_offset_x = wx - node["x"]
                 self.drag_offset_y = wy - node["y"]
-                log.debug("Dragging node '%s'.", node["data"].name)
+                node_name = (
+                    node["data"].name if node["data"] else "Client (User)"
+                )
+                log.debug("Dragging node '%s'.", node_name)
                 gesture.set_state(Gtk.EventSequenceState.CLAIMED)
                 return
 
@@ -280,9 +286,12 @@ class GraphGestures:
                     node["x"] <= wx <= node["x"] + node["width"]
                     and node["y"] <= wy <= node["y"] + node["height"]
                 ):
-                    log.debug(
-                        "Double-click on node '%s', emitting signal.",
-                        node["data"].name,
-                    )
-                    self.node_graph.emit("node-double-clicked", node["data"])
+                    if node["data"]:
+                        log.debug(
+                            "Double-click on node '%s', emitting signal.",
+                            node["data"].name,
+                        )
+                        self.node_graph.emit(
+                            "node-double-clicked", node["data"]
+                        )
                     return

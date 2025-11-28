@@ -247,11 +247,12 @@ class NodeGraph(Gtk.DrawingArea):
         # Nodes within a layer get Y positions.
 
         # Prepend a client node
+        # Center at Y=0 initially for alignment
         client_node = {
             "id": node_id_counter,
             "layer_index": -1,
             "x": 50.0,
-            "y": 50.0 + (NODE_HEADER_HEIGHT / 2),
+            "y": -50.0,
             "width": 100,
             "height": 100,
             "data": None,  # Special marker for client node
@@ -262,6 +263,9 @@ class NodeGraph(Gtk.DrawingArea):
         node_id_counter += 1
 
         x += 100 + GAP_X
+
+        # We want to align the active nodes along the Y=0 axis.
+        target_center_y = 0.0
 
         for layer_nodes in layers_data:
             # First, check if input is List[List] or just List (backward compat for old linear list)
@@ -284,7 +288,9 @@ class NodeGraph(Gtk.DrawingArea):
 
             # First pass: measure all nodes in this layer/column
             nodes_dimensions = []
-            for node_data in nodes_in_col:
+            active_node_index = 0
+
+            for idx, node_data in enumerate(nodes_in_col):
                 text_extents = cr.text_extents(node_data.name)
                 min_width = text_extents.width + 2 * PADDING
                 node_width = max(NODE_WIDTH, min_width)
@@ -307,13 +313,26 @@ class NodeGraph(Gtk.DrawingArea):
                     }
                 )
 
+                if node_data.is_active:
+                    active_node_index = idx
+
                 if node_width > max_col_width:
                     max_col_width = node_width
 
             # Second pass: assign positions
-            # Center the column vertically? Or top align?
-            # Let's stack them starting from y=50 with gaps.
-            y = 50.0
+            # Calculate start Y for the column such that the active node is centered at target_center_y
+
+            # Calculate the relative Y center of the active node from the top of the column
+            active_node_y_rel = 0.0
+            for i in range(active_node_index):
+                active_node_y_rel += nodes_dimensions[i]["height"] + GAP_Y
+
+            active_node_y_rel += (
+                nodes_dimensions[active_node_index]["height"] / 2.0
+            )
+
+            # Start Y for the column
+            y = target_center_y - active_node_y_rel
 
             for dim in nodes_dimensions:
                 node = {
@@ -342,6 +361,15 @@ class NodeGraph(Gtk.DrawingArea):
 
             x += max_col_width + GAP_X
             layer_index += 1
+
+        # Final pass: Shift all nodes so that the topmost node is at a nice padding
+        if self.nodes:
+            min_y = min(n["y"] for n in self.nodes)
+            desired_min_y = 50.0
+            shift_y = desired_min_y - min_y
+
+            for node in self.nodes:
+                node["y"] += shift_y
 
         self.queue_draw()
 
