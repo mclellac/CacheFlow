@@ -47,7 +47,9 @@ class NodeGraph(Gtk.DrawingArea):
         """
         super().__init__(**kwargs)
         self.nodes: List[Dict[str, Any]] = []
-        self.layers_data: List[List[Any]] = [] # Store original layers data structure
+        self.layers_data: List[List[Any]] = (
+            []
+        )  # Store original layers data structure
         self.selected_node_index: Optional[int] = None
         self.scale = 1.0
         self.offset_x = 0
@@ -188,8 +190,8 @@ class NodeGraph(Gtk.DrawingArea):
         with open(filepath, "w") as f:
             for node in self.nodes:
                 f.write(f"Node: {node['data'].name}\n")
-                if hasattr(node['data'], 'request_method'):
-                     f.write(
+                if hasattr(node["data"], "request_method"):
+                    f.write(
                         f"URL: {node['data'].request_method} {node['data'].request_url}\n"
                     )
                 f.write("Headers:\n")
@@ -242,8 +244,8 @@ class NodeGraph(Gtk.DrawingArea):
             if isinstance(layer_nodes, list):
                 nodes_in_col = layer_nodes
             else:
-                 # Should not happen with new controller but safety check
-                 nodes_in_col = [layer_nodes]
+                # Should not happen with new controller but safety check
+                nodes_in_col = [layer_nodes]
 
             # Find max width in this column
             max_col_width = NODE_WIDTH
@@ -262,13 +264,15 @@ class NodeGraph(Gtk.DrawingArea):
                 header_count = len(node_data.headers)
                 node_height = NODE_HEADER_HEIGHT + PADDING
                 if header_count > 0:
-                     node_height += (header_count * LINE_HEIGHT)
+                    node_height += header_count * LINE_HEIGHT
 
-                nodes_dimensions.append({
-                    "width": node_width,
-                    "height": node_height,
-                    "data": node_data
-                })
+                nodes_dimensions.append(
+                    {
+                        "width": node_width,
+                        "height": node_height,
+                        "data": node_data,
+                    }
+                )
 
                 if node_width > max_col_width:
                     max_col_width = node_width
@@ -283,12 +287,14 @@ class NodeGraph(Gtk.DrawingArea):
                     "id": node_id_counter,
                     "x": x,
                     "y": y,
-                    "width": dim["width"], # Use individual width or column width? Usually uniform width looks better.
+                    "width": dim[
+                        "width"
+                    ],  # Use individual width or column width? Usually uniform width looks better.
                     # Let's use individual width but maybe center align them if they differ?
                     # For simplicity, left align at X.
                     "height": dim["height"],
                     "data": dim["data"],
-                    "min_width": dim["width"], # Stored for reference
+                    "min_width": dim["width"],  # Stored for reference
                 }
 
                 # If we want to force uniform width per column:

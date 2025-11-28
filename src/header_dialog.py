@@ -167,8 +167,11 @@ class HeaderDialog(Adw.ApplicationWindow):
                 color = self.node_data.removed_text_color
             elif change_type == "MODIFIED":
                 color = self.node_data.modified_text_color
-            elif change_type == "UNCHANGED":
-                color = self.node_data.text_color
+            # elif change_type == "UNCHANGED":
+            #    color = self.node_data.text_color
+            #    User Request: Do not use custom text color for unchanged items in dialogs.
+            #    Let the theme handle the default text color.
+            pass
 
         if color:
             rgba = Gdk.RGBA()

@@ -7,6 +7,7 @@ python_sources = [
   '__init__.py',
   'window.py',
   'engine.py',
+  'layer_strategies.py',
   'layer_widgets.py',
   'main.py',
   'node_graph.py',
@@ -59,7 +60,6 @@ ui_files = files([
   'ui/shortcuts.ui',
   'ui/list_item_header.ui',
   'ui/column_item_label.ui',
-  'ui/varnish_backend_row.ui',
 ])
 
 gnome.compile_resources('cacheflow',
