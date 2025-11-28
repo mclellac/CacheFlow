@@ -130,7 +130,9 @@ class GraphRenderer:
         points = ConnectionPoints(
             start_x, start_y, c1_x, c1_y, c2_x, c2_y, end_x, end_y
         )
-        self._draw_connection_label(cr, node_b, points)
+
+        if self.node_graph.show_connection_labels:
+            self._draw_connection_label(cr, node_b, points)
 
     def _draw_connection_label(
         self,
