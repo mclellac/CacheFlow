@@ -54,6 +54,7 @@ class Window(Adw.ApplicationWindow):
         self.setup_window_size()
 
         self.inspect_button.connect("clicked", self.on_inspect_clicked)
+        self.path_entry.connect("activate", self.on_inspect_clicked)
         self.path_entry.set_text(self.settings.get_string("test-path"))
 
         self.connect("close-request", self.on_close_request)

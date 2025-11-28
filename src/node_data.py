@@ -42,6 +42,7 @@ class NodeData:
         self.request_url = kwargs.get("request_url", "")
         self.request_host = kwargs.get("request_host", "")
         self.request_method = kwargs.get("request_method", "GET")
+        self.status_code = kwargs.get("status_code", None)
         self.upstream_layer: Optional[Dict[str, Any]] = kwargs.get(
             "upstream_layer", None
         )

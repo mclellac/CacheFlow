@@ -373,6 +373,37 @@ class GraphRenderer:
         )
         cr.show_text(f"{provider_name}")
 
+        # Draw status code if available
+        status_code = node["data"].status_code
+        if status_code:
+            status_text = str(status_code)
+
+            # Determine status color
+            if 200 <= status_code < 300:
+                status_color = (0.2, 0.8, 0.2, 1 * alpha_mult) # Green
+            elif 300 <= status_code < 400:
+                status_color = (1.0, 0.8, 0.2, 1 * alpha_mult) # Yellow/Orange
+            elif 400 <= status_code < 500:
+                status_color = (1.0, 0.4, 0.4, 1 * alpha_mult) # Red
+            elif status_code >= 500:
+                status_color = (0.8, 0.0, 0.0, 1 * alpha_mult) # Dark Red
+            else:
+                status_color = (0.6, 0.6, 0.6, 1 * alpha_mult) # Grey
+
+            cr.set_source_rgba(*status_color)
+            cr.select_font_face(
+                "Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+            )
+            cr.set_font_size(14)
+
+            # Align right in the header
+            extents = cr.text_extents(status_text)
+            status_x = x + w - PADDING - extents.width
+            status_y = y + 32 # Vertically centered in header area roughly
+
+            cr.move_to(status_x, status_y)
+            cr.show_text(status_text)
+
         if is_active:
             self._draw_node_text(cr, node, x, y, w, is_dark)
         else:
