@@ -1,79 +1,58 @@
 # Codebase Audit Report
 
-This document records the findings of a full code audit performed on the CacheFlow project.
+This document records the findings of a full code audit performed on the CacheFlow project, with a focus on stability, code simplification, reducing duplication, and separation of concerns.
 
-## 1. Dead Code
+## 1. Directory Structure & Organization
 
-### Unused UI Templates
-- **File**: `src/ui/varnish_backend_row.ui`
-- **Finding**: This UI template defines a class `VarnishBackendRow`, but there is no corresponding Python class in the codebase. The functionality appears to have been refactored into generic `NodeRow` or `OriginRuleRow` widgets.
-- **Action**: Verify if strictly needed (unlikely) and delete to avoid confusion.
+The current codebase is largely flat within the `src/` directory. Grouping related modules into subdirectories will improve navigability and separation of concerns.
 
-### Compatibility Artifacts
-- **File**: `src/config_manager.py`
-- **Finding**: The `_pack_layers` method still packs an empty `varnish_backends` list:
-  ```python
-  dict_builder.add_value(GLib.Variant("{sv}", ("varnish_backends", GLib.Variant("aa{sv}", []))))
-  ```
-- **Context**: Retained for backward compatibility with older configuration schemas.
+### Proposed Structure
+*   `src/ui/`: Contains all UI-related Python classes (`window.py`, `preferences.py`, `header_dialog.py`, `layer_widgets.py`, etc.) and the existing XML templates.
+*   `src/nodegraph/`: Contains all graph visualization logic (`node_graph.py`, `graph_renderer.py`, `graph_gestures.py`, `graph_utils.py`).
+*   `src/engine/`: Contains the core inspection engine logic (`engine.py`, `routing.py`, `dns_adapter.py`, `inspection_controller.py`).
+*   `src/analysis/`: Contains analysis logic (`analyzer.py`, `knowledge.py`, `analysis_dialog.py`).
+*   `src/export/`: Contains export/import logic (`exporters.py`).
+*   `src/config/`: Contains configuration management (`config_manager.py`).
+*   `src/providers/`: Existing provider implementations.
 
-## 2. Code Quality & Linting (Pylint)
+## 2. Stability & Complexity
 
-The codebase achieved a high Pylint score (**9.74/10**), but several stylistic and minor issues remain.
+### `src/engine.py`
+*   **Run Inspection Complexity**: The `run_inspection` method is over 150 lines and handles both linear processing and dynamic sibling selection/creation. The sibling selection logic (`_select_node_from_siblings`) is used in two different contexts (Cache Proxy vs App Backend) with slightly different requirements, leading to intertwined logic.
+*   **Error Handling**: Catches broad `requests.exceptions.RequestException`. While safe, it should ensure that specific errors (like DNS vs Connection) are bubbled up with distinct types for better UI feedback (currently partially implemented via `error_type`).
 
-### Style Violations
-- **Line Length**: Multiple files exceed the 100 character limit (e.g., `src/graph_renderer.py`, `src/analyzer.py`, `src/engine.py`).
-- **Indentation**: Inconsistent indentation (13 spaces instead of 12) found in `src/graph_renderer.py` and `src/node_graph.py`.
-- **Import Order**: Imports in `src/main.py` and `src/node_graph.py` do not strictly follow the standard library -> third party -> local grouping.
+### `src/node_graph.py`
+*   **Layout Logic**: The `set_data` method contains significant layout calculation logic (calculating X/Y coordinates, column widths, vertical centering). This should be extracted to a separate `LayoutManager` or `GraphLayout` class within the `nodegraph` module to separate "calculating positions" from "managing the widget".
+*   **Data Coupling**: The widget directly manipulates dictionaries representing nodes. Using a `Node` data class (or enhancing `NodeData`) for internal graph representation would be more robust than loose dictionaries.
 
-### Complexity
-- **Too Many Branches/Statements**:
-  - `src/graph_renderer.py`: Drawing logic is complex with many conditionals.
-  - `src/layer_widgets.py`: The `LayerRow` class is very large (>1000 lines) and handles too many responsibilities (UI setup, data loading, saving logic for multiple types). It has "Too many public methods" and "Too many branches".
+### `src/preferences.py`
+*   **Logic Mixing**: `PreferencesWindow` handles UI setup, GSettings binding, AND logic for importing/exporting configurations (parsing legacy lists vs new config objects). The import/export business logic should be moved to `src/export/importers.py` or integrated into `ConfigManager`.
+*   **Manual Data Gathering**: `save_current_config` manually aggregates data from `LayerRow` widgets. This coupling means `PreferencesWindow` must know about the structure of every layer type.
 
-### Specific Code Issues
-- **Unused Arguments**: `src/graph_renderer.py:340` (Argument `h` is unused).
-- **Mutable Default Arguments**: None explicitly flagged, but checked manually.
-- **Exception Handling**: Broad exception handling (`Exception`) is used in `src/exporters.py` and `src/config_manager.py` but is correctly caught and logged.
+### `src/layer_widgets.py`
+*   **God Class**: `LayerRow` is a massive class handling the configuration UI for ALL layer types (CDN, Proxy, Backend, etc.). It switches behavior based on `layer_type`.
+*   **Refactoring**: This should be refactored into a base `LayerRow` and specific subclasses (e.g., `CDNLayerRow`, `BackendLayerRow`) or use a Strategy pattern more effectively (it currently uses `layer_strategies.py` but the UI code is still monolithic).
 
-## 3. Architecture & Design
+## 3. Code Duplication
 
-### UI Separation
-- **Status**: Excellent. The project strictly follows the separation of UI (XML templates) and Logic (Python classes). No hardcoded widget construction was found in Python files.
+*   **Sibling Selection**: Logic for selecting a node from siblings exists in `engine.py`'s `run_inspection` (for Backend candidates) and `_process_layer_dynamic` (for Cache Proxy nodes). This logic is similar but duplicated/split.
+*   **Import Logic**: Import logic appears to be split between `exporters.py` (file reading) and `preferences.py` (data parsing/validation). This should be centralized.
 
-### Configuration Management
-- **Status**: Robust. Configuration is centralized in `ConfigManager` and uses `GSettings` correctly with complex types (`aa{sv}`).
-- **Note**: The persistence of `host_overrides` and `routing_rules` as lists of dictionaries (`aa{ss}`) within the layer variant is well-structured.
+## 4. Separation of Concerns
 
-### Analysis Logic
-- **Status**: The `HeaderAnalyzer` correctly identifies header changes.
-- **Testing**: Tests confirm that the "Origin" layer (last layer) correctly reports headers as `UNCHANGED` (Original) rather than `ADDED`, respecting the logic that the origin is the baseline.
+*   **UI vs Logic**: Generally good, but `PreferencesWindow` contains too much business logic regarding configuration structure and migration.
+*   **Graph Rendering**: `GraphRenderer` correctly separates drawing from the widget, but the `NodeGraph` widget still retains layout responsibility.
+*   **Engine vs Controller**: `InspectionController` correctly orchestrates the background thread, keeping `Window` responsive.
 
-### Analyzer Window Usability
-- **File**: `src/analysis_dialog.py` / `src/ui/analysis_dialog.ui`
-- **Finding**: The Analyzer is implemented as an `Adw.Dialog`, which lacks resizing capabilities and standard window controls (close button) when not strictly controlled by a parent context.
-- **Action**: Refactor to use `Adw.Window` to allow resizing and standard window management behavior.
+## 5. Dead Code & Cleanups
 
-### Node Graph Drawing
-- **File**: `src/graph_utils.py`
-- **Finding**: The `rounded_rectangle` function uses a rough approximation of PI (`3.14`), which may cause rendering artifacts in corner arcs.
-- **Action**: Update to use `math.pi`.
+*   **Unused Template**: `src/ui/varnish_backend_row.ui` does not appear to have a corresponding Python class and should be removed if confirmed unused.
+*   **Legacy Code**: `src/config_manager.py` retains empty `varnish_backends` packing for backward compatibility. This is acceptable but should be noted for future cleanup.
 
-- **File**: `src/graph_renderer.py`
-- **Finding**: The connection drawing logic (`_draw_connections`) relies on floating-point `x` coordinates to group nodes into layers. This is fragile and can lead to missing connections if coordinate precision varies or if empty layers disrupt the layout.
-- **Action**: Refactor to use explicit `layer_index` stored in the node data.
+## 6. Recommendations
 
-## 4. Security
-
-- **Input Handling**: The application uses `yaml.safe_load` for importing configurations, preventing code execution vulnerabilities.
-- **SSL/TLS**: SSL verification is enforced by default in `requests` but can be optionally disabled by the user via settings (`verify_ssl`). This is explicitly handled in `src/engine.py`.
-- **Secrets**: No hardcoded secrets were found.
-
-## 5. Recommendations
-
-1.  **Delete Dead Code**: Remove `src/ui/varnish_backend_row.ui`.
-2.  **Refactor `LayerRow`**: The `LayerRow` class in `src/layer_widgets.py` is becoming a "God Class" for layer configuration. Consider splitting it into smaller, type-specific sub-components (e.g., `CDNConfigStrategy`, `ProxyConfigStrategy`) to reduce complexity.
-3.  **Standardize Formatting**: Run a formatter (like `black`) to fix indentation and line length issues automatically.
-4.  **Fix Imports**: Reorder imports in `src/main.py` and `src/node_graph.py` to satisfy pylint.
-5.  **Refactor Analyzer**: Convert `HeaderAnalysisDialog` to `Adw.Window` for better usability.
-6.  **Fix Graph Drawing**: Improve `NodeGraph` robustness by using `layer_index` and `math.pi`.
+1.  **Reorganize Directories**: Move files into the proposed `src/nodegraph`, `src/engine`, `src/export`, `src/ui` structure.
+2.  **Extract Layout Logic**: Move layout calculation from `NodeGraph.set_data` to a new `src/nodegraph/layout.py`.
+3.  **Refactor Engine**: Split `run_inspection` into smaller, composable methods. Unify sibling selection logic.
+4.  **Refactor Preferences**: Move import/export parsing logic out of `PreferencesWindow` into `ConfigManager` or a dedicated `Importer`.
+5.  **Refactor LayerRow**: Split `LayerRow` into subclasses or further decouple using the existing Strategy pattern.
