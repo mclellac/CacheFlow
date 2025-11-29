@@ -6,7 +6,7 @@ inspecting HTTP headers in detail.
 import logging
 from gi.repository import Gtk, Adw, Gio, GObject, GLib, Pango, Gdk
 
-from .models import HeaderItem
+from ..models import HeaderItem
 
 log = logging.getLogger(__name__)
 

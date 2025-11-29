@@ -5,7 +5,8 @@ as a node-based graph using Cairo.
 
 from .graph_gestures import GraphGestures
 from .graph_renderer import GraphRenderer
-from .exporters import GraphExporter
+from .layout import GraphLayout
+from ..export.exporters import GraphExporter
 from gi.repository import Gtk, Gdk, Adw, Gio, GLib, GObject
 import logging
 from typing import List, Dict, Tuple, Any, Optional
@@ -18,13 +19,6 @@ gi.require_version("PangoCairo", "1.0")
 
 
 log = logging.getLogger(__name__)
-
-NODE_WIDTH = 450
-NODE_HEADER_HEIGHT = 55
-LINE_HEIGHT = 22
-PADDING = 15
-GAP_X = 300
-GAP_Y = 50
 
 
 class NodeGraph(Gtk.DrawingArea):
@@ -59,6 +53,7 @@ class NodeGraph(Gtk.DrawingArea):
         self.exporter: Optional[GraphExporter] = None
         self.renderer = GraphRenderer(self)
         self.gestures = GraphGestures(self)
+        self.layout_manager = GraphLayout()
 
         self.settings = Gio.Settings.new("com.github.mclellac.CacheFlow")
         self.show_all_nodes = False
@@ -103,6 +98,7 @@ class NodeGraph(Gtk.DrawingArea):
     def set_show_all_nodes(self, visible: bool) -> None:
         """Sets whether to show all nodes or just the active path."""
         self.show_all_nodes = visible
+        self.layout_manager.show_all_nodes = visible
         self.set_data(self.layers_data)
 
     def set_show_connection_labels(self, visible: bool) -> None:
@@ -262,148 +258,9 @@ class NodeGraph(Gtk.DrawingArea):
         """
         log.info("Setting graph data with %d layers.", len(layers_data))
         self.layers_data = layers_data
-        self.nodes = []
         self.intro_progress = 0.0  # Reset intro animation
-        x = 50.0
 
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 0, 0)
-        cr = cairo.Context(surface)
-        cr.select_font_face(
-            "Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
-        )
-        cr.set_font_size(16)
-
-        node_id_counter = 0
-        layer_index = 0
-
-        # Calculate layout
-        # Each layer gets an X position.
-        # Nodes within a layer get Y positions.
-
-        # Prepend a client node
-        # Center at Y=0 initially for alignment
-        client_node = {
-            "id": node_id_counter,
-            "layer_index": -1,
-            "x": 50.0,
-            "y": -50.0,
-            "width": 100,
-            "height": 100,
-            "data": None,  # Special marker for client node
-            "min_width": 100,
-            "is_client": True,
-        }
-        self.nodes.append(client_node)
-        node_id_counter += 1
-
-        x += 100 + GAP_X
-
-        # We want to align the active nodes along the Y=0 axis.
-        target_center_y = 0.0
-
-        for layer_nodes in layers_data:
-            # First, check if input is List[List] or just List (backward compat for old linear list)
-            if isinstance(layer_nodes, list):
-                nodes_in_col = layer_nodes
-            else:
-                # Should not happen with new controller but safety check
-                nodes_in_col = [layer_nodes]
-
-            if not self.show_all_nodes:
-                nodes_in_col = [n for n in nodes_in_col if n.is_active]
-
-            # If no nodes are active in this layer (shouldn't happen for visited layers),
-            # we might end up with empty column.
-            if not nodes_in_col:
-                continue
-
-            # Find max width in this column
-            max_col_width = NODE_WIDTH
-
-            # First pass: measure all nodes in this layer/column
-            nodes_dimensions = []
-            active_node_index = 0
-
-            for idx, node_data in enumerate(nodes_in_col):
-                text_extents = cr.text_extents(node_data.name)
-                min_width = text_extents.width + 2 * PADDING
-                node_width = max(NODE_WIDTH, min_width)
-
-                # Height depends on headers if expanded/active?
-                # inactive nodes should be smaller?
-                # "inactive nodes" are just blocks without headers.
-
-                header_count = len(node_data.headers)
-                node_height = NODE_HEADER_HEIGHT + PADDING
-                if header_count > 0:
-                    node_height += header_count * LINE_HEIGHT
-                node_height += PADDING
-
-                nodes_dimensions.append(
-                    {
-                        "width": node_width,
-                        "height": node_height,
-                        "data": node_data,
-                    }
-                )
-
-                if node_data.is_active:
-                    active_node_index = idx
-
-                if node_width > max_col_width:
-                    max_col_width = node_width
-
-            # Second pass: assign positions
-            # Calculate start Y for the column such that the active node is centered at target_center_y
-
-            # Calculate the relative Y center of the active node from the top of the column
-            active_node_y_rel = 0.0
-            for i in range(active_node_index):
-                active_node_y_rel += nodes_dimensions[i]["height"] + GAP_Y
-
-            active_node_y_rel += (
-                nodes_dimensions[active_node_index]["height"] / 2.0
-            )
-
-            # Start Y for the column
-            y = target_center_y - active_node_y_rel
-
-            for dim in nodes_dimensions:
-                node = {
-                    "id": node_id_counter,
-                    "layer_index": layer_index,
-                    "x": x,
-                    "y": y,
-                    "width": dim[
-                        "width"
-                    ],  # Use individual width or column width? Usually uniform width looks better.
-                    # Let's use individual width but maybe center align them if they differ?
-                    # For simplicity, left align at X.
-                    "height": dim["height"],
-                    "data": dim["data"],
-                    "min_width": dim["width"],  # Stored for reference
-                    "is_client": False,
-                }
-
-                # If we want to force uniform width per column:
-                # node["width"] = max_col_width
-
-                self.nodes.append(node)
-                node_id_counter += 1
-
-                y += dim["height"] + GAP_Y
-
-            x += max_col_width + GAP_X
-            layer_index += 1
-
-        # Final pass: Shift all nodes so that the topmost node is at a nice padding
-        if self.nodes:
-            min_y = min(n["y"] for n in self.nodes)
-            desired_min_y = 50.0
-            shift_y = desired_min_y - min_y
-
-            for node in self.nodes:
-                node["y"] += shift_y
+        self.nodes = self.layout_manager.calculate_layout(layers_data)
 
         self.queue_draw()
 

@@ -8,8 +8,8 @@ import os
 import logging
 import gi
 from gi.repository import Gtk, Gio, Adw, GLib
-from .preferences import PreferencesWindow
-from .window import Window
+from .ui.preferences import PreferencesWindow
+from .ui.window import Window
 
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")

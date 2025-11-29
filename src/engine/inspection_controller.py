@@ -10,8 +10,8 @@ from typing import Callable, List, Dict, Any, Union
 from gi.repository import GLib
 
 from .engine import CacheFlowEngine
-from .node_data import NodeData
-from .analyzer import HeaderAnalyzer
+from ..node_data import NodeData
+from ..analysis.analyzer import HeaderAnalyzer
 
 log = logging.getLogger(__name__)
 

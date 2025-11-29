@@ -51,10 +51,10 @@ The current codebase is largely flat within the `src/` directory. Grouping relat
 
 ## 6. Recommendations
 
-1.  **Reorganize Directories**: Move files into the proposed `src/nodegraph`, `src/engine`, `src/export`, `src/ui` structure.
-2.  **Extract Layout Logic**: Move layout calculation from `NodeGraph.set_data` to a new `src/nodegraph/layout.py`.
-3.  **Refactor Engine**: Split `run_inspection` into smaller, composable methods. Unify sibling selection logic.
-4.  **Refactor Preferences**: Move import/export parsing logic out of `PreferencesWindow` into `ConfigManager` or a dedicated `Importer`.
+1. [x] **Reorganize Directories**: Move files into the proposed `src/nodegraph`, `src/engine`, `src/export`, `src/ui` structure.
+2. [x] **Extract Layout Logic**: Move layout calculation from `NodeGraph.set_data` to a new `src/nodegraph/layout.py`.
+3. [x] **Refactor Engine**: Split `run_inspection` into smaller, composable methods. Unify sibling selection logic.
+4. [x] **Refactor Preferences**: Move import/export parsing logic out of `PreferencesWindow` into `ConfigManager` or a dedicated `Importer`.
 5.  **Refactor LayerRow**: Split `LayerRow` into subclasses or further decouple using the existing Strategy pattern.
 
 ## 7. Code Quality & Standards

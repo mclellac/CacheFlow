@@ -186,6 +186,31 @@ class ConfigManager:
                 break
         self._save_configs(configs)
 
+    def import_configurations(self, configs):
+        """Imports a list of configuration dictionaries.
+
+        Args:
+            configs: A list of dictionaries representing configurations.
+        """
+        current_configs = self.get_configurations()
+        existing_ids = {c["id"]: c for c in current_configs}
+
+        for new_conf in configs:
+            if "name" not in new_conf:
+                continue
+
+            conf_id = new_conf.get("id")
+            if conf_id and conf_id in existing_ids:
+                # Update existing
+                self.save_configuration(conf_id, new_conf)
+            else:
+                # Add new
+                self.add_configuration(
+                    new_conf.get("name"),
+                    new_conf.get("entry_point", new_conf.get("name")),
+                    layers=new_conf.get("layers", [])
+                )
+
     def _save_configs(self, configs):
         """Packs and saves a list of configurations to GSettings.
 

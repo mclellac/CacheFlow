@@ -4,8 +4,8 @@ including the LayerRow for editing layer details.
 """
 
 from gi.repository import Gtk, Adw, Gdk
-from .providers.base import ProviderType
-from .providers import get_providers_by_type
+from ..providers.base import ProviderType
+from ..providers import get_providers_by_type
 from .layer_strategies import get_strategy
 
 # Default Colors Constants

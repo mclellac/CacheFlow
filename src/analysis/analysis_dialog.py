@@ -7,8 +7,8 @@ import logging
 from gi.repository import Gtk, Adw, Gio
 
 from .analyzer import HeaderAnalyzer
-from .models import AnalysisWrapper
-from .ui_utils import create_header_list_factory
+from ..models import AnalysisWrapper
+from ..ui.ui_utils import create_header_list_factory
 
 log = logging.getLogger(__name__)
 

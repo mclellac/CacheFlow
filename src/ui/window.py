@@ -8,13 +8,13 @@ from typing import List
 
 from gi.repository import Gtk, Adw, Gio, GLib
 
-from .node_graph import NodeGraph  # pylint: disable=unused-import
+from ..nodegraph.node_graph import NodeGraph  # pylint: disable=unused-import
 from .header_dialog import HeaderDialog
-from .node_data import NodeData
-from .analyzer import HeaderAnalyzer
-from .analysis_dialog import HeaderAnalysisDialog
-from .inspection_controller import InspectionController
-from .config_manager import ConfigManager
+from ..node_data import NodeData
+from ..analysis.analyzer import HeaderAnalyzer
+from ..analysis.analysis_dialog import HeaderAnalysisDialog
+from ..engine.inspection_controller import InspectionController
+from ..config.config_manager import ConfigManager
 
 log = logging.getLogger(__name__)
 
