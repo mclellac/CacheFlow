@@ -46,7 +46,7 @@ The current codebase is largely flat within the `src/` directory. Grouping relat
 
 ## 5. Dead Code & Cleanups
 
-*   **Unused Template**: `src/ui/varnish_backend_row.ui` does not appear to have a corresponding Python class and should be removed if confirmed unused.
+*   **Unused Template**: `src/ui/varnish_backend_row.ui` does not have a corresponding Python class and should be removed if confirmed unused.
 *   **Legacy Code**: `src/config_manager.py` retains empty `varnish_backends` packing for backward compatibility. This is acceptable but should be noted for future cleanup.
 
 ## 6. Recommendations
@@ -56,3 +56,20 @@ The current codebase is largely flat within the `src/` directory. Grouping relat
 3.  **Refactor Engine**: Split `run_inspection` into smaller, composable methods. Unify sibling selection logic.
 4.  **Refactor Preferences**: Move import/export parsing logic out of `PreferencesWindow` into `ConfigManager` or a dedicated `Importer`.
 5.  **Refactor LayerRow**: Split `LayerRow` into subclasses or further decouple using the existing Strategy pattern.
+
+## 7. Code Quality & Standards
+
+*   **Type Hinting**: While present in `engine.py` and `node_graph.py`, it is inconsistent in `main.py` and `preferences.py`. The project should enforce type checking (mypy) across all modules to ensure robustness.
+*   **Import Management**: `gi.require_version` calls are scattered (e.g., in `main.py` and `node_graph.py`). These should be centralized at the application entry point (e.g., `__init__.py` or the top of `main.py`) to prevent runtime errors or inconsistent version requirements.
+*   **Logging Configuration**: Logging setup is split between the global scope and the `main()` function in `src/main.py`. This should be centralized to ensure consistent formatting and handlers across the application lifecycle.
+
+## 8. UI/UX & GNOME HIG
+
+*   **Error Feedback**: `Window.on_inspection_failed` displays raw exception strings to the user via `Adw.AlertDialog`. These should be mapped to user-friendly, localized error messages to improve the user experience.
+*   **Widget Compatibility**: `src/main.py` contains fallback logic for `Adw.AboutDialog` vs `Adw.AboutWindow`. The project should standardize on the targeted Libadwaita version to remove unnecessary compatibility checks.
+*   **Accessibility**: `src/node_graph.py` draws text and elements using Cairo but does not appear to provide accessibility descriptors (via `Gtk.Accessible` or `Atk`) for the graph nodes. This makes the core visualization inaccessible to screen readers.
+
+## 9. Implementation Details
+
+*   **Hardcoded Layout Constants**: `src/node_graph.py` relies on global constants (`NODE_WIDTH`, `GAP_X`) for layout calculations. These should be encapsulated in a `LayoutConfig` class or resource to allow for potential dynamic scaling, theming, or user configuration.
+*   **DNS Resolution**: `src/engine.py` performs manual DNS resolution using `dns.resolver`. While wrapped in the controller, care must be taken to ensure the `DNSAdapter` and resolution logic handle timeouts and failures gracefully without leaking implementation details (like `dnspython` exceptions) to the UI.
