@@ -128,53 +128,17 @@ class CacheFlowEngine:
             matched = False
 
             if layer_type == "Cache Proxy":
-                # Match based on headers
-                match_header = node.get("match_header", "")
-                match_value = node.get("match_value", "")
-
-                if match_header and match_value:
-                    # Check against previous response headers
-                    actual_value = previous_headers.get(match_header, "")
-
-                    # Also check against request Host header if configured
-                    if (
-                        not actual_value
-                        and match_header.lower() == "host"
-                        and target_host_header
-                    ):
-                        actual_value = target_host_header
-
-                    if actual_value == match_value:
-                        matched = True
-                    # Case-insensitive match? Assuming strict for now, or maybe loose.
-                    # Usually headers are case-insensitive keys, values might be sensitive.
-                    elif actual_value.lower() == match_value.lower():
-                        matched = True
-
+                matched = self._match_cache_proxy_node(
+                    node, previous_headers, target_host_header
+                )
             elif layer_type == "Application Backend":
-                # Match based on target host_url
-                # target_base matches node['host_url']
-                # Strip trailing slashes and schemes for comparison if needed
-                node_url = node.get("host_url", "").rstrip("/")
-                target = target_base.rstrip("/")
-
-                # Normalize by removing scheme for comparison
-                if "://" in node_url:
-                    node_url = node_url.split("://", 1)[1]
-                if "://" in target:
-                    target = target.split("://", 1)[1]
-
-                if node_url == target:
-                    matched = True
+                matched = self._match_backend_node(node, target_base)
 
             if matched and not active_node:
                 active_node = node
             else:
                 inactive_nodes.append(node)
 
-        # Fallback: if no node matched, maybe pick the first one?
-        # Or return None and let it fail?
-        # If active_node is None, we should probably warn and maybe pick first one as default?
         if not active_node and siblings:
             log.warning(
                 "No matching node found in siblings. Defaulting to first node."
@@ -183,6 +147,45 @@ class CacheFlowEngine:
             inactive_nodes = siblings[1:]
 
         return active_node, inactive_nodes
+
+    def _match_cache_proxy_node(
+        self,
+        node: Dict[str, Any],
+        previous_headers: Dict[str, str],
+        target_host_header: Optional[str],
+    ) -> bool:
+        """Checks if a cache proxy node matches criteria."""
+        match_header = node.get("match_header", "")
+        match_value = node.get("match_value", "")
+
+        if match_header and match_value:
+            actual_value = previous_headers.get(match_header, "")
+            if (
+                not actual_value
+                and match_header.lower() == "host"
+                and target_host_header
+            ):
+                actual_value = target_host_header
+
+            if actual_value == match_value:
+                return True
+            if actual_value.lower() == match_value.lower():
+                return True
+        return False
+
+    def _match_backend_node(
+        self, node: Dict[str, Any], target_base: str
+    ) -> bool:
+        """Checks if a backend node matches criteria."""
+        node_url = node.get("host_url", "").rstrip("/")
+        target = target_base.rstrip("/")
+
+        if "://" in node_url:
+            node_url = node_url.split("://", 1)[1]
+        if "://" in target:
+            target = target.split("://", 1)[1]
+
+        return node_url == target
 
     def _process_layer_dynamic(
         self,
@@ -302,17 +305,9 @@ class CacheFlowEngine:
 
             # Detect if this layer and subsequent layers are all "Application Backend"
             # If so, treat them as siblings (candidates) for the next hop
-            backend_candidates = []
-            if layer.get("layer_type") == "Application Backend":
-                backend_candidates.append(layer)
-                lookahead = processed_layers + 1
-                while lookahead < len(layers_config):
-                    next_l = layers_config[lookahead]
-                    if next_l.get("layer_type") == "Application Backend":
-                        backend_candidates.append(next_l)
-                        lookahead += 1
-                    else:
-                        break
+            backend_candidates = self._find_backend_candidates(
+                layers_config, processed_layers
+            )
 
             if len(backend_candidates) > 1:
                 # We have multiple backend candidates. Select the one matching current_base.
@@ -325,14 +320,10 @@ class CacheFlowEngine:
                 )
 
                 if not active_layer:
-                    # If no match found, default to the first one (or error out?)
-                    # _select_node_from_siblings defaults to first one already if no match.
                     active_layer = backend_candidates[0]
                     inactive_layers = backend_candidates[1:]
 
                 # Execute the active layer
-                # We construct a temporary config for processing that merges active layer properties
-                # But here active_layer IS the layer config.
                 result, next_base, next_path, next_hh = (
                     self._process_layer_dynamic(
                         active_layer,
@@ -350,8 +341,6 @@ class CacheFlowEngine:
                 result["siblings"].extend(inactive_layers)
 
                 results.append(result)
-
-                # Skip the processed backend layers
                 processed_layers += len(backend_candidates)
             else:
                 # Normal processing
@@ -370,7 +359,6 @@ class CacheFlowEngine:
 
             # Update previous headers for next iteration
             previous_headers = result.get("headers", {})
-
             is_last_layer = processed_layers >= len(layers_config)
 
             if next_base:
@@ -381,57 +369,22 @@ class CacheFlowEngine:
                 if is_last_layer:
                     # If the last configured layer points to another backend,
                     # add a dynamic layer to represent it
-                    dynamic_layer = {
-                        "name": "Backend",
-                        "description": "Dynamically routed backend",
-                        "layer_type": "Application Backend",
-                        "provider": "Unknown",
-                        "host_url": next_base,
-                    }
-                    layers_config.append(dynamic_layer)
+                    self._add_dynamic_backend_layer(layers_config, next_base)
 
             elif not is_last_layer:
-                # If there's no next hop but more layers are configured,
-                # try to fall back to the next layer's URL
-                log.warning(
-                    "Layer '%s' did not define a next hop. "
-                    "Falling back to next layer's host.",
-                    layer["name"],
+                # Fallback to next layer's host
+                fallback_base = self._get_fallback_base(
+                    layers_config, processed_layers
                 )
-                next_layer = layers_config[processed_layers]
-                # Note: processed_layers is now the index of the NEXT layer (because we incremented it)
-
-                # Wait, if processed_layers was incremented, then layers_config[processed_layers] IS the next layer.
-                # In original code: processed_layers += 1 was at the END.
-                # So layers_config[processed_layers + 1] was correct.
-                # Now processed_layers is already pointing to the next one.
-
-                # Correction:
-                next_layer = layers_config[processed_layers]
-
-                # Check if next layer has nodes
-                fallback_url = next_layer.get("host_url")
-
-                if fallback_url:
-                    parsed_fallback = urlparse(
-                        f"https://{fallback_url}"
-                        if "://" not in fallback_url
-                        else fallback_url
-                    )
-                    current_base = (
-                        f"{parsed_fallback.scheme}://{parsed_fallback.netloc}"
-                    )
+                if fallback_base:
+                    current_base = fallback_base
                     current_path = test_path
                     current_host_header = None
                 else:
-                    # It might be a layer with multiple nodes where one needs to be picked?
-                    # But without routing rules from previous layer, we don't know which one.
-                    # Unless we use matching logic.
-                    # For now, let's assume valid config.
                     log.error(
                         "Next layer '%s' has no host_url to fall back to. "
                         "Stopping inspection.",
-                        next_layer["name"],
+                        layers_config[processed_layers]["name"],
                     )
                     break  # Stop processing
             else:
@@ -439,6 +392,71 @@ class CacheFlowEngine:
                 break
 
         return results
+
+    def _find_backend_candidates(
+        self, layers_config: List[Dict[str, Any]], start_index: int
+    ) -> List[Dict[str, Any]]:
+        """Identifies consecutive Application Backend layers."""
+        candidates = []
+        layer = layers_config[start_index]
+        if layer.get("layer_type") == "Application Backend":
+            candidates.append(layer)
+            lookahead = start_index + 1
+            while lookahead < len(layers_config):
+                next_l = layers_config[lookahead]
+                if next_l.get("layer_type") == "Application Backend":
+                    candidates.append(next_l)
+                    lookahead += 1
+                else:
+                    break
+        return candidates
+
+    def _add_dynamic_backend_layer(
+        self, layers_config: List[Dict[str, Any]], next_base: str
+    ) -> None:
+        """Adds a dynamic backend layer to the configuration."""
+        dynamic_layer = {
+            "name": "Backend",
+            "description": "Dynamically routed backend",
+            "layer_type": "Application Backend",
+            "provider": "Unknown",
+            "host_url": next_base,
+        }
+        layers_config.append(dynamic_layer)
+
+    def _get_fallback_base(
+        self,
+        layers_config: List[Dict[str, Any]],
+        next_layer_index: int,
+    ) -> Optional[str]:
+        """Gets the fallback base URL from the next layer.
+
+        Args:
+            layers_config: The list of layer configurations.
+            next_layer_index: The index of the next layer.
+
+        Returns:
+            The fallback base URL, or None if not available.
+        """
+        layer = layers_config[next_layer_index - 1]
+        log.warning(
+            "Layer '%s' did not define a next hop. "
+            "Falling back to next layer's host.",
+            layer["name"],
+        )
+
+        next_layer = layers_config[next_layer_index]
+        fallback_url = next_layer.get("host_url")
+
+        if fallback_url:
+            parsed_fallback = urlparse(
+                f"https://{fallback_url}"
+                if "://" not in fallback_url
+                else fallback_url
+            )
+            return f"{parsed_fallback.scheme}://{parsed_fallback.netloc}"
+
+        return None
 
     def _should_process_layer(
         self, layer: Dict[str, Any], test_path: str

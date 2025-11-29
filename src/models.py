@@ -3,7 +3,7 @@ This module contains GObject models/wrappers for use in ListStores.
 """
 
 from gi.repository import GObject
-from .analyzer import AnalysisItem
+from .analysis.analyzer import AnalysisItem
 
 
 class AnalysisWrapper(GObject.Object):

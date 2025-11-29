@@ -5,29 +5,53 @@ moduledir = pkgdatadir / 'src'
 
 python_sources = [
   '__init__.py',
-  'window.py',
-  'engine.py',
-  'layer_strategies.py',
-  'layer_widgets.py',
   'main.py',
-  'node_graph.py',
-  'preferences.py',
-  'header_dialog.py',
-  'dns_adapter.py',
   'node_data.py',
   'utils.py',
-  'exporters.py',
-  'knowledge.py',
-  'analyzer.py',
-  'analysis_dialog.py',
-  'inspection_controller.py',
-  'routing.py',
   'models.py',
-  'config_manager.py',
-  'graph_utils.py',
-  'graph_renderer.py',
-  'graph_gestures.py',
-  'ui_utils.py',
+]
+
+ui_sources = [
+  'ui/__init__.py',
+  'ui/window.py',
+  'ui/preferences.py',
+  'ui/header_dialog.py',
+  'ui/layer_widgets.py',
+  'ui/layer_strategies.py',
+  'ui/ui_utils.py',
+]
+
+nodegraph_sources = [
+  'nodegraph/__init__.py',
+  'nodegraph/node_graph.py',
+  'nodegraph/graph_renderer.py',
+  'nodegraph/graph_gestures.py',
+  'nodegraph/graph_utils.py',
+]
+
+engine_sources = [
+  'engine/__init__.py',
+  'engine/engine.py',
+  'engine/routing.py',
+  'engine/dns_adapter.py',
+  'engine/inspection_controller.py',
+]
+
+analysis_sources = [
+  'analysis/__init__.py',
+  'analysis/analyzer.py',
+  'analysis/knowledge.py',
+  'analysis/analysis_dialog.py',
+]
+
+export_sources = [
+  'export/__init__.py',
+  'export/exporters.py',
+]
+
+config_sources = [
+  'config/__init__.py',
+  'config/config_manager.py',
 ]
 
 providers_sources = [
@@ -43,6 +67,12 @@ providers_sources = [
 ]
 
 py_installation.install_sources(python_sources, subdir: 'cacheflow')
+py_installation.install_sources(ui_sources, subdir: 'cacheflow/ui')
+py_installation.install_sources(nodegraph_sources, subdir: 'cacheflow/nodegraph')
+py_installation.install_sources(engine_sources, subdir: 'cacheflow/engine')
+py_installation.install_sources(analysis_sources, subdir: 'cacheflow/analysis')
+py_installation.install_sources(export_sources, subdir: 'cacheflow/export')
+py_installation.install_sources(config_sources, subdir: 'cacheflow/config')
 py_installation.install_sources(providers_sources, subdir: 'cacheflow/providers')
 
 ui_files = files([

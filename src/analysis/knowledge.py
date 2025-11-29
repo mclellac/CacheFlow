@@ -7,14 +7,14 @@ from typing import Dict
 
 # Re-export HeaderDefinition for consumers (like analyzer.py)
 # pylint: disable=unused-import
-from .providers.base import HeaderDefinition
-from .providers.standard import STANDARD_HEADERS
-from .providers.akamai import AKAMAI_HEADERS
-from .providers.varnish import VARNISH_HEADERS
-from .providers.netscalar import NETSCALAR_HEADERS
-from .providers.openshift import OPENSHIFT_HEADERS
-from .providers.security import SECURITY_HEADERS
-from .providers.kubernetes import KUBERNETES_HEADERS
+from ..providers.base import HeaderDefinition
+from ..providers.standard import STANDARD_HEADERS
+from ..providers.akamai import AKAMAI_HEADERS
+from ..providers.varnish import VARNISH_HEADERS
+from ..providers.netscalar import NETSCALAR_HEADERS
+from ..providers.openshift import OPENSHIFT_HEADERS
+from ..providers.security import SECURITY_HEADERS
+from ..providers.kubernetes import KUBERNETES_HEADERS
 
 HEADER_KNOWLEDGE: Dict[str, HeaderDefinition] = {}
 HEADER_KNOWLEDGE.update(STANDARD_HEADERS)

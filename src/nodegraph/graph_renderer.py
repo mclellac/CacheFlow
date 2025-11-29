@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 import math
 import cairo
 from gi.repository import Adw, Pango, PangoCairo, GLib, Gdk
-from .utils import get_accent_color
+from ..utils import get_accent_color
 from .graph_utils import get_color, rounded_rectangle, ConnectionPoints
 
 NODE_HEADER_HEIGHT = 55

@@ -3,7 +3,7 @@ This module defines strategies for handling layer-specific configuration logic.
 """
 
 from typing import Dict, Any, List, Optional
-from .providers.base import ProviderType
+from ..providers.base import ProviderType
 
 
 class LayerConfigStrategy:
