@@ -9,6 +9,15 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
+# Try to import gi, and fall back to system site-packages if missing
+# This helps when running in a venv that doesn't have PyGObject installed
+try:
+    import gi
+except ImportError:
+    for path in ['/usr/lib/python3/dist-packages', '/usr/lib64/python3/site-packages']:
+        if os.path.exists(path) and path not in sys.path:
+            sys.path.append(path)
+
 try:
     import gi
     gi.require_version('Gtk', '4.0')
@@ -23,11 +32,16 @@ try:
         sys.exit(1)
 
     # Load and register the resources
-    resource = Gio.Resource.load(str(resource_path))
-    Gio.Resource._register(resource)
+    try:
+        resource = Gio.Resource.load(str(resource_path))
+        Gio.Resource._register(resource)
+    except GLib.Error as e:
+        print(f"FATAL: Failed to load application resources. {e}")
+        sys.exit(1)
 
-except (ImportError, ValueError, GLib.Error) as e:
+except (ImportError, ValueError) as e:
     print(f"FATAL: Could not load GTK/Adwaita. {e}")
+    print("Please ensure libadwaita and python3-gi are installed.")
     sys.exit(1)
 
 # Run the main application module
