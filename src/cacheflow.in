@@ -36,12 +36,15 @@ try:
     gi.require_version('Gtk', '4.0')
     gi.require_version('Adw', '1')
     from gi.repository import Gio, GLib
+except (ImportError, ValueError) as e:
+    sys.exit(f"FATAL: Could not load GTK/Adwaita. {e}")
 
+try:
     # Load the GResource bundle
     resource_path = os.path.join(pkgdatadir, 'cacheflow.gresource')
     resource = Gio.Resource.load(resource_path)
     Gio.Resource._register(resource)
-except (ImportError, GLib.Error) as e:
+except GLib.Error as e:
     sys.exit(f"FATAL: Failed to load application resources from {resource_path}. {e}")
 
 # Now that resources are loaded and registered, we can safely import and run the application.

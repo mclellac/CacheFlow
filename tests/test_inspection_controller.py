@@ -10,7 +10,7 @@ sys.modules["gi.repository"] = MagicMock()
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.inspection_controller import InspectionController
+from src.engine import InspectionController
 
 class TestInspectionController(unittest.TestCase):
     def test_process_results_logic(self):
