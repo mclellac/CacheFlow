@@ -27,6 +27,7 @@ nodegraph_sources = [
   'nodegraph/graph_renderer.py',
   'nodegraph/graph_gestures.py',
   'nodegraph/graph_utils.py',
+  'nodegraph/layout.py',
 ]
 
 engine_sources = [
