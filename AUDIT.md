@@ -55,7 +55,7 @@ The current codebase is largely flat within the `src/` directory. Grouping relat
 2. [x] **Extract Layout Logic**: Move layout calculation from `NodeGraph.set_data` to a new `src/nodegraph/layout.py`.
 3. [x] **Refactor Engine**: Split `run_inspection` into smaller, composable methods. Unify sibling selection logic.
 4. [x] **Refactor Preferences**: Move import/export parsing logic out of `PreferencesWindow` into `ConfigManager` or a dedicated `Importer`.
-5. [x] **Refactor LayerRow**: Split `LayerRow` into subclasses or further decouple using the existing Strategy pattern.
+5. [x] **Refactor LayerRow**: Split `LayerRow` into subclasses or further decouple using the existing Strategy pattern. (Completed: Split into `BaseLayerRow`, `CDNLayerRow`, `LBLayerRow`, `ProxyLayerRow`, `BackendLayerRow`)
 
 ## 7. Code Quality & Standards
 
