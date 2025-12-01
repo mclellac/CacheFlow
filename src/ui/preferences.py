@@ -97,12 +97,6 @@ class PreferencesWindow(Adw.PreferencesWindow):
     group_proxy = Gtk.Template.Child()
     group_app = Gtk.Template.Child()
 
-    # Add buttons
-    add_cdn_row = Gtk.Template.Child()
-    add_lb_row = Gtk.Template.Child()
-    add_proxy_row = Gtk.Template.Child()
-    add_app_row = Gtk.Template.Child()
-
     export_row = Gtk.Template.Child()
     import_row = Gtk.Template.Child()
 
@@ -141,14 +135,15 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
         self.domain_name_row.connect("notify::text", self.on_details_changed)
 
-        self.add_cdn_row.connect("activated", lambda *_: self.add_layer("CDN"))
-        self.add_lb_row.connect("activated", lambda *_: self.add_layer("Load Balancer"))
-        self.add_proxy_row.connect(
-            "activated", lambda *_: self.add_layer("Cache Proxy")
-        )
-        self.add_app_row.connect(
-            "activated", lambda *_: self.add_layer("Application Backend")
-        )
+        # Add buttons are deprecated in strict architecture
+        # self.add_cdn_row.connect("activated", lambda *_: self.add_layer("CDN"))
+        # self.add_lb_row.connect("activated", lambda *_: self.add_layer("Load Balancer"))
+        # self.add_proxy_row.connect(
+        #     "activated", lambda *_: self.add_layer("Cache Proxy")
+        # )
+        # self.add_app_row.connect(
+        #     "activated", lambda *_: self.add_layer("Application Backend")
+        # )
 
         self.export_row.connect("activated", self.do_export_config)
         self.import_row.connect("activated", self.do_import_config)
@@ -252,14 +247,94 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self._layer_rows = []
 
         # Load layers into respective groups
-        layers = config.get("layers", [])
-        for layer_data in layers:
+        raw_layers = config.get("layers", [])
+
+        # Enforce strict architecture and consolidate backends
+        normalized_layers = self._normalize_config_layers(raw_layers)
+
+        for layer_data in normalized_layers:
             self.create_layer_row(layer_data)
 
         # Ensure "Add" buttons are at the end of each group
         self._reorder_add_buttons()
 
         self._loading = False
+
+    def _normalize_config_layers(self, layers: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Ensures exactly 4 layers (CDN, LB, Proxy, App) and consolidates Backends."""
+        cdn_layer = None
+        lb_layer = None
+        proxy_layer = None
+        app_layer = None
+
+        # Temp list for app backends to consolidate
+        app_backends = []
+
+        for layer in layers:
+            ltype = layer.get("layer_type", "CDN")
+            if ltype == "CDN":
+                if not cdn_layer: cdn_layer = layer
+            elif ltype == "Load Balancer":
+                if not lb_layer: lb_layer = layer
+            elif ltype in ["Cache Proxy", "Caching Proxy", "Cache"]:
+                if not proxy_layer: proxy_layer = layer
+            elif ltype in ["Application Backend", "Backend"]:
+                app_backends.append(layer)
+
+        # Create defaults if missing
+        if not cdn_layer:
+            cdn_layer = self._create_default_layer("CDN")
+        if not lb_layer:
+            lb_layer = self._create_default_layer("Load Balancer")
+        if not proxy_layer:
+            proxy_layer = self._create_default_layer("Cache Proxy")
+
+        # Consolidate Backends
+        if not app_backends:
+            app_layer = self._create_default_layer("Application Backend")
+            # Ensure at least one default node if host_url is hidden/unused
+            if not app_layer.get("nodes"):
+                 app_layer["nodes"] = [{
+                    "name": "Default Backend",
+                    "host_url": app_layer.get("host_url", "http://localhost"),
+                    "provider": app_layer.get("provider", "Apache"),
+                    "header_color": app_layer.get("header_color", ""),
+                    "body_color": app_layer.get("body_color", ""),
+                 }]
+        else:
+            # Use the first one as base
+            app_layer = app_backends[0]
+            # Ensure nodes list exists
+            if "nodes" not in app_layer or not isinstance(app_layer["nodes"], list):
+                app_layer["nodes"] = []
+
+            # If the first layer had a URL but no nodes, move URL to node
+            # Only if it seems to be a legacy layer (not already using nodes)
+            if app_layer.get("host_url") and not app_layer["nodes"]:
+                app_layer["nodes"].append({
+                    "name": app_layer.get("name", "Backend"),
+                    "host_url": app_layer.get("host_url"),
+                    "provider": app_layer.get("provider"),
+                    "header_color": app_layer.get("header_color"),
+                    "body_color": app_layer.get("body_color"),
+                })
+
+            # Merge others
+            for other in app_backends[1:]:
+                # If other has nodes, append them
+                if other.get("nodes"):
+                    app_layer["nodes"].extend(other["nodes"])
+                else:
+                    # Convert to node
+                    app_layer["nodes"].append({
+                        "name": other.get("name", "Backend"),
+                        "host_url": other.get("host_url"),
+                        "provider": other.get("provider"),
+                        "header_color": other.get("header_color"),
+                        "body_color": other.get("body_color"),
+                    })
+
+        return [cdn_layer, lb_layer, proxy_layer, app_layer]
 
     def _reorder_add_buttons(self) -> None:
         """Ensures Add buttons are at the end of their lists."""
@@ -270,9 +345,10 @@ class PreferencesWindow(Adw.PreferencesWindow):
         """Creates a LayerRow and adds it to the appropriate group."""
         layer_type = data.get("layer_type", "CDN")
 
+        # In strict mode, we don't allow deleting layers
         row = LayerRow(
             layer_data=data,
-            on_delete=self.remove_layer,
+            on_delete=None,
             on_change=self.save_current_config,
         )
         row.connect("type-changed-request", self.on_layer_type_changed)
@@ -402,10 +478,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
         # The refresh will pick a new one or default
         self.refresh_config_list()
 
-    def add_layer(self, layer_type: str) -> None:
-        """Adds a new layer to the current config."""
-
-        # Determine default provider based on type
+    def _create_default_layer(self, layer_type: str) -> Dict[str, Any]:
+        """Creates a default layer configuration."""
         provider = "Akamai"
         if layer_type == "Load Balancer":
             provider = "Nginx"
@@ -414,8 +488,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
         elif layer_type == "Application Backend":
             provider = "Apache"
 
-        new_data = {
-            "name": f"New {layer_type}",
+        return {
+            "name": f"{layer_type}",
             "description": "",
             "layer_type": layer_type,
             "provider": provider,
@@ -424,10 +498,8 @@ class PreferencesWindow(Adw.PreferencesWindow):
             "host_overrides": [],
             "path_match_only": [],
             "routing_rules": [],
+            "nodes": [],
         }
-        self.create_layer_row(new_data)
-        self._reorder_add_buttons()
-        self.save_current_config()
 
     def remove_layer(self, row: LayerRow) -> None:
         """Removes a layer."""

@@ -552,11 +552,18 @@ class LayerRow(Adw.PreferencesGroup):
         self.type_row.set_model(self.type_model)
         self.provider_row.set_model(self.provider_model)
 
+        # Enforce strict architecture: Type is fixed per slot, so hide the selector.
+        self.type_row.set_visible(False)
+
     def _connect_signals(self):
         """Connects common signals."""
         self.type_row.connect("notify::selected", self.on_type_changed)
         self.provider_row.connect("notify::selected", self.on_provider_changed)
-        self.delete_btn.connect("clicked", self.on_delete_clicked)
+
+        if self.on_delete_callback:
+            self.delete_btn.connect("clicked", self.on_delete_clicked)
+        else:
+            self.delete_btn.set_visible(False)
 
         self.name_row.connect("notify::text", self.on_changed)
         self.desc_row.connect("notify::text", self.on_changed)
