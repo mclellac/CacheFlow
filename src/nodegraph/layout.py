@@ -4,25 +4,33 @@ It is responsible for calculating the positions of nodes in the graph.
 """
 
 from typing import List, Dict, Any, Tuple
+from dataclasses import dataclass
 import cairo
 
-NODE_WIDTH = 450
-NODE_HEADER_HEIGHT = 55
-LINE_HEIGHT = 22
-PADDING = 15
-GAP_X = 300
-GAP_Y = 50
+@dataclass(frozen=True)
+class LayoutConfig:
+    """Configuration constants for graph layout."""
+    node_width: int = 450
+    node_header_height: int = 55
+    line_height: int = 22
+    padding: int = 15
+    gap_x: int = 300
+    gap_y: int = 50
 
+# Default instance for backward compatibility or default usage
+DEFAULT_LAYOUT = LayoutConfig()
 
 class GraphLayout:
     """Calculates node positions for the graph."""
 
-    def __init__(self, show_all_nodes: bool = False):
+    def __init__(self, show_all_nodes: bool = False, config: LayoutConfig = DEFAULT_LAYOUT):
         """
         Args:
             show_all_nodes: Whether to include all sibling nodes in the layout.
+            config: Layout configuration.
         """
         self.show_all_nodes = show_all_nodes
+        self.config = config
         self.nodes: List[Dict[str, Any]] = []
 
     def calculate_layout(self, layers_data: List[List[Any]]) -> List[Dict[str, Any]]:
@@ -64,7 +72,7 @@ class GraphLayout:
         self.nodes.append(client_node)
         node_id_counter += 1
 
-        x += 100 + GAP_X
+        x += 100 + self.config.gap_x
 
         # We want to align the active nodes along the Y=0 axis.
         target_center_y = 0.0
@@ -83,7 +91,7 @@ class GraphLayout:
                 continue
 
             # Find max width in this column
-            max_col_width = NODE_WIDTH
+            max_col_width = self.config.node_width
 
             # First pass: measure all nodes in this layer/column
             nodes_dimensions = []
@@ -91,14 +99,14 @@ class GraphLayout:
 
             for idx, node_data in enumerate(nodes_in_col):
                 text_extents = cr.text_extents(node_data.name)
-                min_width = text_extents.width + 2 * PADDING
-                node_width = max(NODE_WIDTH, min_width)
+                min_width = text_extents.width + 2 * self.config.padding
+                node_width = max(self.config.node_width, min_width)
 
                 header_count = len(node_data.headers)
-                node_height = NODE_HEADER_HEIGHT + PADDING
+                node_height = self.config.node_header_height + self.config.padding
                 if header_count > 0:
-                    node_height += header_count * LINE_HEIGHT
-                node_height += PADDING
+                    node_height += header_count * self.config.line_height
+                node_height += self.config.padding
 
                 nodes_dimensions.append(
                     {
@@ -120,7 +128,7 @@ class GraphLayout:
             # Calculate the relative Y center of the active node from the top of the column
             active_node_y_rel = 0.0
             for i in range(active_node_index):
-                active_node_y_rel += nodes_dimensions[i]["height"] + GAP_Y
+                active_node_y_rel += nodes_dimensions[i]["height"] + self.config.gap_y
 
             active_node_y_rel += (
                 nodes_dimensions[active_node_index]["height"] / 2.0
@@ -145,9 +153,9 @@ class GraphLayout:
                 self.nodes.append(node)
                 node_id_counter += 1
 
-                y += dim["height"] + GAP_Y
+                y += dim["height"] + self.config.gap_y
 
-            x += max_col_width + GAP_X
+            x += max_col_width + self.config.gap_x
             layer_index += 1
 
         # Final pass: Shift all nodes so that the topmost node is at a nice padding
