@@ -8,13 +8,7 @@ from typing import Optional, List, Dict, Any, Union
 
 from gi.repository import Gtk, Adw, Gio, GObject, Gdk, GLib
 
-from .layer_widgets import (
-    LayerRow,
-    CDNLayerRow,
-    LBLayerRow,
-    ProxyLayerRow,
-    BackendLayerRow,
-)
+from .layer_widgets import LayerRow
 from ..export.exporters import ConfigExporter
 from ..config.config_manager import ConfigManager
 
@@ -29,9 +23,7 @@ def setting_to_rgba(
     if variant:
         rgba_string = variant.get_string()
         if rgba_string and rgba.parse(rgba_string):
-            log.debug(
-                "Mapping GSettings string '%s' to Gdk.RGBA.", rgba_string
-            )
+            log.debug("Mapping GSettings string '%s' to Gdk.RGBA.", rgba_string)
             return GObject.Value(Gdk.RGBA, rgba)
 
     log.warning(
@@ -50,9 +42,7 @@ def rgba_to_setting(
     Returning None tells the binding to NOT update the setting.
     """
     if gdk_rgba:
-        log.debug(
-            "Mapping Gdk.RGBA '%s' to GSettings string.", gdk_rgba.to_string()
-        )
+        log.debug("Mapping Gdk.RGBA '%s' to GSettings string.", gdk_rgba.to_string())
         return GLib.Variant("s", gdk_rgba.to_string())
     log.debug("Widget provided a None RGBA. No setting will be saved.")
     return None
@@ -144,9 +134,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         # Setup Config Selector
         self.config_model = Gtk.StringList()
         self.config_selector.set_model(self.config_model)
-        self.config_selector.connect(
-            "notify::selected", self.on_config_selected
-        )
+        self.config_selector.connect("notify::selected", self.on_config_selected)
 
         self.add_config_btn.connect("clicked", self.on_add_config)
         self.delete_config_btn.connect("clicked", self.on_delete_config)
@@ -154,9 +142,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.domain_name_row.connect("notify::text", self.on_details_changed)
 
         self.add_cdn_row.connect("activated", lambda *_: self.add_layer("CDN"))
-        self.add_lb_row.connect(
-            "activated", lambda *_: self.add_layer("Load Balancer")
-        )
+        self.add_lb_row.connect("activated", lambda *_: self.add_layer("Load Balancer"))
         self.add_proxy_row.connect(
             "activated", lambda *_: self.add_layer("Cache Proxy")
         )
@@ -186,9 +172,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         else:
             self.theme_row.set_selected(0)
 
-    def on_theme_changed(
-        self, row: Adw.ActionRow, _param: GObject.ParamSpec
-    ) -> None:
+    def on_theme_changed(self, row: Adw.ActionRow, _param: GObject.ParamSpec) -> None:
         """Callback when the theme selection changes."""
         log.info("Theme changed to index %d.", row.get_selected())
         selected = row.get_selected()
@@ -286,20 +270,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         """Creates a LayerRow and adds it to the appropriate group."""
         layer_type = data.get("layer_type", "CDN")
 
-        row_class = LayerRow
-        if layer_type == "CDN":
-            row_class = CDNLayerRow
-        elif layer_type == "Load Balancer":
-            row_class = LBLayerRow
-        elif layer_type == "Cache Proxy" or layer_type in [
-            "Caching Proxy",
-            "Cache",
-        ]:
-            row_class = ProxyLayerRow
-        elif layer_type == "Application Backend" or layer_type == "Backend":
-            row_class = BackendLayerRow
-
-        row = row_class(
+        row = LayerRow(
             layer_data=data,
             on_delete=self.remove_layer,
             on_change=self.save_current_config,
@@ -474,9 +445,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         # Exporting a list of all configurations is the most complete approach.
 
         configs = self.config_manager.get_configurations()
-        self.exporter.export_config(
-            configs, on_success=self.on_export_success
-        )
+        self.exporter.export_config(configs, on_success=self.on_export_success)
 
     def on_export_success(self, filepath: str) -> None:
         """Callback when configuration is exported."""
@@ -498,14 +467,18 @@ class PreferencesWindow(Adw.PreferencesWindow):
                 # Assume list of layers (Legacy)
                 # Replaces layers of current config
                 if not self.current_config_id:
-                    self.add_toast(Adw.Toast.new("No active configuration to import layers into."))
+                    self.add_toast(
+                        Adw.Toast.new("No active configuration to import layers into.")
+                    )
                     return
                 log.info("Importing legacy layers list into current config.")
                 config = self.config_manager.get_configuration(self.current_config_id)
                 config["layers"] = data
                 self.config_manager.save_configuration(self.current_config_id, config)
                 self.load_config_ui(config)
-                self.add_toast(Adw.Toast.new("Layers imported into current configuration"))
+                self.add_toast(
+                    Adw.Toast.new("Layers imported into current configuration")
+                )
 
         elif isinstance(data, dict):
             # Single configuration object
