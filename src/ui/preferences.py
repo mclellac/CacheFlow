@@ -4,6 +4,8 @@ and configuration management via GSettings.
 """
 
 import logging
+from typing import Optional, List, Dict, Any, Union
+
 from gi.repository import Gtk, Adw, Gio, GObject, Gdk, GLib
 
 from .layer_widgets import LayerRow
@@ -13,7 +15,9 @@ from ..config.config_manager import ConfigManager
 log = logging.getLogger(__name__)
 
 
-def setting_to_rgba(variant, _user_data=None):
+def setting_to_rgba(
+    variant: Optional[GLib.Variant], _user_data: Any = None
+) -> GObject.Value:
     """Maps a GSettings GVariant(string) to a GObject.Value(Gdk.RGBA)."""
     rgba = Gdk.RGBA()
     if variant:
@@ -32,7 +36,9 @@ def setting_to_rgba(variant, _user_data=None):
     return GObject.Value(Gdk.RGBA, rgba)
 
 
-def rgba_to_setting(gdk_rgba, _user_data=None):
+def rgba_to_setting(
+    gdk_rgba: Optional[Gdk.RGBA], _user_data: Any = None
+) -> Optional[GLib.Variant]:
     """
     Maps a Gdk.RGBA from the widget to a GVariant(string).
     Returning None tells the binding to NOT update the setting.
@@ -56,13 +62,13 @@ class AddConfigDialog(Adw.Window):
     add_btn = Gtk.Template.Child()
     cancel_btn = Gtk.Template.Child()
 
-    def __init__(self, parent_window, on_add_callback):
+    def __init__(self, parent_window: Gtk.Window, on_add_callback: Any):
         super().__init__(transient_for=parent_window)
         self.on_add = on_add_callback
         self.add_btn.connect("clicked", self.on_add_clicked)
         self.cancel_btn.connect("clicked", lambda *_: self.close())
 
-    def on_add_clicked(self, _btn):
+    def on_add_clicked(self, _btn: Gtk.Button) -> None:
         """Callback when Add is clicked."""
         domain = self.domain_name_entry.get_text()
         if domain:
@@ -104,16 +110,17 @@ class PreferencesWindow(Adw.PreferencesWindow):
     export_row = Gtk.Template.Child()
     import_row = Gtk.Template.Child()
 
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any):
         super().__init__(**kwargs)
         log.debug("PreferencesWindow initializing.")
         self.set_destroy_with_parent(True)
         self.settings = Gio.Settings.new("com.github.mclellac.CacheFlow")
         self.config_manager = ConfigManager(self.settings)
         self.exporter = ConfigExporter(self)
-        self._layer_rows = []
+        self._layer_rows: List[LayerRow] = []
         self._loading = True
-        self.current_config_id = None
+        self.current_config_id: Optional[str] = None
+        self.config_ids: List[str] = []
 
         self.settings.bind(
             "dns-servers", self.dns_row, "text", Gio.SettingsBindFlags.DEFAULT
@@ -162,7 +169,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
             lambda win: log.debug("PreferencesWindow close requested."),
         )
 
-    def load_theme(self):
+    def load_theme(self) -> None:
         """Loads the current theme setting."""
         log.debug("Loading and applying theme preference.")
         theme = self.settings.get_string("theme")
@@ -173,7 +180,9 @@ class PreferencesWindow(Adw.PreferencesWindow):
         else:
             self.theme_row.set_selected(0)
 
-    def on_theme_changed(self, row, _param):
+    def on_theme_changed(
+        self, row: Adw.ActionRow, _param: GObject.ParamSpec
+    ) -> None:
         """Callback when the theme selection changes."""
         log.info("Theme changed to index %d.", row.get_selected())
         selected = row.get_selected()
@@ -188,13 +197,13 @@ class PreferencesWindow(Adw.PreferencesWindow):
             self.settings.set_string("theme", "system")
             style_manager.set_color_scheme(Adw.ColorScheme.DEFAULT)
 
-    def on_font_set(self, button):
+    def on_font_set(self, button: Gtk.FontButton) -> None:
         """Callback when the node font changes."""
         log.info("Node font changed.")
         font_string = button.get_font()
         self.settings.set_string("node-font", font_string)
 
-    def refresh_config_list(self):
+    def refresh_config_list(self) -> None:
         """Refreshes the config selector model."""
         self._loading = True
         configs = self.config_manager.get_configurations()
@@ -222,7 +231,9 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self._loading = False
         self.on_config_selected(self.config_selector, None)
 
-    def on_config_selected(self, _row, _param):
+    def on_config_selected(
+        self, _row: Adw.ActionRow, _param: Optional[GObject.ParamSpec]
+    ) -> None:
         """Callback when a configuration is selected."""
         if self._loading:
             return
@@ -238,7 +249,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         if config:
             self.load_config_ui(config)
 
-    def load_config_ui(self, config):
+    def load_config_ui(self, config: Dict[str, Any]) -> None:
         """Loads configuration into the UI fields."""
         self._loading = True
         self.domain_name_row.set_text(config.get("name", ""))
@@ -260,12 +271,12 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
         self._loading = False
 
-    def _reorder_add_buttons(self):
+    def _reorder_add_buttons(self) -> None:
         """Ensures Add buttons are at the end of their lists."""
         # No-op since buttons are now in separate static groups at the bottom.
         pass
 
-    def create_layer_row(self, data):
+    def create_layer_row(self, data: Dict[str, Any]) -> None:
         """Creates a LayerRow and adds it to the appropriate group."""
         row = LayerRow(
             layer_data=data,
@@ -293,7 +304,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
             )
             self.group_app.append(row)
 
-    def on_details_changed(self, *_):
+    def on_details_changed(self, *_: Any) -> None:
         """Callback when domain details change."""
         if self._loading or not self.current_config_id:
             return
@@ -301,16 +312,18 @@ class PreferencesWindow(Adw.PreferencesWindow):
         # We can try to update the GtkStringList but it's easier to wait for refresh or save.
         self.save_current_config()
 
-    def save_current_config(self):
+    def save_current_config(self) -> None:
         """Saves the current UI state to the configuration."""
         if self._loading or not self.current_config_id:
             return
 
         # Collect layers in the enforced order: CDN -> LB -> Proxy -> App
-        ordered_layers = []
+        ordered_layers: List[Dict[str, Any]] = []
 
         # Helper to get data from rows in a group
-        def get_layers_from_group(group):
+        def get_layers_from_group(
+            group: Adw.PreferencesGroup,
+        ) -> List[Dict[str, Any]]:
             layers = []
             # Iterate children. AdwPreferencesGroup children are not easily accessible via list?
             # We have self._layer_rows, we can filter by type or parent.
@@ -342,12 +355,12 @@ class PreferencesWindow(Adw.PreferencesWindow):
         }
         self.config_manager.save_configuration(self.current_config_id, data)
 
-    def on_add_config(self, _btn):
+    def on_add_config(self, _btn: Gtk.Button) -> None:
         """Adds a new configuration."""
         dialog = AddConfigDialog(self, self.do_add_config)
         dialog.present()
 
-    def do_add_config(self, domain):
+    def do_add_config(self, domain: str) -> None:
         """Actually adds the config after dialog confirms."""
         # Create default CDN layer
         default_cdn_layer = {
@@ -373,7 +386,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self.settings.set_string("active-config-id", new_id)
         self.refresh_config_list()
 
-    def on_delete_config(self, _btn):
+    def on_delete_config(self, _btn: Gtk.Button) -> None:
         """Deletes the current configuration."""
         if not self.current_config_id:
             return
@@ -382,7 +395,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         # The refresh will pick a new one or default
         self.refresh_config_list()
 
-    def add_layer(self, layer_type):
+    def add_layer(self, layer_type: str) -> None:
         """Adds a new layer to the current config."""
 
         # Determine default provider based on type
@@ -409,7 +422,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self._reorder_add_buttons()
         self.save_current_config()
 
-    def remove_layer(self, row):
+    def remove_layer(self, row: LayerRow) -> None:
         """Removes a layer."""
         parent = row.get_parent()
         if parent:
@@ -417,7 +430,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
         self._layer_rows.remove(row)
         self.save_current_config()
 
-    def do_export_config(self, _row):
+    def do_export_config(self, _row: Adw.ActionRow) -> None:
         """Exports the current configuration."""
         # We now want to export all configurations (full state)
         # To maintain some backward compatibility or offer choice, we could ask.
@@ -429,15 +442,15 @@ class PreferencesWindow(Adw.PreferencesWindow):
             configs, on_success=self.on_export_success
         )
 
-    def on_export_success(self, filepath):
+    def on_export_success(self, filepath: str) -> None:
         """Callback when configuration is exported."""
         self.add_toast(Adw.Toast.new(f"Exported to {filepath}"))
 
-    def do_import_config(self, _row):
+    def do_import_config(self, _row: Adw.ActionRow) -> None:
         """Imports the configuration."""
         self.exporter.import_config(self.on_config_imported)
 
-    def on_config_imported(self, data):
+    def on_config_imported(self, data: Union[List[Any], Dict[str, Any]]) -> None:
         """Callback when configuration is imported."""
         if isinstance(data, list):
             # Check if it's a list of layers (Legacy) or list of configs (New)
@@ -467,7 +480,7 @@ class PreferencesWindow(Adw.PreferencesWindow):
                 log.error("Imported dictionary does not look like a configuration.")
                 self.add_toast(Adw.Toast.new("Invalid configuration format."))
 
-    def _import_full_configs(self, configs):
+    def _import_full_configs(self, configs: List[Dict[str, Any]]) -> None:
         """Imports a list of full configuration objects."""
         self.config_manager.import_configurations(configs)
         self.refresh_config_list()
