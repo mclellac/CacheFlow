@@ -8,7 +8,13 @@ from typing import Optional, List, Dict, Any, Union
 
 from gi.repository import Gtk, Adw, Gio, GObject, Gdk, GLib
 
-from .layer_widgets import LayerRow
+from .layer_widgets import (
+    LayerRow,
+    CDNLayerRow,
+    LBLayerRow,
+    ProxyLayerRow,
+    BackendLayerRow,
+)
 from ..export.exporters import ConfigExporter
 from ..config.config_manager import ConfigManager
 
@@ -278,31 +284,61 @@ class PreferencesWindow(Adw.PreferencesWindow):
 
     def create_layer_row(self, data: Dict[str, Any]) -> None:
         """Creates a LayerRow and adds it to the appropriate group."""
-        row = LayerRow(
+        layer_type = data.get("layer_type", "CDN")
+
+        row_class = LayerRow
+        if layer_type == "CDN":
+            row_class = CDNLayerRow
+        elif layer_type == "Load Balancer":
+            row_class = LBLayerRow
+        elif layer_type == "Cache Proxy" or layer_type in [
+            "Caching Proxy",
+            "Cache",
+        ]:
+            row_class = ProxyLayerRow
+        elif layer_type == "Application Backend" or layer_type == "Backend":
+            row_class = BackendLayerRow
+
+        row = row_class(
             layer_data=data,
             on_delete=self.remove_layer,
             on_change=self.save_current_config,
         )
+        row.connect("type-changed-request", self.on_layer_type_changed)
         self._layer_rows.append(row)
 
-        layer_type = data.get("layer_type", "CDN")
         if layer_type == "CDN":
             self.group_cdn.append(row)
         elif layer_type == "Load Balancer":
             self.group_lb.append(row)
-        elif layer_type == "Cache Proxy" or layer_type == "Caching Proxy":
-            # Handle legacy naming if any
+        elif layer_type == "Cache Proxy" or layer_type in [
+            "Caching Proxy",
+            "Cache",
+        ]:
             self.group_proxy.append(row)
         elif layer_type == "Application Backend" or layer_type == "Backend":
             self.group_app.append(row)
         else:
-            # Fallback for unknown types - add to App or CDN?
-            # Let's add to App for safety, or log warning.
+            # Fallback for unknown types
             log.warning(
                 "Unknown layer type '%s'. Defaulting to Application.",
                 layer_type,
             )
             self.group_app.append(row)
+
+    def on_layer_type_changed(self, row: LayerRow, new_type_str: str) -> None:
+        """Handles a request to change a layer's type (moving it to another group)."""
+        log.info("Layer type changed to '%s'. Recreating row.", new_type_str)
+        data = row.get_data()
+        # Ensure the data reflects the new type
+        data["layer_type"] = new_type_str
+
+        # Remove old row (this triggers save, but that's fine)
+        self.remove_layer(row)
+
+        # Create new row in correct group
+        self.create_layer_row(data)
+        self.save_current_config()
 
     def on_details_changed(self, *_: Any) -> None:
         """Callback when domain details change."""

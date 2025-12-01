@@ -4,7 +4,7 @@ including the LayerRow for editing layer details.
 """
 
 from typing import List, Any, Optional, Dict
-from gi.repository import Gtk, Adw, Gdk
+from gi.repository import Gtk, Adw, Gdk, GObject
 from ..providers.base import ProviderType
 from ..providers import get_providers_by_type
 from .layer_strategies import get_strategy
@@ -464,11 +464,16 @@ class RowListManager:
 @Gtk.Template(filename="src/ui/layer_row.ui")
 class LayerRow(Adw.PreferencesGroup):
     """
-    A widget representing a single configuration layer in the settings.
-    Allows editing of layer properties like URL, headers, and colors.
+    Base class for configuration layer rows.
+    Now specifically refactored to support subclassing.
     """
 
     __gtype_name__ = "LayerRow"
+
+    # Signals
+    @GObject.Signal(arg_types=(str,))
+    def type_changed_request(self, new_type_str: str):
+        pass
 
     type_row = Gtk.Template.Child()
     provider_row = Gtk.Template.Child()
@@ -499,7 +504,7 @@ class LayerRow(Adw.PreferencesGroup):
     routing_rules_group = Gtk.Template.Child()
     add_routing_rule_btn = Gtk.Template.Child()
 
-    # Flattened Default Backend Group (Removed AdwExpanderRow)
+    # Flattened Default Backend Group
     default_backend_host_row = Gtk.Template.Child()
     default_backend_header_row = Gtk.Template.Child()
 
@@ -508,10 +513,10 @@ class LayerRow(Adw.PreferencesGroup):
     def __init__(self, layer_data=None, on_delete=None, on_change=None):
         super().__init__()
         self._loading = True
-
         self.on_delete_callback = on_delete
         self.on_change_callback = on_change
 
+        # Initialize Managers (Subclasses will use specific ones, but we init all for safety/Base)
         self.header_manager = RowListManager(
             self.headers_group, HeaderRow, self.on_changed
         )
@@ -528,11 +533,29 @@ class LayerRow(Adw.PreferencesGroup):
             self.nodes_group, NodeRow, self.on_changed
         )
 
-        # Setup Models for Type and Provider
+        # Common Setup
+        self._setup_types_and_providers()
+        self._connect_signals()
+
+        # Load Data
+        if layer_data:
+            self.load_data(layer_data)
+
+        self._apply_strategy()
+
+        # Post-load setup
+        if self.provider_model.get_n_items() == 0:
+             self.on_type_changed(None, None)
+             if not layer_data:
+                 self._apply_default_colors()
+
+        self._ensure_color_defaults()
+        self._loading = False
+
+    def _setup_types_and_providers(self):
+        """Sets up type and provider models."""
         self.type_model = Gtk.StringList()
         self.provider_model = Gtk.StringList()
-
-        # Populate Type Model
         self.types_list = list(ProviderType)
         for t in self.types_list:
             self.type_model.append(t.value)
@@ -540,24 +563,22 @@ class LayerRow(Adw.PreferencesGroup):
         self.type_row.set_model(self.type_model)
         self.provider_row.set_model(self.provider_model)
 
+    def _connect_signals(self):
+        """Connects common signals."""
         self.type_row.connect("notify::selected", self.on_type_changed)
         self.provider_row.connect("notify::selected", self.on_provider_changed)
-
         self.delete_btn.connect("clicked", self.on_delete_clicked)
 
         self.name_row.connect("notify::text", self.on_changed)
         self.desc_row.connect("notify::text", self.on_changed)
         self.url_row.connect("notify::text", self.on_changed)
         self.default_backend_host_row.connect("notify::text", self.on_changed)
-        self.default_backend_header_row.connect(
-            "notify::text", self.on_changed
-        )
-        self.header_color_button.connect("color-set", self.on_changed)
-        self.body_color_button.connect("color-set", self.on_changed)
-        self.text_color_button.connect("color-set", self.on_changed)
-        self.added_text_color_button.connect("color-set", self.on_changed)
-        self.removed_text_color_button.connect("color-set", self.on_changed)
-        self.modified_text_color_button.connect("color-set", self.on_changed)
+        self.default_backend_header_row.connect("notify::text", self.on_changed)
+
+        for btn in [self.header_color_button, self.body_color_button,
+                    self.text_color_button, self.added_text_color_button,
+                    self.removed_text_color_button, self.modified_text_color_button]:
+            btn.connect("color-set", self.on_changed)
 
         self.add_header_btn.connect("clicked", self.on_add_header)
         self.add_override_btn.connect("clicked", self.on_add_override)
@@ -565,24 +586,8 @@ class LayerRow(Adw.PreferencesGroup):
         self.add_routing_rule_btn.connect("clicked", self.on_add_routing_rule)
         self.add_node_btn.connect("clicked", self.on_add_node)
 
-        if layer_data:
-            self.load_data(layer_data)
-
-        # Force update provider list if empty (e.g. new layer)
-        if self.provider_model.get_n_items() == 0:
-            self.on_type_changed(None, None)
-            # Apply defaults if new layer and no data
-            if not layer_data:
-                self._apply_default_colors()
-
-        # Ensure defaults are set if colors are transparent
-        self._ensure_color_defaults()
-
-        self._loading = False
-
     def _ensure_color_defaults(self):
         """Sets default colors if current ones are transparent/unset."""
-        # Check if type is selected
         type_idx = self.type_row.get_selected()
         if type_idx < 0 or type_idx >= len(self.types_list):
             return
@@ -590,11 +595,8 @@ class LayerRow(Adw.PreferencesGroup):
         selected_type = self.types_list[type_idx]
         defaults = DEFAULT_LAYER_COLORS.get(selected_type, {})
 
-        # Layer Colors
-        for key, btn in [
-            ("header_color", self.header_color_button),
-            ("body_color", self.body_color_button),
-        ]:
+        for key, btn in [("header_color", self.header_color_button),
+                         ("body_color", self.body_color_button)]:
             if not btn.get_rgba() or btn.get_rgba().alpha == 0:
                 default_hex = defaults.get(key)
                 if default_hex:
@@ -602,7 +604,6 @@ class LayerRow(Adw.PreferencesGroup):
                     rgba.parse(default_hex)
                     btn.set_rgba(rgba)
 
-        # Diff Text Colors
         diff_map = {
             "added_text_color": self.added_text_color_button,
             "modified_text_color": self.modified_text_color_button,
@@ -624,21 +625,17 @@ class LayerRow(Adw.PreferencesGroup):
         selected_type = self.types_list[type_idx]
         defaults = DEFAULT_LAYER_COLORS.get(selected_type, {})
 
-        for key, btn in [
-            ("header_color", self.header_color_button),
-            ("body_color", self.body_color_button),
-        ]:
+        for key, btn in [("header_color", self.header_color_button),
+                         ("body_color", self.body_color_button)]:
             val = defaults.get(key)
             if val:
                 rgba = Gdk.RGBA()
                 rgba.parse(val)
                 btn.set_rgba(rgba)
 
-        for key, btn in [
-            ("added_text_color", self.added_text_color_button),
-            ("modified_text_color", self.modified_text_color_button),
-            ("removed_text_color", self.removed_text_color_button),
-        ]:
+        for key, btn in [("added_text_color", self.added_text_color_button),
+                         ("modified_text_color", self.modified_text_color_button),
+                         ("removed_text_color", self.removed_text_color_button)]:
             val = DEFAULT_DIFF_COLORS.get(key)
             if val:
                 rgba = Gdk.RGBA()
@@ -646,23 +643,54 @@ class LayerRow(Adw.PreferencesGroup):
                 btn.set_rgba(rgba)
 
     def on_type_changed(self, _row, _param):
-        """Updates the provider list based on the selected type."""
+        """Handle type change."""
+        if self._loading:
+            return
+
         selected_idx = self.type_row.get_selected()
         if selected_idx < 0 or selected_idx >= len(self.types_list):
             return
 
         selected_type = self.types_list[selected_idx]
-        strategy = get_strategy(selected_type)
+
+        # If the type changed from what this class expects (in subclasses),
+        # we might want to emit the signal.
+        # But `LayerRow` (base) acts as generic.
+
+        self._apply_strategy(selected_type)
+
+        # Populate providers
+        self.current_providers = get_providers_by_type(selected_type)
+        n_items = self.provider_model.get_n_items()
+        if n_items > 0:
+             self.provider_model.splice(0, n_items, [])
+        for prov in self.current_providers:
+            self.provider_model.append(prov.name)
+
+        if self.current_providers:
+            self.provider_row.set_selected(0)
+
+        # Notify parent to swap row if needed
+        self.emit("type_changed_request", selected_type.value)
+        self.on_changed()
+
+    def _apply_strategy(self, layer_type=None):
+        """Applies visibility and labels based on strategy."""
+        if layer_type is None:
+            # Determine from UI
+            idx = self.type_row.get_selected()
+            if 0 <= idx < len(self.types_list):
+                layer_type = self.types_list[idx]
+            else:
+                layer_type = ProviderType.CDN
+
+        strategy = get_strategy(layer_type)
         visibility = strategy.get_visibility()
         labels = strategy.get_labels()
 
         self.url_row.set_visible(visibility["url"])
-        self.default_backend_host_row.set_visible(
-            visibility["default_backend"]
-        )
-        self.default_backend_header_row.set_visible(
-            visibility["default_backend"]
-        )
+        self.default_backend_host_row.set_visible(visibility["default_backend"])
+        self.default_backend_header_row.set_visible(visibility["default_backend"])
         self.routing_rules_group.set_visible(visibility["routing"])
         self.overrides_group.set_visible(visibility["overrides"])
         self.path_match_group.set_visible(visibility["path_match"])
@@ -672,81 +700,42 @@ class LayerRow(Adw.PreferencesGroup):
         if "url_title" in labels:
             self.url_row.set_title(labels["url_title"])
         if "default_backend_host_title" in labels:
-            self.default_backend_host_row.set_title(
-                labels["default_backend_host_title"]
-            )
+            self.default_backend_host_row.set_title(labels["default_backend_host_title"])
         if "default_backend_header_title" in labels:
-            self.default_backend_header_row.set_title(
-                labels["default_backend_header_title"]
-            )
+            self.default_backend_header_row.set_title(labels["default_backend_header_title"])
         if "routing_rules_title" in labels:
             self.routing_rules_group.set_title(labels["routing_rules_title"])
         if "routing_rules_subtitle" in labels:
-            self.routing_rules_group.set_subtitle(
-                labels["routing_rules_subtitle"]
-            )
+            self.routing_rules_group.set_subtitle(labels["routing_rules_subtitle"])
         if "add_routing_rule_tooltip" in labels:
-            self.add_routing_rule_btn.set_tooltip_text(
-                labels["add_routing_rule_tooltip"]
-            )
+            self.add_routing_rule_btn.set_tooltip_text(labels["add_routing_rule_tooltip"])
 
         label_prefix = labels.get("rule_label_prefix", "Backend")
-
         for row in self.origin_rule_manager.rows:
             row.set_label_prefix(label_prefix)
 
-        # Clear provider model
-        n_items = self.provider_model.get_n_items()
-        if n_items > 0:
-            self.provider_model.splice(0, n_items, [])
-
-        self.current_providers = get_providers_by_type(selected_type)
-
-        for prov in self.current_providers:
-            self.provider_model.append(prov.name)
-
-        # Select first by default if not loading
-        if not self._loading and self.current_providers:
-            self.provider_row.set_selected(0)
-            self.on_changed()
-
     def on_provider_changed(self, _row, _param):
-        """Callback when provider changes."""
-        # Update custom headers with debug headers for this provider if empty
         if self._loading:
             return
-
         prov_idx = self.provider_row.get_selected()
         if 0 <= prov_idx < len(self.current_providers):
             selected_provider_cls = self.current_providers[prov_idx]
-            # Instantiate provider to get debug headers
             provider = selected_provider_cls()
             debug_headers = provider.get_debug_headers()
-
-            # If headers are empty, populate them.
             if not self.header_manager.rows and debug_headers:
                 for key, value in debug_headers.items():
                     self.add_header_row(key, value)
-
         self.on_changed()
 
     def load_data(self, data):
-        """Loads layer data into the UI widgets."""
         self._loading = True
         self.name_row.set_text(data.get("name", ""))
         self.desc_row.set_text(data.get("description", ""))
         self.url_row.set_text(data.get("host_url", ""))
-        self.default_backend_host_row.set_text(
-            data.get("default_backend_host", "")
-        )
-        self.default_backend_header_row.set_text(
-            data.get("default_backend_host_header", "")
-        )
+        self.default_backend_host_row.set_text(data.get("default_backend_host", ""))
+        self.default_backend_header_row.set_text(data.get("default_backend_host_header", ""))
         self.set_title(data.get("name", "New Layer"))
-        self.name_row.connect(
-            "notify::text",
-            lambda *args: self.set_title(self.name_row.get_text()),
-        )
+        self.name_row.connect("notify::text", lambda *args: self.set_title(self.name_row.get_text()))
 
         self._load_type_and_provider(data)
         self._load_colors(data)
@@ -754,37 +743,30 @@ class LayerRow(Adw.PreferencesGroup):
         self._load_overrides(data)
         self._load_path_matches(data)
         self._load_routing_rules(data)
-        self._load_nodes(data)  # New
+        self._load_nodes(data)
         self._loading = False
 
     def _load_type_and_provider(self, data):
-        """Loads the layer type and provider from data."""
         layer_type_str = data.get("layer_type", ProviderType.CDN.value)
-        type_idx = next(
-            (
-                i
-                for i, t in enumerate(self.types_list)
-                if t.value == layer_type_str
-            ),
-            0,
-        )
+        type_idx = next((i for i, t in enumerate(self.types_list) if t.value == layer_type_str), 0)
         self.type_row.set_selected(type_idx)
-        self.on_type_changed(None, None)
+
+        # Don't trigger on_type_changed logic fully here, just update UI state
+        # But we need provider list populated
+        self.current_providers = get_providers_by_type(self.types_list[type_idx])
+
+        n_items = self.provider_model.get_n_items()
+        if n_items > 0:
+             self.provider_model.splice(0, n_items, [])
+        for prov in self.current_providers:
+            self.provider_model.append(prov.name)
 
         provider_str = data.get("provider", "")
         if provider_str:
-            prov_idx = next(
-                (
-                    i
-                    for i, prov in enumerate(self.current_providers)
-                    if prov.name == provider_str
-                ),
-                0,
-            )
+            prov_idx = next((i for i, prov in enumerate(self.current_providers) if prov.name == provider_str), 0)
             self.provider_row.set_selected(prov_idx)
 
     def _load_colors(self, data):
-        """Loads color data into the UI."""
         color_buttons = {
             "header_color": self.header_color_button,
             "body_color": self.body_color_button,
@@ -800,25 +782,18 @@ class LayerRow(Adw.PreferencesGroup):
             button.set_rgba(rgba)
 
     def _load_headers(self, data):
-        """Loads custom headers."""
         for key, value in data.get("custom_headers", {}).items():
             self.add_header_row(key, value)
 
     def _load_overrides(self, data):
-        """Loads host overrides."""
         for override in data.get("host_overrides", []):
-            self.add_override_row(
-                override.get("path_pattern", ""),
-                override.get("host_header", ""),
-            )
+            self.add_override_row(override.get("path_pattern", ""), override.get("host_header", ""))
 
     def _load_path_matches(self, data):
-        """Loads path matches."""
         for pattern in data.get("path_match_only", []):
             self.add_path_match_row(pattern)
 
     def _load_routing_rules(self, data):
-        """Loads and groups routing rules."""
         routing_rules = data.get("routing_rules", [])
         if not routing_rules:
             return
@@ -839,122 +814,78 @@ class LayerRow(Adw.PreferencesGroup):
                     "domain_matches": [],
                 }
             if rule.get("path_match"):
-                grouped_backends[backend_key]["path_matches"].append(
-                    rule.get("path_match")
-                )
+                grouped_backends[backend_key]["path_matches"].append(rule.get("path_match"))
             if rule.get("domain_match"):
-                grouped_backends[backend_key]["domain_matches"].append(
-                    rule.get("domain_match")
-                )
+                grouped_backends[backend_key]["domain_matches"].append(rule.get("domain_match"))
 
-        # Get label type based on current type if already set
         type_idx = self.type_row.get_selected()
-        selected_type = (
-            self.types_list[type_idx].value
-            if 0 <= type_idx < len(self.types_list)
-            else ProviderType.CDN.value
-        )
-        label_prefix = (
-            "Origin" if selected_type == ProviderType.CDN.value else "Backend"
-        )
+        selected_type = self.types_list[type_idx].value if 0 <= type_idx < len(self.types_list) else ProviderType.CDN.value
+        label_prefix = "Origin" if selected_type == ProviderType.CDN.value else "Backend"
 
         for origin_data in grouped_backends.values():
             self.add_origin_rule_row(origin_data, label_prefix=label_prefix)
 
     def _load_nodes(self, data):
-        """Loads sibling nodes."""
         for node in data.get("nodes", []):
             self.add_node_row(node)
 
     def on_changed(self, *_args):
-        """Callback when any data in the layer row changes."""
         if self._loading:
             return
         if self.on_change_callback:
             self.on_change_callback()
 
     def on_delete_clicked(self, _btn):
-        """Callback for the delete button."""
         if self.on_delete_callback:
             self.on_delete_callback(self)
 
     def on_add_header(self, _btn):
-        """Callback to add a new header row."""
         self.add_header_row()
         self.on_changed()
 
     def add_header_row(self, key="", value=""):
-        """Adds a header entry row."""
         self.header_manager.add_row(key=key, value=value)
 
     def on_add_override(self, _btn):
-        """Callback to add a new override row."""
         self.add_override_row()
         self.on_changed()
 
     def add_override_row(self, pattern="", host=""):
-        """Adds an override entry row."""
         self.override_manager.add_row(pattern=pattern, host=host)
 
     def on_add_path_match(self, _btn):
-        """Callback to add a new path match row."""
         self.add_path_match_row()
         self.on_changed()
 
     def add_path_match_row(self, pattern=""):
-        """Adds a path match entry row."""
         self.path_match_manager.add_row(pattern=pattern)
 
     def on_add_routing_rule(self, _btn):
-        """Callback to add a new backend rule row."""
         type_idx = self.type_row.get_selected()
-        selected_type = (
-            self.types_list[type_idx].value
-            if 0 <= type_idx < len(self.types_list)
-            else ProviderType.CDN.value
-        )
-        label_prefix = (
-            "Origin" if selected_type == ProviderType.CDN.value else "Backend"
-        )
+        selected_type = self.types_list[type_idx].value if 0 <= type_idx < len(self.types_list) else ProviderType.CDN.value
+        label_prefix = "Origin" if selected_type == ProviderType.CDN.value else "Backend"
         self.add_origin_rule_row(label_prefix=label_prefix)
         self.on_changed()
 
     def add_origin_rule_row(self, origin_data=None, label_prefix="Backend"):
-        """Adds a backend rule entry row."""
-        self.origin_rule_manager.add_row(
-            origin_data=origin_data, label_prefix=label_prefix
-        )
+        self.origin_rule_manager.add_row(origin_data=origin_data, label_prefix=label_prefix)
 
     def on_add_node(self, _btn):
-        """Callback to add a new node row."""
         self.add_node_row()
         self.on_changed()
 
     def add_node_row(self, node_data=None):
-        """Adds a node entry row."""
-        # Determine current layer type
         type_idx = self.type_row.get_selected()
-        current_type = (
-            self.types_list[type_idx]
-            if 0 <= type_idx < len(self.types_list)
-            else ProviderType.CDN
-        )
-
-        self.node_manager.add_row(
-            node_data=node_data, layer_type=current_type
-        )
+        current_type = self.types_list[type_idx] if 0 <= type_idx < len(self.types_list) else ProviderType.CDN
+        self.node_manager.add_row(node_data=node_data, layer_type=current_type)
 
     def get_data(self):
-        """Collects and returns the layer configuration data."""
-
-        # Get selected Type
         type_idx = self.type_row.get_selected()
         if 0 <= type_idx < len(self.types_list):
             selected_type = self.types_list[type_idx].value
         else:
             selected_type = ProviderType.CDN.value
 
-        # Get selected Provider
         prov_idx = self.provider_row.get_selected()
         if 0 <= prov_idx < len(self.current_providers):
             selected_provider = self.current_providers[prov_idx].name
@@ -966,9 +897,7 @@ class LayerRow(Adw.PreferencesGroup):
             "provider": selected_provider,
             "name": self.name_row.get_text(),
             "description": self.desc_row.get_text(),
-            "host_url": (
-                self.url_row.get_text() if self.url_row.get_visible() else ""
-            ),
+            "host_url": (self.url_row.get_text() if self.url_row.get_visible() else ""),
             "default_backend_host": self.default_backend_host_row.get_text(),
             "default_backend_host_header": self.default_backend_header_row.get_text(),
             "header_color": self.header_color_button.get_rgba().to_string(),
@@ -981,7 +910,7 @@ class LayerRow(Adw.PreferencesGroup):
             "host_overrides": [],
             "path_match_only": [],
             "routing_rules": [],
-            "nodes": [],  # New
+            "nodes": [],
         }
 
         for row in self.header_manager.rows:
@@ -993,9 +922,7 @@ class LayerRow(Adw.PreferencesGroup):
             for row in self.override_manager.rows:
                 p, h = row.get_texts()
                 if p and h:
-                    data["host_overrides"].append(
-                        {"path_pattern": p, "host_header": h}
-                    )
+                    data["host_overrides"].append({"path_pattern": p, "host_header": h})
 
         if self.path_match_group.get_visible():
             for row in self.path_match_manager.rows:
@@ -1003,31 +930,55 @@ class LayerRow(Adw.PreferencesGroup):
                 if p:
                     data["path_match_only"].append(p)
 
-        # Flatten routing rules from backend rows
         if self.routing_rules_group.get_visible():
             for origin_row in self.origin_rule_manager.rows:
                 origin_data = origin_row.get_data()
                 if origin_data["backend_host"]:
                     base_rule = {
                         "backend_host": origin_data["backend_host"],
-                        "backend_host_header": origin_data[
-                            "backend_host_header"
-                        ],
+                        "backend_host_header": origin_data["backend_host_header"],
                         "path_rewrite": origin_data["path_rewrite"],
                     }
                     for path_match in origin_data["path_matches"]:
                         rule = base_rule.copy()
                         rule["path_match"] = path_match
                         data["routing_rules"].append(rule)
-
                     for domain_match in origin_data["domain_matches"]:
                         rule = base_rule.copy()
                         rule["domain_match"] = domain_match
                         data["routing_rules"].append(rule)
 
-        # Collect nodes
         if self.nodes_group.get_visible():
             for node_row in self.node_manager.rows:
                 data["nodes"].append(node_row.get_data())
 
         return data
+
+
+class CDNLayerRow(LayerRow):
+    """Specialized layer row for CDN."""
+    __gtype_name__ = "CDNLayerRow"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # CDN specific initialization if needed
+        # We can enforce type selection here or lock it
+
+    def on_type_changed(self, _row, _param):
+        super().on_type_changed(_row, _param)
+        # If type changed away from CDN, base class emits signal
+
+
+class LBLayerRow(LayerRow):
+    """Specialized layer row for Load Balancer."""
+    __gtype_name__ = "LBLayerRow"
+
+
+class ProxyLayerRow(LayerRow):
+    """Specialized layer row for Cache Proxy."""
+    __gtype_name__ = "ProxyLayerRow"
+
+
+class BackendLayerRow(LayerRow):
+    """Specialized layer row for Backend."""
+    __gtype_name__ = "BackendLayerRow"
