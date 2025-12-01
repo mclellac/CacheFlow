@@ -15,6 +15,7 @@ from ..analysis.analyzer import HeaderAnalyzer
 from ..analysis.analysis_dialog import HeaderAnalysisDialog
 from ..engine.inspection_controller import InspectionController
 from ..config.config_manager import ConfigManager
+from .error_handler import get_user_friendly_error
 
 log = logging.getLogger(__name__)
 
@@ -348,7 +349,8 @@ class Window(Adw.ApplicationWindow):
             GLib.SOURCE_REMOVE to remove the idle source.
         """
         log.error("Inspection task failed: %s", exception)
-        self.show_error_dialog("Inspection Failed", str(exception))
+        title, message = get_user_friendly_error(exception)
+        self.show_error_dialog(title, message)
         self.set_inspection_in_progress(False)
         return GLib.SOURCE_REMOVE
 
