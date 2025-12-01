@@ -3,6 +3,7 @@ This module defines custom widgets used in the Layer configuration UI,
 including the LayerRow for editing layer details.
 """
 
+from typing import List, Any, Optional, Dict
 from gi.repository import Gtk, Adw, Gdk
 from ..providers.base import ProviderType
 from ..providers import get_providers_by_type
@@ -427,6 +428,39 @@ class OriginRuleRow(ConfigRowMixin, Adw.ExpanderRow):
         }
 
 
+class RowListManager:
+    """Helper to manage dynamic lists of configuration rows."""
+    def __init__(self, group, row_class, on_change):
+        self.group = group
+        self.row_class = row_class
+        self.on_change_cb = on_change
+        self.rows = []
+
+    def add_row(self, **kwargs):
+        """Adds a new row to the group."""
+        row = self.row_class(
+            on_change=self.on_change_cb,
+            on_delete=self.remove_row,
+            **kwargs
+        )
+        self.group.add_row(row)
+        self.rows.append(row)
+        return row
+
+    def remove_row(self, row):
+        """Removes a row from the group."""
+        self.group.remove(row)
+        if row in self.rows:
+            self.rows.remove(row)
+        if self.on_change_cb:
+            self.on_change_cb()
+
+    def clear(self):
+        """Removes all rows."""
+        for row in list(self.rows):
+            self.remove_row(row)
+
+
 @Gtk.Template(filename="src/ui/layer_row.ui")
 class LayerRow(Adw.PreferencesGroup):
     """
@@ -478,11 +512,21 @@ class LayerRow(Adw.PreferencesGroup):
         self.on_delete_callback = on_delete
         self.on_change_callback = on_change
 
-        self.header_rows = []
-        self.override_rows = []
-        self.path_match_rows = []
-        self.origin_rule_rows = []
-        self.node_rows = []
+        self.header_manager = RowListManager(
+            self.headers_group, HeaderRow, self.on_changed
+        )
+        self.override_manager = RowListManager(
+            self.overrides_group, OverrideRow, self.on_changed
+        )
+        self.path_match_manager = RowListManager(
+            self.path_match_group, PathMatchRow, self.on_changed
+        )
+        self.origin_rule_manager = RowListManager(
+            self.routing_rules_group, OriginRuleRow, self.on_changed
+        )
+        self.node_manager = RowListManager(
+            self.nodes_group, NodeRow, self.on_changed
+        )
 
         # Setup Models for Type and Provider
         self.type_model = Gtk.StringList()
@@ -648,7 +692,7 @@ class LayerRow(Adw.PreferencesGroup):
 
         label_prefix = labels.get("rule_label_prefix", "Backend")
 
-        for row in self.origin_rule_rows:
+        for row in self.origin_rule_manager.rows:
             row.set_label_prefix(label_prefix)
 
         # Clear provider model
@@ -680,7 +724,7 @@ class LayerRow(Adw.PreferencesGroup):
             debug_headers = provider.get_debug_headers()
 
             # If headers are empty, populate them.
-            if not self.header_rows and debug_headers:
+            if not self.header_manager.rows and debug_headers:
                 for key, value in debug_headers.items():
                     self.add_header_row(key, value)
 
@@ -841,20 +885,7 @@ class LayerRow(Adw.PreferencesGroup):
 
     def add_header_row(self, key="", value=""):
         """Adds a header entry row."""
-        row = HeaderRow(
-            key=key,
-            value=value,
-            on_change=self.on_changed,
-            on_delete=self.remove_header_row,
-        )
-        self.headers_group.add_row(row)
-        self.header_rows.append(row)
-
-    def remove_header_row(self, row):
-        """Removes a header entry row."""
-        self.headers_group.remove(row)
-        self.header_rows.remove(row)
-        self.on_changed()
+        self.header_manager.add_row(key=key, value=value)
 
     def on_add_override(self, _btn):
         """Callback to add a new override row."""
@@ -863,20 +894,7 @@ class LayerRow(Adw.PreferencesGroup):
 
     def add_override_row(self, pattern="", host=""):
         """Adds an override entry row."""
-        row = OverrideRow(
-            pattern=pattern,
-            host=host,
-            on_change=self.on_changed,
-            on_delete=self.remove_override_row,
-        )
-        self.overrides_group.add_row(row)
-        self.override_rows.append(row)
-
-    def remove_override_row(self, row):
-        """Removes an override entry row."""
-        self.overrides_group.remove(row)
-        self.override_rows.remove(row)
-        self.on_changed()
+        self.override_manager.add_row(pattern=pattern, host=host)
 
     def on_add_path_match(self, _btn):
         """Callback to add a new path match row."""
@@ -885,19 +903,7 @@ class LayerRow(Adw.PreferencesGroup):
 
     def add_path_match_row(self, pattern=""):
         """Adds a path match entry row."""
-        row = PathMatchRow(
-            pattern=pattern,
-            on_change=self.on_changed,
-            on_delete=self.remove_path_match_row,
-        )
-        self.path_match_group.add_row(row)
-        self.path_match_rows.append(row)
-
-    def remove_path_match_row(self, row):
-        """Removes a path match entry row."""
-        self.path_match_group.remove(row)
-        self.path_match_rows.remove(row)
-        self.on_changed()
+        self.path_match_manager.add_row(pattern=pattern)
 
     def on_add_routing_rule(self, _btn):
         """Callback to add a new backend rule row."""
@@ -915,20 +921,9 @@ class LayerRow(Adw.PreferencesGroup):
 
     def add_origin_rule_row(self, origin_data=None, label_prefix="Backend"):
         """Adds a backend rule entry row."""
-        row = OriginRuleRow(
-            origin_data=origin_data,
-            label_prefix=label_prefix,
-            on_change=self.on_changed,
-            on_delete=self.remove_origin_rule_row,
+        self.origin_rule_manager.add_row(
+            origin_data=origin_data, label_prefix=label_prefix
         )
-        self.routing_rules_group.add_row(row)
-        self.origin_rule_rows.append(row)
-
-    def remove_origin_rule_row(self, row):
-        """Removes a backend rule entry row."""
-        self.routing_rules_group.remove(row)
-        self.origin_rule_rows.remove(row)
-        self.on_changed()
 
     def on_add_node(self, _btn):
         """Callback to add a new node row."""
@@ -945,20 +940,9 @@ class LayerRow(Adw.PreferencesGroup):
             else ProviderType.CDN
         )
 
-        row = NodeRow(
-            node_data=node_data,
-            layer_type=current_type,
-            on_change=self.on_changed,
-            on_delete=self.remove_node_row,
+        self.node_manager.add_row(
+            node_data=node_data, layer_type=current_type
         )
-        self.nodes_group.add_row(row)
-        self.node_rows.append(row)
-
-    def remove_node_row(self, row):
-        """Removes a node entry row."""
-        self.nodes_group.remove(row)
-        self.node_rows.remove(row)
-        self.on_changed()
 
     def get_data(self):
         """Collects and returns the layer configuration data."""
@@ -1000,13 +984,13 @@ class LayerRow(Adw.PreferencesGroup):
             "nodes": [],  # New
         }
 
-        for row in self.header_rows:
+        for row in self.header_manager.rows:
             k, v = row.get_texts()
             if k:
                 data["custom_headers"][k] = v
 
         if self.overrides_group.get_visible():
-            for row in self.override_rows:
+            for row in self.override_manager.rows:
                 p, h = row.get_texts()
                 if p and h:
                     data["host_overrides"].append(
@@ -1014,14 +998,14 @@ class LayerRow(Adw.PreferencesGroup):
                     )
 
         if self.path_match_group.get_visible():
-            for row in self.path_match_rows:
+            for row in self.path_match_manager.rows:
                 (p,) = row.get_texts()
                 if p:
                     data["path_match_only"].append(p)
 
         # Flatten routing rules from backend rows
         if self.routing_rules_group.get_visible():
-            for origin_row in self.origin_rule_rows:
+            for origin_row in self.origin_rule_manager.rows:
                 origin_data = origin_row.get_data()
                 if origin_data["backend_host"]:
                     base_rule = {
@@ -1043,7 +1027,7 @@ class LayerRow(Adw.PreferencesGroup):
 
         # Collect nodes
         if self.nodes_group.get_visible():
-            for node_row in self.node_rows:
+            for node_row in self.node_manager.rows:
                 data["nodes"].append(node_row.get_data())
 
         return data

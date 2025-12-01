@@ -55,7 +55,7 @@ The current codebase is largely flat within the `src/` directory. Grouping relat
 2. [x] **Extract Layout Logic**: Move layout calculation from `NodeGraph.set_data` to a new `src/nodegraph/layout.py`.
 3. [x] **Refactor Engine**: Split `run_inspection` into smaller, composable methods. Unify sibling selection logic.
 4. [x] **Refactor Preferences**: Move import/export parsing logic out of `PreferencesWindow` into `ConfigManager` or a dedicated `Importer`.
-5.  **Refactor LayerRow**: Split `LayerRow` into subclasses or further decouple using the existing Strategy pattern.
+5. [x] **Refactor LayerRow**: Split `LayerRow` into subclasses or further decouple using the existing Strategy pattern.
 
 ## 7. Code Quality & Standards
 
@@ -67,7 +67,7 @@ The current codebase is largely flat within the `src/` directory. Grouping relat
 
 *   [x] **Error Feedback**: `Window.on_inspection_failed` displays raw exception strings to the user via `Adw.AlertDialog`. These should be mapped to user-friendly, localized error messages to improve the user experience.
 *   [x] **Widget Compatibility**: `src/main.py` contains fallback logic for `Adw.AboutDialog` vs `Adw.AboutWindow`. The project should standardize on the targeted Libadwaita version to remove unnecessary compatibility checks.
-*   **Accessibility**: `src/node_graph.py` draws text and elements using Cairo but does not appear to provide accessibility descriptors (via `Gtk.Accessible` or `Atk`) for the graph nodes. This makes the core visualization inaccessible to screen readers.
+*   [x] **Accessibility**: `src/node_graph.py` draws text and elements using Cairo but does not appear to provide accessibility descriptors (via `Gtk.Accessible` or `Atk`) for the graph nodes. This makes the core visualization inaccessible to screen readers.
 
 ## 9. Implementation Details
 
