@@ -456,13 +456,6 @@ class ConfigManager:
                 GLib.Variant("{sv}", ("routing_rules", rules_builder.end()))
             )
 
-            # Deprecated, pack empty for compatibility if needed
-            dict_builder.add_value(
-                GLib.Variant(
-                    "{sv}", ("varnish_backends", GLib.Variant("aa{sv}", []))
-                )
-            )
-
             # Build 'nodes' (aa{sv}) for multiple proxies/backends
             nodes_builder = GLib.VariantBuilder.new(
                 GLib.VariantType.new("aa{sv}")
