@@ -177,18 +177,6 @@
                                 <property name="spacing">12</property>
                               </object>
                             </child>
-                            <child>
-                              <object class="AdwPreferencesGroup">
-                                <property name="description">Content Delivery Network layers (Entry Points).</property>
-                                <child>
-                                  <object class="AdwActionRow" id="add_cdn_row">
-                                    <property name="title">Add CDN Layer</property>
-                                    <property name="icon-name">list-add-symbolic</property>
-                                    <property name="activatable">True</property>
-                                  </object>
-                                </child>
-                              </object>
-                            </child>
                           </object>
                         </property>
                       </object>
@@ -206,18 +194,6 @@
                               <object class="GtkBox" id="group_lb">
                                 <property name="orientation">vertical</property>
                                 <property name="spacing">12</property>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="AdwPreferencesGroup">
-                                <property name="description">Traffic distribution layers (e.g., Nginx, HAProxy).</property>
-                                <child>
-                                  <object class="AdwActionRow" id="add_lb_row">
-                                    <property name="title">Add Load Balancer Layer</property>
-                                    <property name="icon-name">list-add-symbolic</property>
-                                    <property name="activatable">True</property>
-                                  </object>
-                                </child>
                               </object>
                             </child>
                           </object>
@@ -239,18 +215,6 @@
                                 <property name="spacing">12</property>
                               </object>
                             </child>
-                            <child>
-                              <object class="AdwPreferencesGroup">
-                                <property name="description">Caching layers (e.g., Varnish) sitting between LB and App.</property>
-                                <child>
-                                  <object class="AdwActionRow" id="add_proxy_row">
-                                    <property name="title">Add Proxy Layer</property>
-                                    <property name="icon-name">list-add-symbolic</property>
-                                    <property name="activatable">True</property>
-                                  </object>
-                                </child>
-                              </object>
-                            </child>
                           </object>
                         </property>
                       </object>
@@ -268,18 +232,6 @@
                               <object class="GtkBox" id="group_app">
                                 <property name="orientation">vertical</property>
                                 <property name="spacing">12</property>
-                              </object>
-                            </child>
-                            <child>
-                              <object class="AdwPreferencesGroup">
-                                <property name="description">Origin Application Backends (e.g., Web Servers).</property>
-                                <child>
-                                  <object class="AdwActionRow" id="add_app_row">
-                                    <property name="title">Add Application Layer</property>
-                                    <property name="icon-name">list-add-symbolic</property>
-                                    <property name="activatable">True</property>
-                                  </object>
-                                </child>
                               </object>
                             </child>
                           </object>

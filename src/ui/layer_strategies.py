@@ -126,12 +126,12 @@ class BackendConfigStrategy(LayerConfigStrategy):
 
     def get_visibility(self) -> Dict[str, bool]:
         return {
-            "url": True,
+            "url": False,
             "default_backend": False,
             "routing": False,
             "overrides": False,
             "path_match": False,
-            "nodes": False,
+            "nodes": True,
             "headers": True,
         }
 
