@@ -19,6 +19,7 @@ ui_sources = [
   'ui/layer_widgets.py',
   'ui/layer_strategies.py',
   'ui/ui_utils.py',
+  'ui/error_handler.py',
 ]
 
 nodegraph_sources = [
@@ -85,6 +86,7 @@ ui_files = files([
   'ui/path_match_row.ui',
   'ui/origin_rule_row.ui',
   'ui/domain_match_row.ui',
+  'ui/node_row.ui',
   'ui/add_config_dialog.ui',
   'ui/header_dialog.ui',
   'ui/analysis_dialog.ui',
