@@ -73,11 +73,10 @@ class NodeGraph(Gtk.DrawingArea):
 
         # Accessibility setup
         self.set_accessible_role(Gtk.AccessibleRole.IMG)
-        self.update_property(Gtk.AccessibleProperty.LABEL, "Network Node Graph")
-        self.update_property(
-            Gtk.AccessibleProperty.DESCRIPTION,
-            "Displays the request path and headers across infrastructure layers."
-        )
+        self.update_property([
+            Gtk.AccessibleProperty.LABEL, "Network Node Graph",
+            Gtk.AccessibleProperty.DESCRIPTION, "Displays the request path and headers across infrastructure layers."
+        ])
 
     def _setup_context_menu(self) -> None:
         """Sets up the context menu for the graph."""
@@ -270,7 +269,7 @@ class NodeGraph(Gtk.DrawingArea):
 
         # Update accessibility description
         desc = f"Graph showing {len(layers_data)} layers and {len(self.nodes)} nodes."
-        self.update_property(Gtk.AccessibleProperty.DESCRIPTION, desc)
+        self.update_property([Gtk.AccessibleProperty.DESCRIPTION, desc])
 
         self.queue_draw()
 
