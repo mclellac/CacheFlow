@@ -71,6 +71,14 @@ class NodeGraph(Gtk.DrawingArea):
         self.gestures.setup_gestures()
         self._setup_context_menu()
 
+        # Accessibility setup
+        self.set_accessible_role(Gtk.AccessibleRole.IMG)
+        self.update_property(Gtk.AccessibleProperty.LABEL, "Network Node Graph")
+        self.update_property(
+            Gtk.AccessibleProperty.DESCRIPTION,
+            "Displays the request path and headers across infrastructure layers."
+        )
+
     def _setup_context_menu(self) -> None:
         """Sets up the context menu for the graph."""
         menu = Gio.Menu()
@@ -259,6 +267,10 @@ class NodeGraph(Gtk.DrawingArea):
         self.intro_progress = 0.0  # Reset intro animation
 
         self.nodes = self.layout_manager.calculate_layout(layers_data)
+
+        # Update accessibility description
+        desc = f"Graph showing {len(layers_data)} layers and {len(self.nodes)} nodes."
+        self.update_property(Gtk.AccessibleProperty.DESCRIPTION, desc)
 
         self.queue_draw()
 
