@@ -14,6 +14,10 @@ class HeaderDefinition(NamedTuple):
     description: str
     category: str
     expected_values: str
+    meaning: str = ""
+    impact: str = ""
+    recommendation: str = ""
+    risk_label: str = ""
 
 
 class ProviderType(Enum):
@@ -38,6 +42,12 @@ class BaseProvider:
     def get_debug_headers(self) -> Dict[str, str]:
         """
         Returns a dictionary of headers to enable debugging features for this provider.
+        """
+        return {}
+
+    def get_preset_headers(self) -> Dict[str, str]:
+        """
+        Returns a dictionary of standard headers to pre-fill for a preset.
         """
         return {}
 

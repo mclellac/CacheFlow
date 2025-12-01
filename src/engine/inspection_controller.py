@@ -116,10 +116,16 @@ class InspectionController:
             )
 
             # Convert the analysis report into the 4-tuple format required by NodeData.
-            formatted_headers = [
-                (item.key, item.value, item.change_type, item.description)
-                for item in report.items
-            ]
+            formatted_headers = []
+            for item in report.items:
+                # Prioritize warning in the note field, otherwise use description
+                note_text = item.description
+                if item.warning:
+                    note_text = f"⚠️ {item.warning}"
+
+                formatted_headers.append(
+                    (item.key, item.value, item.change_type, note_text)
+                )
             log.debug(
                 "Formatted headers for '%s': %d items",
                 result.get("name"),

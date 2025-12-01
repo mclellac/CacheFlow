@@ -118,12 +118,83 @@ class PathMatchRow(BaseEntryRow):
     __gtype_name__ = "PathMatchRow"
 
     pat_entry = Gtk.Template.Child()
+    type_combo = Gtk.Template.Child()
     delete_btn = Gtk.Template.Child()
 
     def __init__(self, pattern="", on_change=None, on_delete=None, **kwargs):
         super().__init__(on_change=on_change, on_delete=on_delete, **kwargs)
         self.entries = [self.pat_entry]
-        self.setup_entries([pattern])
+
+        self.type_combo.connect("changed", self.on_type_changed)
+
+        self._set_pattern(pattern)
+        self.pat_entry.connect("changed", self.notify_change)
+
+    def _set_pattern(self, pattern):
+        """Sets the UI state based on the pattern string."""
+        if not pattern:
+            self.type_combo.set_active_id("starts_with")
+            self.pat_entry.set_text("")
+            return
+
+        # Heuristic detection
+        if (
+            pattern.endswith("*")
+            and pattern.startswith("*")
+            and len(pattern) > 1
+        ):
+            # Contains? *foo*
+            core = pattern[1:-1]
+            if "*" not in core:
+                self.type_combo.set_active_id("contains")
+                self.pat_entry.set_text(core)
+                return
+
+        if pattern.endswith("*") and len(pattern) > 0:
+            core = pattern[:-1]
+            if "*" not in core:
+                self.type_combo.set_active_id("starts_with")
+                self.pat_entry.set_text(core)
+                return
+
+        if pattern.startswith("*") and len(pattern) > 0:
+            core = pattern[1:]
+            if "*" not in core:
+                self.type_combo.set_active_id("ends_with")
+                self.pat_entry.set_text(core)
+                return
+
+        if "*" not in pattern:
+            self.type_combo.set_active_id("exact")
+            self.pat_entry.set_text(pattern)
+            return
+
+        # Fallback to Glob
+        self.type_combo.set_active_id("glob")
+        self.pat_entry.set_text(pattern)
+
+    def on_type_changed(self, _combo):
+        """Handles changes in the match type combo."""
+        self.notify_change()
+
+    def get_texts(self):
+        """Returns the constructed pattern."""
+        type_id = self.type_combo.get_active_id()
+        val = self.pat_entry.get_text()
+
+        if not val:
+            return [""]
+
+        if type_id == "starts_with":
+            return [f"{val}*"]
+        if type_id == "ends_with":
+            return [f"*{val}"]
+        if type_id == "contains":
+            return [f"*{val}*"]
+        if type_id == "exact":
+            return [val]
+
+        return [val]
 
 
 @Gtk.Template(filename="src/ui/domain_match_row.ui")
@@ -492,6 +563,8 @@ class LayerRow(Adw.PreferencesGroup):
     path_match_group = Gtk.Template.Child()
     add_path_match_btn = Gtk.Template.Child()
 
+    preset_btn = Gtk.Template.Child()
+
     routing_rules_group = Gtk.Template.Child()
     add_routing_rule_btn = Gtk.Template.Child()
 
@@ -506,6 +579,7 @@ class LayerRow(Adw.PreferencesGroup):
         self._loading = True
         self.on_delete_callback = on_delete
         self.on_change_callback = on_change
+        self.current_providers = []
 
         # Initialize Managers (Subclasses will use specific ones, but we init all for safety/Base)
         self.header_manager = RowListManager(
@@ -552,6 +626,10 @@ class LayerRow(Adw.PreferencesGroup):
         self.type_row.set_model(self.type_model)
         self.provider_row.set_model(self.provider_model)
 
+        # Initialize for first type (CDN) to ensure current_providers is populated
+        if self.types_list:
+            self.current_providers = get_providers_by_type(self.types_list[0])
+
         # Enforce strict architecture: Type is fixed per slot, so hide the selector.
         self.type_row.set_visible(False)
 
@@ -586,6 +664,7 @@ class LayerRow(Adw.PreferencesGroup):
         self.add_path_match_btn.connect("clicked", self.on_add_path_match)
         self.add_routing_rule_btn.connect("clicked", self.on_add_routing_rule)
         self.add_node_btn.connect("clicked", self.on_add_node)
+        self.preset_btn.connect("clicked", self.on_preset_clicked)
 
     def _ensure_color_defaults(self):
         """Sets default colors if current ones are transparent/unset."""
@@ -722,6 +801,9 @@ class LayerRow(Adw.PreferencesGroup):
             self.add_routing_rule_btn.set_tooltip_text(
                 labels["add_routing_rule_tooltip"]
             )
+
+        if "nodes_title" in labels:
+            self.nodes_group.set_title(labels["nodes_title"])
 
         label_prefix = labels.get("rule_label_prefix", "Backend")
         for row in self.origin_rule_manager.rows:
@@ -870,8 +952,21 @@ class LayerRow(Adw.PreferencesGroup):
     def on_changed(self, *_args):
         if self._loading:
             return
+        self._update_node_count_subtitle()
         if self.on_change_callback:
             self.on_change_callback()
+
+    def _update_node_count_subtitle(self):
+        """Updates the nodes group subtitle with the server count."""
+        count = len(self.node_manager.rows)
+        if count == 0:
+            self.nodes_group.set_subtitle(
+                "Configure multiple servers for this layer."
+            )
+        else:
+            self.nodes_group.set_subtitle(
+                f"{count} Server{'s' if count != 1 else ''} configured."
+            )
 
     def on_delete_clicked(self, _btn):
         if self.on_delete_callback:
@@ -916,11 +1011,68 @@ class LayerRow(Adw.PreferencesGroup):
             origin_data=origin_data, label_prefix=label_prefix
         )
 
+    def on_preset_clicked(self, btn):
+        """Shows the preset selection popover."""
+        popover = Gtk.Popover()
+        popover.set_parent(btn)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        box.set_margin_top(6)
+        box.set_margin_bottom(6)
+        box.set_margin_start(6)
+        box.set_margin_end(6)
+
+        # Get current available providers
+        if not hasattr(self, "current_providers") or not self.current_providers:
+            label = Gtk.Label(label="No presets available.")
+            box.append(label)
+        else:
+            label = Gtk.Label(label="Load Preset")
+            label.add_css_class("title-4")
+            box.append(label)
+
+            for prov_cls in self.current_providers:
+                row = Adw.ActionRow(title=prov_cls.name)
+                row.set_activatable(True)
+                gesture = Gtk.GestureClick()
+                gesture.connect(
+                    "released",
+                    lambda g, n, x, y, name=prov_cls.name: self._apply_preset(
+                        name, popover
+                    ),
+                )
+                row.add_controller(gesture)
+                box.append(row)
+
+        popover.set_child(box)
+        popover.popup()
+
+    def _apply_preset(self, provider_name, popover):
+        """Applies the selected preset."""
+        popover.popdown()
+        # Find index in provider_model
+        for i in range(self.provider_model.get_n_items()):
+            if self.provider_model.get_string(i) == provider_name:
+                self.provider_row.set_selected(i)
+
+                # Apply headers
+                for prov_cls in self.current_providers:
+                    if prov_cls.name == provider_name:
+                        provider = prov_cls()
+                        preset_headers = provider.get_preset_headers()
+                        if preset_headers:
+                            for k, v in preset_headers.items():
+                                self.add_header_row(k, v)
+                        break
+                break
+
     def on_add_node(self, _btn):
+        """Callback for adding a new node row."""
         self.add_node_row()
         self.on_changed()
 
     def add_node_row(self, node_data=None):
+        """Adds a new NodeRow to the UI."""
         type_idx = self.type_row.get_selected()
         current_type = (
             self.types_list[type_idx]

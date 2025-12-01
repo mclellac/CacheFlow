@@ -38,6 +38,7 @@ class CacheFlowApplication(Adw.Application):
         """Callback when the application is activated."""
         self.settings = Gio.Settings.new("com.github.mclellac.CacheFlow")
         self.create_action("preferences", self.on_preferences_action)
+        self.create_action("encyclopedia", self.on_encyclopedia_action)
         self.create_action("shortcuts", self.on_shortcuts_action)
         self.create_action("about", self.on_about_action)
         self.style_manager = Adw.StyleManager.get_default()
@@ -100,6 +101,29 @@ class CacheFlowApplication(Adw.Application):
             transient_for=self.get_active_window(), modal=True
         )
         prefs_window.present()
+
+    def on_encyclopedia_action(
+        self, _action: Gio.SimpleAction, _param: Optional[GLib.Variant]
+    ) -> None:
+        """Callback for the app.encyclopedia action."""
+        from .analysis.knowledge import HEADER_KNOWLEDGE
+        from .ui.header_dialog import HeaderDialog
+
+        headers = []
+        for key, info in sorted(HEADER_KNOWLEDGE.items()):
+            note = info.description
+            if info.meaning:
+                note = info.meaning
+            headers.append((key, info.category, "UNCHANGED", note))
+
+        win = HeaderDialog(
+            headers=headers,
+            heading="Header Encyclopedia",
+            application=self,
+            transient_for=self.get_active_window(),
+        )
+        win.window_title.set_title("Header Encyclopedia")
+        win.present()
 
     def on_about_action(
         self, _action: Gio.SimpleAction, _param: Optional[GLib.Variant]

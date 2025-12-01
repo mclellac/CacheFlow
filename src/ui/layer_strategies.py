@@ -30,10 +30,11 @@ class LayerConfigStrategy:
             "url_title": "Host URL",
             "default_backend_host_title": "Default Backend Host",
             "default_backend_header_title": "Default Backend Host Header (Optional)",
-            "routing_rules_title": "Backend Rules",
-            "routing_rules_subtitle": "Define backend destinations based on request paths.",
-            "add_routing_rule_tooltip": "Add New Backend",
+            "routing_rules_title": "Traffic Rules",
+            "routing_rules_subtitle": "Define rules to direct traffic.",
+            "add_routing_rule_tooltip": "Add New Rule",
             "rule_label_prefix": "Backend",
+            "nodes_title": "Servers",
         }
 
     def process_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
