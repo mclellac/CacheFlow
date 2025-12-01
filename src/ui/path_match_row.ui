@@ -13,8 +13,20 @@
         <property name="margin-end">12</property>
 
         <child>
+          <object class="GtkComboBoxText" id="type_combo">
+            <property name="valign">center</property>
+            <items>
+              <item id="starts_with" translatable="yes">Starts With</item>
+              <item id="ends_with" translatable="yes">Ends With</item>
+              <item id="contains" translatable="yes">Contains</item>
+              <item id="exact" translatable="yes">Exact Match</item>
+              <item id="glob" translatable="yes">Custom Glob</item>
+            </items>
+          </object>
+        </child>
+        <child>
           <object class="GtkEntry" id="pat_entry">
-            <property name="placeholder-text">/path/*</property>
+            <property name="placeholder-text">/images/</property>
             <property name="hexpand">True</property>
           </object>
         </child>

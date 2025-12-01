@@ -44,12 +44,18 @@ STANDARD_HEADERS: Dict[str, HeaderDefinition] = {
         "Directives for caching mechanisms in both requests and responses.",
         CAT_CACHE,
         "public, private, no-cache, no-store, max-age=<seconds>",
+        meaning="This header tells the browser and CDNs how long to save this file.",
+        impact="If set incorrectly, users might see old content (cached too long) or your servers might be overloaded (cached too short).",
+        recommendation="For static assets (images, css), use 'public, max-age=31536000'. For dynamic content, use 'no-cache'.",
     ),
     "vary": HeaderDefinition(
         "Tells downstream proxies how to match future request headers to decide whether "
         "the cached response can be used.",
         CAT_CACHE,
         "Accept-Encoding, User-Agent, Origin",
+        meaning="This helps caches serve different versions of the same URL based on user headers (like language or compression).",
+        impact="Missing this header can cause users to receive the wrong version (e.g. wrong language). Too many values can reduce cache efficiency.",
+        recommendation="Only include headers that actually change the response body (e.g., 'Accept-Encoding' or 'Accept-Language').",
     ),
     "age": HeaderDefinition(
         "The time in seconds the object has been in a proxy cache.",

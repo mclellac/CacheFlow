@@ -36,6 +36,8 @@ class Window(Adw.ApplicationWindow):
     toast_overlay = Gtk.Template.Child()
     show_all_nodes_button = Gtk.Template.Child()
     show_labels_button = Gtk.Template.Child()
+    status_page = Gtk.Template.Child()
+    status_action_btn = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -68,6 +70,7 @@ class Window(Adw.ApplicationWindow):
         self.show_labels_button.connect(
             "toggled", self.on_show_labels_toggled
         )
+        self.status_action_btn.connect("clicked", self.on_status_action_clicked)
 
         # Listen for setting changes (e.g. from Preferences) to refresh switcher
         self.settings.connect(
@@ -212,6 +215,7 @@ class Window(Adw.ApplicationWindow):
             active_id = configs[0]["id"]
 
         self.update_env_label(active_id)
+        self._update_status_page()
         self.config_switcher.connect(
             "notify::selected", self.on_config_selected
         )
@@ -255,6 +259,26 @@ class Window(Adw.ApplicationWindow):
             )
         else:
             self.env_label.set_text("No Host Configured")
+
+    def _update_status_page(self):
+        """Updates the status page based on configuration state."""
+        has_config = len(self.config_ids) > 0
+        if not has_config:
+            self.status_page.set_title("No Configuration")
+            self.status_page.set_description(
+                "Create a domain configuration to get started."
+            )
+            self.status_action_btn.set_visible(True)
+        else:
+            self.status_page.set_title("Ready to Inspect")
+            self.status_page.set_description(
+                "Enter a URL path and click Inspect to visualize the cache flow."
+            )
+            self.status_action_btn.set_visible(False)
+
+    def on_status_action_clicked(self, _btn):
+        """Callback for the status action button."""
+        self.activate_action("app.preferences", None)
 
     def on_inspect_clicked(self, *_):
         """Callback for the inspect button.

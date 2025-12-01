@@ -76,5 +76,14 @@ class Akamai(BaseProvider):
             )
         }
 
+    def get_preset_headers(self) -> Dict[str, str]:
+        return {
+            "Pragma": (
+                "akamai-x-get-request-id, akamai-x-cache-on, akamai-x-cache-key, "
+                "akamai-x-check-cacheable, akamai-x-get-cache-key, "
+                "akamai-x-get-true-cache-key"
+            )
+        }
+
     def get_known_headers(self) -> Dict[str, HeaderDefinition]:
         return AKAMAI_HEADERS
