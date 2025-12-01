@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Tuple
 from dataclasses import dataclass
 import cairo
 
-@dataclass(frozen=True)
+@dataclass
 class LayoutConfig:
     """Configuration constants for graph layout."""
     node_width: int = 450
