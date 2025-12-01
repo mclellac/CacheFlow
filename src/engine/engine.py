@@ -96,9 +96,10 @@ class CacheFlowEngine:
             dns.resolver.NXDOMAIN,
             dns.resolver.NoAnswer,
             dns.resolver.Timeout,
+            dns.exception.DNSException,
         ) as e:
             log.error("Custom DNS resolution failed for %s: %s", hostname, e)
-            return hostname, e
+            return hostname, str(e)
         return hostname, None
 
     def _select_node_from_siblings(

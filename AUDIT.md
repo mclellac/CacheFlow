@@ -46,7 +46,7 @@ The current codebase is largely flat within the `src/` directory. Grouping relat
 
 ## 5. Dead Code & Cleanups
 
-*   **Unused Template**: `src/ui/varnish_backend_row.ui` does not have a corresponding Python class and should be removed if confirmed unused.
+*   [x] **Unused Template**: `src/ui/varnish_backend_row.ui` does not have a corresponding Python class and should be removed if confirmed unused.
 *   **Legacy Code**: `src/config_manager.py` retains empty `varnish_backends` packing for backward compatibility. This is acceptable but should be noted for future cleanup.
 
 ## 6. Recommendations
@@ -65,11 +65,11 @@ The current codebase is largely flat within the `src/` directory. Grouping relat
 
 ## 8. UI/UX & GNOME HIG
 
-*   **Error Feedback**: `Window.on_inspection_failed` displays raw exception strings to the user via `Adw.AlertDialog`. These should be mapped to user-friendly, localized error messages to improve the user experience.
+*   [x] **Error Feedback**: `Window.on_inspection_failed` displays raw exception strings to the user via `Adw.AlertDialog`. These should be mapped to user-friendly, localized error messages to improve the user experience.
 *   [x] **Widget Compatibility**: `src/main.py` contains fallback logic for `Adw.AboutDialog` vs `Adw.AboutWindow`. The project should standardize on the targeted Libadwaita version to remove unnecessary compatibility checks.
 *   **Accessibility**: `src/node_graph.py` draws text and elements using Cairo but does not appear to provide accessibility descriptors (via `Gtk.Accessible` or `Atk`) for the graph nodes. This makes the core visualization inaccessible to screen readers.
 
 ## 9. Implementation Details
 
 *   [x] **Hardcoded Layout Constants**: `src/node_graph.py` relies on global constants (`NODE_WIDTH`, `GAP_X`) for layout calculations. These should be encapsulated in a `LayoutConfig` class or resource to allow for potential dynamic scaling, theming, or user configuration.
-*   **DNS Resolution**: `src/engine.py` performs manual DNS resolution using `dns.resolver`. While wrapped in the controller, care must be taken to ensure the `DNSAdapter` and resolution logic handle timeouts and failures gracefully without leaking implementation details (like `dnspython` exceptions) to the UI.
+*   [x] **DNS Resolution**: `src/engine.py` performs manual DNS resolution using `dns.resolver`. While wrapped in the controller, care must be taken to ensure the `DNSAdapter` and resolution logic handle timeouts and failures gracefully without leaking implementation details (like `dnspython` exceptions) to the UI.
