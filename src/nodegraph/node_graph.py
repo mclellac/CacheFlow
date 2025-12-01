@@ -3,19 +3,17 @@ This module defines the NodeGraph widget, which renders the inspection results
 as a node-based graph using Cairo.
 """
 
+import logging
+from typing import List, Dict, Tuple, Any, Optional
+
+import cairo
+
+from gi.repository import Gtk, Gdk, Adw, Gio, GLib, GObject
+
 from .graph_gestures import GraphGestures
 from .graph_renderer import GraphRenderer
 from .layout import GraphLayout
 from ..export.exporters import GraphExporter
-from gi.repository import Gtk, Gdk, Adw, Gio, GLib, GObject
-import logging
-from typing import List, Dict, Tuple, Any, Optional
-
-# pylint: disable=wrong-import-position
-import cairo
-import gi
-
-gi.require_version("PangoCairo", "1.0")
 
 
 log = logging.getLogger(__name__)
