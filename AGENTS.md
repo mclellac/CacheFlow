@@ -30,7 +30,7 @@ This document outlines the architectural rules and development guidelines for th
 - Ensure `__gtype_name__` matches the class name in Python and the template class in XML.
 - Code must be **PEP8 compliant**.
 - Code must pass **Pylint** tests without errors.
-- **Comments must only be docstrings**. All other comments (e.g., `# inline comments`) are to be removed to ensure the code is self-documenting and clean.
+- **functions and methods must have Google styled docstrings**.  `# inline comments` are to only be used to explain difficult to understand code. Do not use them otherwise.
 
 ## Architecture
 
