@@ -47,7 +47,7 @@ The current codebase is largely flat within the `src/` directory. Grouping relat
 ## 5. Dead Code & Cleanups
 
 *   [x] **Unused Template**: `src/ui/varnish_backend_row.ui` does not have a corresponding Python class and should be removed if confirmed unused.
-*   **Legacy Code**: `src/config_manager.py` retains empty `varnish_backends` packing for backward compatibility. This is acceptable but should be noted for future cleanup.
+*   [x] **Legacy Code**: `src/config_manager.py` retains empty `varnish_backends` packing for backward compatibility. This is acceptable but should be noted for future cleanup.
 
 ## 6. Recommendations
 
