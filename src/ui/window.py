@@ -21,7 +21,7 @@ from .error_handler import get_user_friendly_error
 log = logging.getLogger(__name__)
 
 
-@Gtk.Template(filename="src/ui/main.ui")
+@Gtk.Template(resource_path="/com/github/mclellac/CacheFlow/ui/main.ui")
 class Window(Adw.ApplicationWindow):
     """The main application window."""
 
