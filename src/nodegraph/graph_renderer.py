@@ -496,6 +496,9 @@ class GraphRenderer:
         if self.node_graph.hovered_node_id == node["id"]:
             scale_factor *= 1.05
 
+        if scale_factor < 0.001:
+            return
+
         if scale_factor != 1.0:
             cx = x + w / 2
             cy = y + h / 2
