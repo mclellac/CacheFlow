@@ -394,6 +394,23 @@ class GraphRenderer:
         PangoCairo.show_layout(cr, layout)
         cr.restore()
 
+    def _is_match(self, node: Dict[str, Any], query: str) -> bool:
+        """Checks if the node matches the search query."""
+        if not query:
+            return True
+
+        query = query.lower()
+        node_data = node["data"]
+
+        if query in node_data.name.lower():
+            return True
+
+        for header, value, _, _ in node_data.headers:
+            if query in header.lower() or query in str(value).lower():
+                return True
+
+        return False
+
     def _draw_node(self, cr: cairo.Context, node: Dict[str, Any]) -> None:
         """Draws a single node."""
         x, y, w, h = node["x"], node["y"], node["width"], node["height"]
@@ -401,6 +418,8 @@ class GraphRenderer:
         is_dark = style_manager.get_dark()
 
         is_active = node["data"].is_active
+        is_searching = bool(self.node_graph.search_query)
+        is_match = self._is_match(node, self.node_graph.search_query)
 
         # Pop-in animation
         # Scale from center
@@ -417,8 +436,13 @@ class GraphRenderer:
             cr.scale(scale_factor, scale_factor)
             cr.translate(-cx, -cy)
 
-        # Dim inactive nodes
+        # Dim inactive nodes or non-matches
         alpha_mult = 1.0 if is_active else 0.5
+        if is_searching:
+            if is_match:
+                alpha_mult = 1.0
+            else:
+                alpha_mult = 0.1
 
         # Selected state
         if self.node_graph.selected_node_index == node["id"]:
@@ -573,15 +597,16 @@ class GraphRenderer:
             cr.move_to(status_x, status_y)
             cr.show_text(status_text)
 
-        if is_active:
-            self._draw_node_text(cr, node, x, y, w, is_dark)
+        should_draw_details = is_active or (is_searching and is_match)
+        if should_draw_details:
+            self._draw_node_text(cr, node, x, y, w, is_dark, alpha_mult)
         else:
-            self._draw_inactive_node(cr, node, x, y, w, h, is_dark)
+            self._draw_inactive_node(cr, node, x, y, w, h, is_dark, alpha_mult)
 
         if scale_factor != 1.0:
             cr.restore()
 
-    def _draw_inactive_node(self, cr, node, x, y, w, h, is_dark):
+    def _draw_inactive_node(self, cr, node, x, y, w, h, is_dark, alpha_mult=1.0):
         """Draws a smaller, dimmed version for inactive nodes."""
         # Use a reduced height for inactive nodes if h is large, but h is passed from layout.
         # Ideally layout should have calculated a smaller height.
@@ -594,7 +619,7 @@ class GraphRenderer:
         else:
             header_rgba.parse("rgba(0,0,0,0)")
 
-        alpha = 0.4
+        alpha = 0.4 * alpha_mult
         if header_rgba.alpha == 0:
             header_color = (
                 (0.7, 0.7, 0.75, alpha)
@@ -614,7 +639,9 @@ class GraphRenderer:
         cr.fill_preserve()
 
         border_color = (
-            (0.5, 0.5, 0.5, 0.3) if is_dark else (0.4, 0.4, 0.4, 0.3)
+            (0.5, 0.5, 0.5, 0.3 * alpha_mult)
+            if is_dark
+            else (0.4, 0.4, 0.4, 0.3 * alpha_mult)
         )
         cr.set_source_rgba(*border_color)
         cr.set_line_width(1)
@@ -622,9 +649,9 @@ class GraphRenderer:
 
         # Text
         if is_dark:
-            cr.set_source_rgba(1, 1, 1, 0.5)
+            cr.set_source_rgba(1, 1, 1, 0.5 * alpha_mult)
         else:
-            cr.set_source_rgba(0, 0, 0, 0.5)
+            cr.set_source_rgba(0, 0, 0, 0.5 * alpha_mult)
 
         cr.select_font_face(
             "Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
@@ -648,6 +675,7 @@ class GraphRenderer:
         y: float,
         w: float,
         is_dark: bool,
+        alpha_mult: float = 1.0,
     ) -> None:
         """Draws the text content of the node."""
         font_desc_str = self.node_graph.settings.get_string("node-font")
@@ -690,6 +718,8 @@ class GraphRenderer:
                     (0.9, 0.9, 0.9, 1),
                 )
 
+            color = list(color)
+            color[3] *= alpha_mult
             cr.set_source_rgba(*color)
 
             escaped_header = GLib.markup_escape_text(header)
