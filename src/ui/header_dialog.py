@@ -284,67 +284,7 @@ class HeaderDialog(Adw.ApplicationWindow):
         box = gesture.get_widget()
         header_key = getattr(box, "_header_key", None)
         if header_key:
-            self._show_header_popover(box, header_key)
-
-    def _show_header_popover(self, parent_widget, header_key):
-        """Shows a popover with header information."""
-        info = knowledge.get_header_info(header_key)
-
-        popover = Gtk.Popover()
-        popover.set_parent(parent_widget)
-        # Position slightly below
-        # popover.set_pointing_to(...) # Defaults to center of widget usually
-
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
-        box.set_margin_top(12)
-        box.set_margin_bottom(12)
-        box.set_margin_start(12)
-        box.set_margin_end(12)
-
-        title = Gtk.Label(label=f"<b>{header_key}</b>", use_markup=True)
-        title.add_css_class("title-4")
-        title.set_xalign(0)
-        box.append(title)
-
-        desc = Gtk.Label(
-            label=info.description, wrap=True, max_width_chars=40
-        )
-        desc.set_xalign(0)
-        box.append(desc)
-
-        if info.meaning:
-            box.append(Gtk.Separator(orientation=Gtk.Orientation.HORIZONTAL))
-            meaning_label = Gtk.Label(
-                label=f"<b>Meaning:</b> {info.meaning}",
-                use_markup=True,
-                wrap=True,
-                max_width_chars=40,
-                xalign=0,
-            )
-            box.append(meaning_label)
-
-        if info.impact:
-            impact_label = Gtk.Label(
-                label=f"<b>Impact:</b> {info.impact}",
-                use_markup=True,
-                wrap=True,
-                max_width_chars=40,
-                xalign=0,
-            )
-            box.append(impact_label)
-
-        if info.recommendation:
-            rec_label = Gtk.Label(
-                label=f"<b>Recommendation:</b> {info.recommendation}",
-                use_markup=True,
-                wrap=True,
-                max_width_chars=40,
-                xalign=0,
-            )
-            box.append(rec_label)
-
-        popover.set_child(box)
-        popover.popup()
+            ui_utils.show_header_popover(box, header_key)
 
     def _on_analyze_clicked(self, _button):
         """Handles the clicked signal from the analyze button."""

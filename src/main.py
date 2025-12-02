@@ -106,23 +106,9 @@ class CacheFlowApplication(Adw.Application):
         self, _action: Gio.SimpleAction, _param: Optional[GLib.Variant]
     ) -> None:
         """Callback for the app.encyclopedia action."""
-        from .analysis.knowledge import HEADER_KNOWLEDGE
-        from .ui.header_dialog import HeaderDialog
+        from .ui.encyclopedia import Encyclopedia
 
-        headers = []
-        for key, info in sorted(HEADER_KNOWLEDGE.items()):
-            note = info.description
-            if info.meaning:
-                note = info.meaning
-            headers.append((key, info.category, "UNCHANGED", note))
-
-        win = HeaderDialog(
-            headers=headers,
-            heading="Header Encyclopedia",
-            application=self,
-            transient_for=self.get_active_window(),
-        )
-        win.window_title.set_title("Header Encyclopedia")
+        win = Encyclopedia(transient_for=self.get_active_window())
         win.present()
 
     def on_about_action(
