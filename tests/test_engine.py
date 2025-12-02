@@ -6,6 +6,19 @@ from unittest.mock import MagicMock, patch
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+# Mock gi for headless testing
+sys.modules['gi'] = MagicMock()
+sys.modules['gi.repository'] = MagicMock()
+sys.modules['gi.repository.GLib'] = MagicMock()
+sys.modules['gi.repository.GObject'] = MagicMock()
+sys.modules['gi.repository.Adw'] = MagicMock()
+sys.modules['gi.repository.Gtk'] = MagicMock()
+sys.modules['gi.repository.Gio'] = MagicMock()
+sys.modules['gi.repository.Gdk'] = MagicMock()
+sys.modules['gi.repository.Pango'] = MagicMock()
+sys.modules['gi.repository.PangoCairo'] = MagicMock()
+sys.modules['cairo'] = MagicMock()
+
 from src.engine import CacheFlowEngine
 
 class TestCacheFlowEngine(unittest.TestCase):

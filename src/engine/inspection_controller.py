@@ -146,6 +146,7 @@ class InspectionController:
                 "request_host": result.get("sent_host_header"),
                 "request_method": result.get("method"),
                 "status_code": result.get("status_code"),
+                "latency": result.get("latency"),
                 "provider": result.get("provider"),
                 "layer_type": result.get("layer_type"),
                 "upstream_layer": baseline_layer,
