@@ -36,10 +36,9 @@ class Window(Adw.ApplicationWindow):
     config_switcher = Gtk.Template.Child()
     content_stack = Gtk.Template.Child()
     toast_overlay = Gtk.Template.Child()
-    cookie_inspector_btn = Gtk.Template.Child()
-    show_all_nodes_button = Gtk.Template.Child()
-    show_labels_button = Gtk.Template.Child()
-    show_animation_button = Gtk.Template.Child()
+    animation_switch = Gtk.Template.Child()
+    labels_switch = Gtk.Template.Child()
+    all_nodes_switch = Gtk.Template.Child()
     status_page = Gtk.Template.Child()
     status_action_btn = Gtk.Template.Child()
     search_button = Gtk.Template.Child()
@@ -68,21 +67,20 @@ class Window(Adw.ApplicationWindow):
         self.path_entry.set_text(self.settings.get_string("test-path"))
 
         self.connect("close-request", self.on_close_request)
-        self.cookie_inspector_btn.connect("clicked", self.on_cookies_clicked)
         self.node_graph.connect(
             "node-double-clicked", self._on_node_double_clicked
         )
         self.node_graph.connect(
             "compare-requested", self._on_compare_requested
         )
-        self.show_all_nodes_button.connect(
-            "toggled", self.on_show_all_nodes_toggled
+        self.all_nodes_switch.connect(
+            "notify::active", self.on_show_all_nodes_toggled
         )
-        self.show_labels_button.connect(
-            "toggled", self.on_show_labels_toggled
+        self.labels_switch.connect(
+            "notify::active", self.on_show_labels_toggled
         )
-        self.show_animation_button.connect(
-            "toggled", self.on_show_animation_toggled
+        self.animation_switch.connect(
+            "notify::active", self.on_show_animation_toggled
         )
         self.status_action_btn.connect("clicked", self.on_status_action_clicked)
 
@@ -204,6 +202,7 @@ class Window(Adw.ApplicationWindow):
         self.insert_action_group("win", self.win_action_group)
 
         self.add_action("inspect", self.on_inspect_clicked)
+        self.add_action("cookies", self.on_cookies_clicked)
         self.add_action("export-graph", self.on_export_graph_action)
         self.add_action("import-har", self.on_import_har_action)
         self.add_action("reset-layout", self.on_reset_layout_action)
@@ -462,37 +461,40 @@ class Window(Adw.ApplicationWindow):
         self.set_inspection_in_progress(False)
         return GLib.SOURCE_REMOVE
 
-    def on_cookies_clicked(self, _btn):
-        """Callback for the cookies button."""
+    def on_cookies_clicked(self, _action, _param):
+        """Callback for the cookies action."""
         layers = self.node_graph.get_data()
         win = CookieDialog(layers=layers, parent_window=self)
         win.present()
 
-    def on_show_all_nodes_toggled(self, button):
-        """Callback for when the show all nodes button is toggled.
+    def on_show_all_nodes_toggled(self, switch, _pspec):
+        """Callback for when the show all nodes switch is toggled.
 
         Args:
-            button: The button that emitted the signal.
+            switch: The switch that emitted the signal.
+            _pspec: The param spec.
         """
-        is_active = button.get_active()
+        is_active = switch.get_active()
         self.node_graph.set_show_all_nodes(is_active)
 
-    def on_show_labels_toggled(self, button):
-        """Callback for when the show labels button is toggled.
+    def on_show_labels_toggled(self, switch, _pspec):
+        """Callback for when the show labels switch is toggled.
 
         Args:
-            button: The button that emitted the signal.
+            switch: The switch that emitted the signal.
+            _pspec: The param spec.
         """
-        is_active = button.get_active()
+        is_active = switch.get_active()
         self.node_graph.set_show_connection_labels(is_active)
 
-    def on_show_animation_toggled(self, button):
-        """Callback for when the show animation button is toggled.
+    def on_show_animation_toggled(self, switch, _pspec):
+        """Callback for when the show animation switch is toggled.
 
         Args:
-            button: The button that emitted the signal.
+            switch: The switch that emitted the signal.
+            _pspec: The param spec.
         """
-        is_active = button.get_active()
+        is_active = switch.get_active()
         self.node_graph.set_animation_enabled(is_active)
 
     def on_search_changed(self, entry):
