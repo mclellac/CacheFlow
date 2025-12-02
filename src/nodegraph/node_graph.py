@@ -65,6 +65,7 @@ class NodeGraph(Gtk.DrawingArea):
         self.show_connection_labels = True
         self.show_animation = True
         self.search_query: str = ""
+        self.url_hit_areas: List[Tuple[float, float, float, float, str]] = []
 
         # Animation state
         self.animation_time = 0.0

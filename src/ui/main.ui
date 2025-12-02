@@ -47,6 +47,12 @@
                     </section>
                     <section>
                       <item>
+                        <attribute name="label" translatable="yes">Cookie Inspector</attribute>
+                        <attribute name="action">win.cookies</attribute>
+                      </item>
+                    </section>
+                    <section>
+                      <item>
                         <attribute name="label" translatable="yes">Preferences</attribute>
                         <attribute name="action">app.preferences</attribute>
                       </item>
@@ -70,35 +76,86 @@
               </object>
             </child>
             <child type="end">
-              <object class="GtkButton" id="cookie_inspector_btn">
-                <property name="icon-name">document-properties-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Cookie Inspector</property>
+              <object class="GtkMenuButton" id="view_options_button">
+                <property name="icon-name">view-reveal-symbolic</property>
+                <property name="tooltip-text" translatable="yes">View Options</property>
+                <property name="popover">
+                  <object class="GtkPopover">
+                    <property name="child">
+                      <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <property name="spacing">12</property>
+                        <property name="margin-start">12</property>
+                        <property name="margin-end">12</property>
+                        <property name="margin-top">12</property>
+                        <property name="margin-bottom">12</property>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="orientation">horizontal</property>
+                            <property name="spacing">12</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="label" translatable="yes">Show Network Animation</property>
+                                <property name="hexpand">True</property>
+                                <property name="xalign">0</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="animation_switch">
+                                <property name="active">True</property>
+                                <property name="valign">center</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="orientation">horizontal</property>
+                            <property name="spacing">12</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="label" translatable="yes">Show Connection Labels</property>
+                                <property name="hexpand">True</property>
+                                <property name="xalign">0</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="labels_switch">
+                                <property name="active">True</property>
+                                <property name="valign">center</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkBox">
+                            <property name="orientation">horizontal</property>
+                            <property name="spacing">12</property>
+                            <child>
+                              <object class="GtkLabel">
+                                <property name="label" translatable="yes">Show All Infrastructure</property>
+                                <property name="hexpand">True</property>
+                                <property name="xalign">0</property>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkSwitch" id="all_nodes_switch">
+                                <property name="active">False</property>
+                                <property name="valign">center</property>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
+                      </object>
+                    </property>
+                  </object>
+                </property>
               </object>
             </child>
             <child type="end">
               <object class="GtkToggleButton" id="search_button">
                 <property name="icon-name">edit-find-symbolic</property>
                 <property name="tooltip-text" translatable="yes">Search Headers</property>
-              </object>
-            </child>
-            <child type="end">
-              <object class="GtkToggleButton" id="show_all_nodes_button">
-                <property name="icon-name">view-grid-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Show All Configured Infrastructure</property>
-              </object>
-            </child>
-            <child type="end">
-              <object class="GtkToggleButton" id="show_labels_button">
-                <property name="icon-name">text-x-generic-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Show Connection Labels</property>
-                <property name="active">True</property>
-              </object>
-            </child>
-            <child type="end">
-              <object class="GtkToggleButton" id="show_animation_button">
-                <property name="icon-name">media-playback-start-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Show Network Animation</property>
-                <property name="active">True</property>
               </object>
             </child>
           </object>
