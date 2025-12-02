@@ -6,6 +6,16 @@ import re
 from typing import Dict, List, Any, Optional, NamedTuple
 from .knowledge import get_header_info, HeaderDefinition
 
+TRACE_HEADERS = {
+    "x-request-id",
+    "x-amzn-trace-id",
+    "b3",
+    "x-b3-traceid",
+    "x-cloud-trace-context",
+    "cf-ray",
+    "traceparent",
+}
+
 
 class AnalysisItem(NamedTuple):
     """
@@ -277,6 +287,13 @@ class HeaderAnalyzer:
                     )
             elif upstream_headers[key] != value:
                 prev_val = upstream_headers[key]
+                if key in TRACE_HEADERS:
+                    trace_warn = (
+                        f"Trace ID changed from '{prev_val}' to '{value}'. "
+                        "This may break tracing."
+                    )
+                    warning = f"{warning} {trace_warn}" if warning else trace_warn
+
                 items.append(
                     AnalysisItem(
                         key=display_key,
@@ -316,6 +333,8 @@ class HeaderAnalyzer:
                     "x-frame-options",
                 ]:
                     warning = "Security Risk: Recommended header removed."
+                elif key in TRACE_HEADERS:
+                    warning = "Trace ID dropped. This will break distributed tracing."
 
                 items.append(
                     AnalysisItem(

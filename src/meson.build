@@ -20,6 +20,7 @@ ui_sources = [
   'ui/layer_strategies.py',
   'ui/ui_utils.py',
   'ui/error_handler.py',
+  'ui/cookie_dialog.py',
 ]
 
 nodegraph_sources = [

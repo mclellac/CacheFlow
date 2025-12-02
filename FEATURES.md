@@ -48,6 +48,6 @@ CacheFlow is a powerful tool for visualizing and debugging HTTP header flows thr
 **Problem:** HTTPS termination points and protocol version downgrades can cause issues.
 **Feature:** Display TLS version (e.g., TLS 1.2, 1.3) and Cipher Suite on the connection lines or node details. Identify where SSL termination occurs.
 
-### 10. Trace ID Correlation
+### 10. Trace ID Correlation [x]
 **Problem:** correlating logs across systems is hard.
 **Feature:** Automatically detect common trace headers (`X-Request-ID`, `X-Amzn-Trace-Id`, `b3`) and highlight if the ID changes or is dropped between layers.
