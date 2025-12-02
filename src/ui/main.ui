@@ -33,6 +33,10 @@
                     </section>
                     <section>
                       <item>
+                        <attribute name="label" translatable="yes">Import HAR...</attribute>
+                        <attribute name="action">win.import-har</attribute>
+                      </item>
+                      <item>
                         <attribute name="label" translatable="yes">Export Graph...</attribute>
                         <attribute name="action">win.export-graph</attribute>
                       </item>

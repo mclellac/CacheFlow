@@ -60,6 +60,26 @@ class HeaderDialog(Adw.ApplicationWindow):
         self.model = Gio.ListStore(item_type=HeaderItem)
         headers_to_split = ["x-akamai-session-info", "content-security-policy"]
 
+        if node_data:
+            if node_data.tls_version:
+                self.model.append(
+                    HeaderItem(
+                        "TLS Version",
+                        node_data.tls_version,
+                        "UNCHANGED",
+                        "Connection Detail",
+                    )
+                )
+            if node_data.cipher_suite:
+                self.model.append(
+                    HeaderItem(
+                        "Cipher Suite",
+                        node_data.cipher_suite,
+                        "UNCHANGED",
+                        "Connection Detail",
+                    )
+                )
+
         for header, value, change_type, note in headers:
             if header.lower() in headers_to_split and ";" in value:
                 parts = [p.strip() for p in value.split(";") if p.strip()]

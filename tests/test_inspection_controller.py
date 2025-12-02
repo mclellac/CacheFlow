@@ -37,7 +37,7 @@ class TestInspectionController(unittest.TestCase):
             }
         ]
 
-        nodes = controller._process_results(results)
+        nodes = controller.process_results(results)
 
         # process_results now returns a list of lists of nodes (layers)
         # Verify Origin (Last Node)
