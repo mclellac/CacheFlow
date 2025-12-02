@@ -42,8 +42,11 @@ class NodeData:
         self.request_url = kwargs.get("request_url", "")
         self.request_host = kwargs.get("request_host", "")
         self.request_method = kwargs.get("request_method", "GET")
+        self.request_headers = kwargs.get("request_headers", {})
         self.status_code = kwargs.get("status_code", None)
         self.latency = kwargs.get("latency", 0.0)
+        self.tls_version = kwargs.get("tls_version", None)
+        self.cipher_suite = kwargs.get("cipher_suite", None)
         self.cookies: List[Dict[str, Any]] = kwargs.get("cookies", [])
         self.upstream_layer: Optional[Dict[str, Any]] = kwargs.get(
             "upstream_layer", None

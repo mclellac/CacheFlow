@@ -6,7 +6,7 @@ CacheFlow is a powerful tool for visualizing and debugging HTTP header flows thr
 
 ## Feature Suggestions
 
-### 1. Request/Response Diffing
+### 1. Request/Response Diffing [x]
 
 **Problem:** Currently, diffs are shown between adjacent layers. Troubleshooting often requires comparing a specific layer (e.g., Origin) directly with the Client layer to see exactly what was lost or changed end-to-end.
 **Feature:** Allow users to select any two nodes in the graph and open a "Diff View" side-by-side, independent of their position in the flow.
@@ -25,7 +25,7 @@ CacheFlow is a powerful tool for visualizing and debugging HTTP header flows thr
 **Problem:** Session issues are frequently caused by `Set-Cookie` attributes (Domain, Path, Secure, SameSite) being stripped or modified.
 **Feature:** A dedicated "Cookie Inspector" panel that aggregates all cookies set across all layers, highlighting inconsistencies or security flags (e.g., missing `Secure` on HTTPS).
 
-### 5. HAR (HTTP Archive) Import/Export
+### 5. HAR (HTTP Archive) Import/Export [x]
 
 **Problem:** Issues often happen intermittently or reported by users. Engineers need to analyze past traffic.
 **Feature:**
@@ -46,7 +46,7 @@ CacheFlow is a powerful tool for visualizing and debugging HTTP header flows thr
 **Problem:** In complex configurations with dozens of headers, finding a specific custom header (e.g., `X-Custom-Trace-Id`) is tedious.
 **Feature:** A search bar in the main view that highlights nodes containing the matching header key or value.
 
-### 9. TLS/SSL Inspection Details
+### 9. TLS/SSL Inspection Details [x]
 
 **Problem:** HTTPS termination points and protocol version downgrades can cause issues.
 **Feature:** Display TLS version (e.g., TLS 1.2, 1.3) and Cipher Suite on the connection lines or node details. Identify where SSL termination occurs.

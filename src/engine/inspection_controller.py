@@ -57,13 +57,13 @@ class InspectionController:
         try:
             engine = CacheFlowEngine(config)
             results = engine.run_inspection(path)
-            processed_nodes = self._process_results(results)
+            processed_nodes = self.process_results(results)
             GLib.idle_add(self.on_success, processed_nodes)
         except Exception as e:
             log.exception("An error occurred during inspection.")
             GLib.idle_add(self.on_error, e)
 
-    def _process_results(
+    def process_results(
         self, results: List[Dict[str, Any]]
     ) -> List[List[NodeData]]:
         """Processes the raw results from the engine into NodeData objects.
@@ -78,7 +78,9 @@ class InspectionController:
             A list of list of NodeData objects (representing layers).
         """
         processed_layers: List[List[NodeData]] = []
-        config_layers: List[Dict[str, Any]] = self.config.get("layers", [])
+        config_layers = []
+        if self.config:
+            config_layers = self.config.get("layers", [])
 
         for i, result in enumerate(results):
             # The analyzer needs the raw headers dict.
@@ -145,8 +147,11 @@ class InspectionController:
                 "request_url": result.get("url"),
                 "request_host": result.get("sent_host_header"),
                 "request_method": result.get("method"),
+                "request_headers": result.get("request_headers", {}),
                 "status_code": result.get("status_code"),
                 "latency": result.get("latency"),
+                "tls_version": result.get("tls_version"),
+                "cipher_suite": result.get("cipher_suite"),
                 "cookies": result.get("cookies", []),
                 "provider": result.get("provider"),
                 "layer_type": result.get("layer_type"),
