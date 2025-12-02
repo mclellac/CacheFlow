@@ -17,5 +17,6 @@
     <file preprocess="xml-stripblanks" alias="ui/shortcuts.ui">ui/shortcuts.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/list_item_header.ui">ui/list_item_header.ui</file>
     <file preprocess="xml-stripblanks" alias="ui/column_item_label.ui">ui/column_item_label.ui</file>
+    <file preprocess="xml-stripblanks" alias="ui/encyclopedia.ui">ui/encyclopedia.ui</file>
   </gresource>
 </gresources>
