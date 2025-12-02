@@ -609,6 +609,7 @@ class CacheFlowEngine:
             "original_url": params.original_url,
             "sent_host_header": params.headers.get("Host"),
             "method": "GET",  # Hardcoded for now, can be a parameter later
+            "request_headers": params.headers,
             "latency": 0.0,
         }
 
