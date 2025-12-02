@@ -550,6 +550,23 @@ class CacheFlowEngine:
 
         return self._execute_request(params)
 
+    def _extract_cookies(self, response_cookies) -> List[Dict[str, Any]]:
+        """Extracts cookie data from the response cookies."""
+        cookies = []
+        for c in response_cookies:
+            cookie_data = {
+                "name": c.name,
+                "value": c.value,
+                "domain": c.domain,
+                "path": c.path,
+                "secure": c.secure,
+                "expires": c.expires,
+                "http_only": c.has_nonstandard_attr("HttpOnly"),
+                "same_site": c.get_nonstandard_attr("SameSite"),
+            }
+            cookies.append(cookie_data)
+        return cookies
+
     def _resolve_dns_for_layer(
         self, hostname: str
     ) -> Tuple[str, Optional[Any]]:
@@ -611,6 +628,7 @@ class CacheFlowEngine:
                 {
                     "status_code": response.status_code,
                     "headers": dict(response.headers),
+                    "cookies": self._extract_cookies(response.cookies),
                     "latency": response.elapsed.total_seconds() * 1000,
                 }
             )

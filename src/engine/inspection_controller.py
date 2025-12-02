@@ -147,6 +147,7 @@ class InspectionController:
                 "request_method": result.get("method"),
                 "status_code": result.get("status_code"),
                 "latency": result.get("latency"),
+                "cookies": result.get("cookies", []),
                 "provider": result.get("provider"),
                 "layer_type": result.get("layer_type"),
                 "upstream_layer": baseline_layer,

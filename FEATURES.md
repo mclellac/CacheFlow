@@ -20,7 +20,7 @@ CacheFlow is a powerful tool for visualizing and debugging HTTP header flows thr
 *   Color-code the connection lines (Green/Yellow/Red) based on latency thresholds.
 *   Display the latency in milliseconds on the connection label.
 
-### 4. Cookie Jar Analysis
+### 4. Cookie Jar Analysis [x]
 **Problem:** Session issues are frequently caused by `Set-Cookie` attributes (Domain, Path, Secure, SameSite) being stripped or modified.
 **Feature:** A dedicated "Cookie Inspector" panel that aggregates all cookies set across all layers, highlighting inconsistencies or security flags (e.g., missing `Secure` on HTTPS).
 

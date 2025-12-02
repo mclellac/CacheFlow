@@ -264,6 +264,14 @@ class NodeGraph(Gtk.DrawingArea):
         self.queue_draw()
         return True
 
+    def get_data(self) -> List[List[Any]]:
+        """Returns the current layers data.
+
+        Returns:
+            The list of list of NodeData objects.
+        """
+        return self.layers_data
+
     def set_data(self, layers_data: List[List[Any]]) -> None:
         """Sets the data for the nodes and arranges them.
 
