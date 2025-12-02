@@ -13,7 +13,7 @@ CacheFlow is a powerful tool for visualizing and debugging HTTP header flows thr
 **Problem:** It is difficult to predict how the infrastructure behaves under different cache states (Hit, Miss, Pass, Stale).
 **Feature:** Add a "Simulation Mode" where the engine sends specific headers (e.g., `Pragma: no-cache`, `Cache-Control: no-cache`) to force misses, or replays requests to attempt to generate hits, visualizing the change in headers (like `Age`, `X-Cache`).
 
-### 3. Latency Visualization
+### 3. Latency Visualization [x]
 **Problem:** Network issues are often latency-related, not just header-related.
 **Feature:**
 *   Measure TTFB (Time To First Byte) for each hop during inspection.

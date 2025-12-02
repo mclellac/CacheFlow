@@ -592,6 +592,7 @@ class CacheFlowEngine:
             "original_url": params.original_url,
             "sent_host_header": params.headers.get("Host"),
             "method": "GET",  # Hardcoded for now, can be a parameter later
+            "latency": 0.0,
         }
 
         try:
@@ -610,6 +611,7 @@ class CacheFlowEngine:
                 {
                     "status_code": response.status_code,
                     "headers": dict(response.headers),
+                    "latency": response.elapsed.total_seconds() * 1000,
                 }
             )
             log.debug("Request completed. Status: %s", response.status_code)
