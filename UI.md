@@ -8,13 +8,13 @@ This document outlines planned improvements to the CacheFlow User Interface to a
 
 **Proposals:**
 
-* **View Options Menu:** Consolidate the view toggles into a single `GtkMenuButton` (icon: `view-reveal-symbolic` or `display-symbolic`).
+* **[x] View Options Menu:** Consolidate the view toggles into a single `GtkMenuButton` (icon: `view-reveal-symbolic` or `display-symbolic`).
   * **Menu Items:**
-    * Switch: Show Network Animation
-    * Switch: Show Connection Labels
-    * Switch: Show All Infrastructure
-* **Cookie Inspector:** Move the "Cookie Inspector" button to the primary Main Menu (hamburger menu) or keep it but ensure it has a distinct `suggested-action` or distinct style if it remains top-level. Alternatively, place it in the "View Options" menu if it's considered a tool.
-* **Search:** The search toggle is standard.
+    * [x] Switch: Show Network Animation
+    * [x] Switch: Show Connection Labels
+    * [x] Switch: Show All Infrastructure
+* **[x] Cookie Inspector:** Move the "Cookie Inspector" button to the primary Main Menu (hamburger menu) or keep it but ensure it has a distinct `suggested-action` or distinct style if it remains top-level. Alternatively, place it in the "View Options" menu if it's considered a tool.
+* **[x] Search:** The search toggle is standard.
 
 ## 2. Node Graph Enhancements
 
@@ -22,14 +22,14 @@ This document outlines planned improvements to the CacheFlow User Interface to a
 
 **Proposals:**
 
-* **Prominent Status Codes:**
+* **[x] Prominent Status Codes:**
   * Increase the font size of the HTTP Status Code significantly (e.g., to 20pt or 24pt).
   * Make the font weight **Bold**.
   * Position it prominently in the top-right of the node header, with a colored indicator dot or text color corresponding to the status class (2xx Green, 3xx Yellow, 4xx/5xx Red).
-* **Typography:**
+* **[x] Typography:**
   * Use the system interface font (`Adwaita Sans` on standard GNOME) instead of generic Sans/Monospace where possible.
   * Improve contrast for text against the node background color.
-* **Rounded Corners & Shadows:** Ensure node rectangles use modern rounded corners (already implemented) but perhaps add a subtle drop shadow (via Cairo) to lift active nodes off the canvas.
+* **[x] Rounded Corners & Shadows:** Ensure node rectangles use modern rounded corners (already implemented) but perhaps add a subtle drop shadow (via Cairo) to lift active nodes off the canvas.
 
 ## 3. Connection Labels
 
@@ -37,14 +37,14 @@ This document outlines planned improvements to the CacheFlow User Interface to a
 
 **Proposals:**
 
-* **Clickable URLs:**
+* **[x] Clickable URLs:**
   * Implement hit-testing in `GraphGestures` to detect clicks on the connection label text.
   * When clicked, open the URL in the system default browser (using `Gtk.FileLauncher` or `Gio.AppInfo`).
   * Style the URL text as a link (blue/accent color, underlined on hover).
-* **Rich Styling:**
+* **[x] Rich Styling:**
   * Render the label as a "pill" or "badge" with a semi-transparent background (already done) but with more padding and a fully rounded shape.
-  * **Latency Indicator:** Add a small icon (e.g., a clock or speedometer) next to the latency text. Color-code the icon and text (Green/Yellow/Red).
-  * **Method Badge:** Display the HTTP Method (GET, POST) in a small, distinct badge style (e.g., uppercase, smaller font, bold, colored background).
+  * **[x] Latency Indicator:** Add a small icon (e.g., a clock or speedometer) next to the latency text. Color-code the icon and text (Green/Yellow/Red).
+  * **[x] Method Badge:** Display the HTTP Method (GET, POST) in a small, distinct badge style (e.g., uppercase, smaller font, bold, colored background).
 
 ## 4. Modern Dialogs & Navigation
 

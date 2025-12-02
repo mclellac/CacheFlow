@@ -333,6 +333,24 @@ class GraphGestures:
         wy = (y - self.node_graph.offset_y) / self.node_graph.scale
 
         if n_press == 1:
+            # Check URL Hit Areas
+            for hit_rect in self.node_graph.url_hit_areas:
+                rx, ry, rw, rh, url = hit_rect
+                if rx <= wx <= rx + rw and ry <= wy <= ry + rh:
+                    log.info("Clicked URL: %s", url)
+                    try:
+                        # Try Gtk.UriLauncher (GTK 4.10+)
+                        if hasattr(Gtk, "UriLauncher"):
+                            launcher = Gtk.UriLauncher.new(uri=url)
+                            launcher.launch(
+                                self.node_graph.get_root(), None, None
+                            )
+                        else:
+                            Gio.AppInfo.launch_default_for_uri(url, None)
+                    except Exception as e:
+                        log.error("Failed to open URL: %s", e)
+                    return
+
             hit_node = False
             for node in reversed(self.node_graph.nodes):
                 if (

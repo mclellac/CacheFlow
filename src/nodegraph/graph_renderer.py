@@ -47,6 +47,7 @@ class GraphRenderer:
         cr.translate(offset_x, offset_y)
         cr.scale(scale, scale)
 
+        self.node_graph.url_hit_areas = []
         self._draw_connections(cr)
 
         for node in self.node_graph.nodes:
@@ -282,15 +283,7 @@ class GraphRenderer:
         points: ConnectionPoints,
     ) -> None:
         """Draws the label on the connection line."""
-
-        # If node_b is the first real node (layer 0), it's connected from Client.
-        # We need to display the request URL, but maybe formatted differently?
-        # Actually node_b["data"] contains the request URL that reached this node.
-        # So it should be fine.
-
         request_url = node_b["data"].request_url
-        request_host = node_b["data"].request_host
-
         if not request_url:
             return
 
@@ -311,45 +304,59 @@ class GraphRenderer:
             + t**3 * points.end_y
         )
 
-        layout = PangoCairo.create_layout(cr)
-        font_desc = Pango.FontDescription("Sans 12")
-        layout.set_font_description(font_desc)
+        style_manager = Adw.StyleManager.get_default()
+        is_dark = style_manager.get_dark()
 
-        method = node_b["data"].request_method or ""
-        # Sanitize URLs and avoid processing if too long
-        if request_url and len(request_url) > 2000:
-            display_url = request_url[:100] + "..."
-        else:
-            display_url = request_url
-
-        text = f"{method} {display_url}"
-
-        # Parse URLs to compare hosts
-        try:
-            parsed_req = urlparse(request_url)
-            req_host = parsed_req.hostname
-        except (ValueError, AttributeError):
-            req_host = None
-
-        if request_host and request_host != req_host:
-            text += f"\nHost: {request_host}"
+        # Content Prep
+        method = node_b["data"].request_method or "GET"
+        display_url = request_url
+        if len(display_url) > 60:
+            display_url = display_url[:60] + "..."
 
         latency = node_b["data"].latency
-        if latency:
-            text += f"\n{latency:.0f}ms"
+        latency_str = f"{latency:.0f}ms" if latency is not None else ""
 
-        tls_ver = node_b["data"].tls_version
-        if tls_ver:
-            text += f"\n{tls_ver}"
+        # Layout Calculation
+        padding = 10
+        spacing = 8
+        line_spacing = 4
 
-        layout.set_text(text, -1)
+        # Font setup
+        cr.select_font_face(
+            "Adwaita Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+        )
+        cr.set_font_size(12)
+        method_ext = cr.text_extents(method)
 
-        _, logical_rect = layout.get_extents()
-        text_width = logical_rect.width / Pango.SCALE
-        text_height = logical_rect.height / Pango.SCALE
+        cr.select_font_face(
+            "Adwaita Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL
+        )
+        url_ext = cr.text_extents(display_url)
 
-        # Determine orientation of the line at midpoint to avoid collision
-        # Simple derivative check
+        lat_ext = None
+        if latency_str:
+            cr.set_font_size(11)
+            lat_ext = cr.text_extents("⏱ " + latency_str)
+
+        # Sizes
+        badge_padding_x = 6
+        badge_padding_y = 2
+        badge_w = method_ext.width + 2 * badge_padding_x
+        badge_h = method_ext.height + 2 * badge_padding_y
+
+        row1_h = max(badge_h, url_ext.height)
+        row1_w = badge_w + spacing + url_ext.width
+
+        row2_h = 0
+        row2_w = 0
+        if lat_ext:
+            row2_h = lat_ext.height + line_spacing
+            row2_w = lat_ext.width
+
+        total_w = max(row1_w, row2_w) + 2 * padding
+        total_h = row1_h + row2_h + 2 * padding
+
+        # Orientation Logic
         dx = (
             3 * (1 - t) ** 2 * (points.c1_x - points.start_x)
             + 6 * (1 - t) * t * (points.c2_x - points.c1_x)
@@ -360,42 +367,99 @@ class GraphRenderer:
             + 6 * (1 - t) * t * (points.c2_y - points.c1_y)
             + 3 * t**2 * (points.end_y - points.c2_y)
         )
-
         is_vertical_dominant = abs(dy) > abs(dx)
-
-        # Increase offsets to prevent overlapping
-        offset_dist = 35
+        offset_dist = 40
 
         if is_vertical_dominant:
-            # Line is moving vertically, place text to side
-            # Check if moving left or right
-            # If end_x > start_x, it's moving right. mid point, tangent dx > 0
-            # If dx > 0, moving right.
-            # We want to place text on the "outside" of the curve if possible, or just consistently.
-            # Let's try to place it to the right if there is space.
-            text_x = mid_x + offset_dist
-            text_y = mid_y - text_height / 2
+            start_x = mid_x + offset_dist
+            start_y = mid_y - total_h / 2
         else:
-            # Line is horizontal, place text above or below
-            # Place above to avoid overlapping nodes below
-            text_x = mid_x - text_width / 2
-            text_y = mid_y - text_height - offset_dist
+            start_x = mid_x - total_w / 2
+            start_y = mid_y - total_h - offset_dist
 
-        # Background for readability
-        if Adw.StyleManager.get_default().get_dark():
-            cr.set_source_rgba(0.2, 0.2, 0.2, 0.8)
-            text_color = (0.9, 0.9, 0.9, 1)
+        # Draw Background Pill
+        if is_dark:
+            cr.set_source_rgba(0.2, 0.2, 0.2, 0.85)
+            text_color = (0.95, 0.95, 0.95, 1)
+            badge_bg = (0.3, 0.3, 0.3, 1)
+            link_color = (0.4, 0.6, 1.0, 1)
         else:
-            cr.set_source_rgba(0.95, 0.95, 0.95, 0.8)
+            cr.set_source_rgba(0.95, 0.95, 0.95, 0.85)
             text_color = (0.1, 0.1, 0.1, 1)
+            badge_bg = (0.8, 0.8, 0.8, 1)
+            link_color = (0.1, 0.3, 0.8, 1)
 
-        # Draw background rect
-        cr.rectangle(text_x - 2, text_y - 2, text_width + 4, text_height + 4)
+        rounded_rectangle(cr, start_x, start_y, total_w, total_h, 12)
+        cr.fill()
+
+        # Content Position
+        curr_y = start_y + padding
+        curr_x = start_x + padding
+
+        # 1. Method Badge
+        cr.set_source_rgba(*badge_bg)
+        rounded_rectangle(cr, curr_x, curr_y - 2, badge_w, badge_h, 4)
         cr.fill()
 
         cr.set_source_rgba(*text_color)
-        cr.move_to(text_x, text_y)
-        PangoCairo.show_layout(cr, layout)
+        cr.select_font_face(
+            "Adwaita Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+        )
+        cr.set_font_size(12)
+        cr.move_to(
+            curr_x + badge_padding_x,
+            curr_y + method_ext.height + badge_padding_y - 2,
+        )
+        cr.show_text(method)
+
+        # 2. URL
+        url_x = curr_x + badge_w + spacing
+        url_y = curr_y + url_ext.height
+
+        cr.set_source_rgba(*link_color)
+        cr.select_font_face(
+            "Adwaita Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL
+        )
+        cr.move_to(url_x, url_y)
+        cr.show_text(display_url)
+
+        # Underline
+        cr.set_line_width(1)
+        cr.move_to(url_x, url_y + 2)
+        cr.line_to(url_x + url_ext.width, url_y + 2)
+        cr.stroke()
+
+        # Register Hit Area (for gestures)
+        # Store as (x, y, w, h, url)
+        # Note: We are inside cr.translate/scale, so these are world coordinates.
+        hit_rect = (
+            url_x,
+            curr_y,
+            url_ext.width,
+            url_ext.height + 4,
+            request_url,
+        )
+        self.node_graph.url_hit_areas.append(hit_rect)
+
+        # 3. Latency
+        if lat_ext:
+            curr_y += row1_h + line_spacing
+            lat_x = start_x + padding
+            lat_y = curr_y + lat_ext.height
+
+            # Color code
+            if latency < 100:
+                lat_color = (0.1, 0.7, 0.3, 1)  # Green
+            elif latency < 500:
+                lat_color = (0.9, 0.7, 0.0, 1)  # Yellow
+            else:
+                lat_color = (0.9, 0.2, 0.2, 1)  # Red
+
+            cr.set_source_rgba(*lat_color)
+            cr.set_font_size(11)
+            cr.move_to(lat_x, lat_y)
+            cr.show_text("⏱ " + latency_str)
+
         cr.restore()
 
     def _is_match(self, node: Dict[str, Any], query: str) -> bool:
@@ -432,6 +496,9 @@ class GraphRenderer:
         if self.node_graph.hovered_node_id == node["id"]:
             scale_factor *= 1.05
 
+        if scale_factor < 0.001:
+            return
+
         if scale_factor != 1.0:
             cx = x + w / 2
             cy = y + h / 2
@@ -447,6 +514,15 @@ class GraphRenderer:
                 alpha_mult = 1.0
             else:
                 alpha_mult = 0.1
+
+        # Shadow for active nodes
+        if is_active:
+            cr.save()
+            cr.translate(4, 4)
+            cr.set_source_rgba(0, 0, 0, 0.15)
+            rounded_rectangle(cr, x, y, w, h, 10)
+            cr.fill()
+            cr.restore()
 
         # Selected state
         if self.node_graph.selected_node_index == node["id"]:
@@ -474,10 +550,6 @@ class GraphRenderer:
             cr.set_line_width(3)
             rounded_rectangle(cr, x, y, w, h, 10)
             cr.stroke()
-
-        cr.set_source_rgba(0.0, 0.0, 0.0, 0.4 * alpha_mult)
-        rounded_rectangle(cr, x + 2, y + 3, w, h, 10)
-        cr.fill()
 
         body_rgba = Gdk.RGBA()
         if node["data"].body_color:
@@ -589,14 +661,14 @@ class GraphRenderer:
 
             cr.set_source_rgba(*status_color)
             cr.select_font_face(
-                "Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
+                "Adwaita Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
             )
-            cr.set_font_size(14)
+            cr.set_font_size(24)
 
             # Align right in the header
             extents = cr.text_extents(status_text)
             status_x = x + w - PADDING - extents.width
-            status_y = y + 32 # Vertically centered in header area roughly
+            status_y = y + 36 # Vertically centered in header area roughly
 
             cr.move_to(status_x, status_y)
             cr.show_text(status_text)
