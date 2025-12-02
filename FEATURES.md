@@ -36,7 +36,7 @@ CacheFlow is a powerful tool for visualizing and debugging HTTP header flows thr
 *   Visual warning if `Origin` header in request does not match `Access-Control-Allow-Origin`.
 *   Check for missing `Access-Control-Allow-Methods` or `Access-Control-Allow-Headers`.
 
-### 7. Header Search & Filter
+### 7. Header Search & Filter [x]
 **Problem:** In complex configurations with dozens of headers, finding a specific custom header (e.g., `X-Custom-Trace-Id`) is tedious.
 **Feature:** A search bar in the main view that highlights nodes containing the matching header key or value.
 

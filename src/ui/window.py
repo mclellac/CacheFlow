@@ -6,7 +6,7 @@ coordinating inspection tasks.
 import logging
 from typing import List
 
-from gi.repository import Gtk, Adw, Gio, GLib
+from gi.repository import Gtk, Adw, Gio, GLib, GObject
 
 from ..nodegraph.node_graph import NodeGraph  # pylint: disable=unused-import
 from .header_dialog import HeaderDialog
@@ -41,6 +41,9 @@ class Window(Adw.ApplicationWindow):
     show_animation_button = Gtk.Template.Child()
     status_page = Gtk.Template.Child()
     status_action_btn = Gtk.Template.Child()
+    search_button = Gtk.Template.Child()
+    search_bar = Gtk.Template.Child()
+    search_entry = Gtk.Template.Child()
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -78,6 +81,14 @@ class Window(Adw.ApplicationWindow):
             "toggled", self.on_show_animation_toggled
         )
         self.status_action_btn.connect("clicked", self.on_status_action_clicked)
+
+        self.search_button.bind_property(
+            "active",
+            self.search_bar,
+            "search-mode-enabled",
+            GObject.BindingFlags.BIDIRECTIONAL,
+        )
+        self.search_entry.connect("search-changed", self.on_search_changed)
 
         # Listen for setting changes (e.g. from Preferences) to refresh switcher
         self.settings.connect(
@@ -384,6 +395,15 @@ class Window(Adw.ApplicationWindow):
         """
         is_active = button.get_active()
         self.node_graph.set_animation_enabled(is_active)
+
+    def on_search_changed(self, entry):
+        """Callback for when the search entry text changes.
+
+        Args:
+            entry: The search entry widget.
+        """
+        query = entry.get_text()
+        self.node_graph.set_search_query(query)
 
     def on_inspection_failed(self, exception: Exception) -> bool:
         """Callback for when an inspection fails.
