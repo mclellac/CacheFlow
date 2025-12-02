@@ -3,7 +3,7 @@ This module handles the gesture and event handling logic for the NodeGraph widge
 """
 
 import logging
-from gi.repository import Gtk, Gdk
+from gi.repository import Gtk, Gdk, Gio, GLib
 
 log = logging.getLogger(__name__)
 
@@ -65,11 +65,59 @@ class GraphGestures:
         self, _gesture: Gtk.GestureClick, _n_press: int, x: float, y: float
     ) -> None:
         """Shows context menu on right click."""
-        if self.node_graph.popover_menu:
-            self.node_graph.popover_menu.set_pointing_to(
-                Gdk.Rectangle(int(x), int(y), 1, 1)
+        wx = (x - self.node_graph.offset_x) / self.node_graph.scale
+        wy = (y - self.node_graph.offset_y) / self.node_graph.scale
+
+        clicked_node = None
+        for node in reversed(self.node_graph.nodes):
+            if (
+                node["x"] <= wx <= node["x"] + node["width"]
+                and node["y"] <= wy <= node["y"] + node["height"]
+            ):
+                clicked_node = node
+                break
+
+        menu = Gio.Menu()
+
+        # Add compare option if applicable
+        if (
+            clicked_node
+            and clicked_node["data"]
+            and self.node_graph.selected_node_index is not None
+            and self.node_graph.selected_node_index != clicked_node["id"]
+        ):
+            selected_node = next(
+                (
+                    n
+                    for n in self.node_graph.nodes
+                    if n["id"] == self.node_graph.selected_node_index
+                ),
+                None,
             )
-            self.node_graph.popover_menu.popup()
+            if selected_node and selected_node["data"]:
+                source_name = selected_node["data"].name
+                item = Gio.MenuItem.new(
+                    f"Compare with '{source_name}'", "node-graph.compare-nodes"
+                )
+                item.set_action_and_target_value(
+                    "node-graph.compare-nodes",
+                    GLib.Variant(
+                        "(ii)",
+                        (selected_node["id"], clicked_node["id"]),
+                    ),
+                )
+                menu.append_item(item)
+                menu.append_section(None, Gio.Menu())
+
+        menu.append("Reset Layout", "node-graph.reset-layout")
+        menu.append("Export Graph...", "node-graph.export")
+
+        # Create a new popover menu
+        popover = Gtk.PopoverMenu.new_from_model(menu)
+        popover.set_parent(self.node_graph)
+        popover.set_has_arrow(False)
+        popover.set_pointing_to(Gdk.Rectangle(int(x), int(y), 1, 1))
+        popover.popup()
 
     def _on_pan_begin(
         self, gesture: Gtk.GestureDrag, start_x: float, start_y: float

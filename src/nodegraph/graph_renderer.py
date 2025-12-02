@@ -338,6 +338,10 @@ class GraphRenderer:
         if latency:
             text += f"\n{latency:.0f}ms"
 
+        tls_ver = node_b["data"].tls_version
+        if tls_ver:
+            text += f"\n{tls_ver}"
+
         layout.set_text(text, -1)
 
         _, logical_rect = layout.get_extents()

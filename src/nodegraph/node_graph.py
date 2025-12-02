@@ -3,7 +3,9 @@ This module defines the NodeGraph widget, which renders the inspection results
 as a node-based graph using Cairo.
 """
 
+import json
 import logging
+from datetime import datetime, timezone
 from typing import List, Dict, Tuple, Any, Optional
 
 import cairo
@@ -28,6 +30,11 @@ class NodeGraph(Gtk.DrawingArea):
             GObject.SignalFlags.RUN_FIRST,
             None,
             (GObject.TYPE_PYOBJECT,),
+        ),
+        "compare-requested": (
+            GObject.SignalFlags.RUN_FIRST,
+            None,
+            (GObject.TYPE_PYOBJECT, GObject.TYPE_PYOBJECT),
         ),
     }
 
@@ -103,6 +110,12 @@ class NodeGraph(Gtk.DrawingArea):
         action_export.connect("activate", self._on_export_action)
         action_group.add_action(action_export)
 
+        action_compare = Gio.SimpleAction.new(
+            "compare-nodes", GLib.VariantType.new("(ii)")
+        )
+        action_compare.connect("activate", self._on_compare_nodes_action)
+        action_group.add_action(action_compare)
+
         self.insert_action_group("node-graph", action_group)
 
     def set_show_all_nodes(self, visible: bool) -> None:
@@ -159,6 +172,42 @@ class NodeGraph(Gtk.DrawingArea):
         """
         self.show_export_dialog()
 
+    def _on_compare_nodes_action(
+        self, _action: Gio.SimpleAction, param: GLib.Variant
+    ) -> None:
+        """Handles the compare-nodes action.
+
+        Args:
+            _action: The action that emitted the signal.
+            param: The parameter containing (source_id, target_id).
+        """
+        source_id, target_id = param.unpack()
+        self.compare_nodes(source_id, target_id)
+
+    def compare_nodes(self, source_id: int, target_id: int) -> None:
+        """Emits the compare-requested signal for two nodes.
+
+        Args:
+            source_id: The ID of the source node.
+            target_id: The ID of the target node.
+        """
+        source_node = next(
+            (n for n in self.nodes if n["id"] == source_id), None
+        )
+        target_node = next(
+            (n for n in self.nodes if n["id"] == target_id), None
+        )
+
+        if (
+            source_node
+            and target_node
+            and source_node["data"]
+            and target_node["data"]
+        ):
+            self.emit(
+                "compare-requested", source_node["data"], target_node["data"]
+            )
+
     def show_export_dialog(self) -> None:
         """Shows the file chooser dialog for exporting."""
         if not self.exporter:
@@ -177,6 +226,8 @@ class NodeGraph(Gtk.DrawingArea):
             self._export_svg(filepath)
         elif filepath.endswith(".txt"):
             self._export_text(filepath)
+        elif filepath.endswith(".har"):
+            self._export_har(filepath)
         else:
             self._export_png(filepath + ".png")
 
@@ -228,6 +279,8 @@ class NodeGraph(Gtk.DrawingArea):
         # pylint: disable=unspecified-encoding
         with open(filepath, "w") as f:
             for node in self.nodes:
+                if not node.get("data"):
+                    continue
                 f.write(f"Node: {node['data'].name}\n")
                 if hasattr(node["data"], "request_method"):
                     f.write(
@@ -241,6 +294,88 @@ class NodeGraph(Gtk.DrawingArea):
                         f.write(f" ({note})")
                     f.write("\n")
                 f.write("\n" + "-" * 40 + "\n\n")
+
+    def _export_har(self, filepath: str) -> None:
+        """Exports the graph to a HAR file.
+
+        Args:
+            filepath: The path to the file to export to.
+        """
+        entries = []
+        now_str = datetime.now(timezone.utc).isoformat()
+
+        for node in self.nodes:
+            data = node.get("data")
+            # Skip client node or nodes without data
+            if not data or not data.is_active:
+                continue
+
+            # Reconstruct headers from list of tuples
+            response_headers = [
+                {"name": h[0], "value": h[1]} for h in data.headers
+            ]
+
+            request_headers = []
+            if data.request_headers:
+                request_headers = [
+                    {"name": k, "value": v}
+                    for k, v in data.request_headers.items()
+                ]
+
+            entry = {
+                "startedDateTime": now_str,
+                "time": data.latency,
+                "request": {
+                    "method": data.request_method,
+                    "url": data.request_url,
+                    "httpVersion": "HTTP/1.1",
+                    "headers": request_headers,
+                    "queryString": [],  # Could parse query string if needed
+                    "cookies": [],  # Could extract from headers
+                    "headersSize": -1,
+                    "bodySize": -1,
+                },
+                "response": {
+                    "status": data.status_code or 0,
+                    "statusText": "",
+                    "httpVersion": "HTTP/1.1",
+                    "headers": response_headers,
+                    "cookies": [],
+                    "content": {
+                        "size": -1,
+                        "mimeType": "text/html",  # Defaulting
+                    },
+                    "headersSize": -1,
+                    "bodySize": -1,
+                    "redirectURL": "",
+                },
+                "cache": {},
+                "timings": {
+                    "send": 0,
+                    "wait": data.latency,
+                    "receive": 0,
+                },
+                "serverIPAddress": "",  # Could store this if available
+                "connection": str(node["layer_index"]),
+                "_layerName": data.name,
+                "_layerType": data.layer_type,
+                "_provider": data.provider,
+            }
+            entries.append(entry)
+
+        har_log = {
+            "log": {
+                "version": "1.2",
+                "creator": {
+                    "name": "CacheFlow",
+                    "version": "0.1.0",
+                },
+                "entries": entries,
+            }
+        }
+
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(har_log, f, indent=2)
 
     def _on_style_changed(
         self, _style_manager: Adw.StyleManager, _param: Any

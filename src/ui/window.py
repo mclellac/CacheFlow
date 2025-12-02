@@ -3,6 +3,7 @@ This module defines the main application window, managing the UI and
 coordinating inspection tasks.
 """
 
+import json
 import logging
 from typing import List
 
@@ -70,6 +71,9 @@ class Window(Adw.ApplicationWindow):
         self.cookie_inspector_btn.connect("clicked", self.on_cookies_clicked)
         self.node_graph.connect(
             "node-double-clicked", self._on_node_double_clicked
+        )
+        self.node_graph.connect(
+            "compare-requested", self._on_compare_requested
         )
         self.show_all_nodes_button.connect(
             "toggled", self.on_show_all_nodes_toggled
@@ -156,20 +160,38 @@ class Window(Adw.ApplicationWindow):
         """
         self._on_analyze_requested(node_data, header_dialog)
 
-    def _on_analyze_requested(self, node_data, parent_win):
+    def _on_compare_requested(self, _, node_a, node_b):
+        """Handles the compare-requested signal.
+
+        Args:
+            _: The NodeGraph that emitted the signal.
+            node_a: The first node (Source).
+            node_b: The second node (Target).
+        """
+        # We treat node_b as 'current' (Target) and node_a as 'upstream' (Source/Baseline)
+        self._on_analyze_requested(node_b, self, upstream_node=node_a)
+
+    def _on_analyze_requested(self, node_data, parent_win, upstream_node=None):
         """Creates and presents the HeaderAnalysisDialog.
 
         Args:
             node_data: The data for the node being analyzed.
             parent_win: The parent window for the dialog.
+            upstream_node: Optional specific upstream node to compare against.
         """
         current_layer = {
             "name": node_data.name,
             "headers": {k: v for k, v, _, _ in node_data.headers},
         }
 
-        # Upstream layer is now attached to node_data
-        upstream_layer = node_data.upstream_layer
+        if upstream_node:
+            upstream_layer = {
+                "name": upstream_node.name,
+                "headers": {k: v for k, v, _, _ in upstream_node.headers},
+            }
+        else:
+            # Upstream layer is now attached to node_data
+            upstream_layer = node_data.upstream_layer
 
         dialog = HeaderAnalysisDialog(
             current_layer, upstream_layer, transient_for=parent_win
@@ -183,6 +205,7 @@ class Window(Adw.ApplicationWindow):
 
         self.add_action("inspect", self.on_inspect_clicked)
         self.add_action("export-graph", self.on_export_graph_action)
+        self.add_action("import-har", self.on_import_har_action)
         self.add_action("reset-layout", self.on_reset_layout_action)
 
     def on_export_graph_action(self, _action, _param):
@@ -193,6 +216,82 @@ class Window(Adw.ApplicationWindow):
             _param: The parameter for the action.
         """
         self.node_graph.show_export_dialog()
+
+    def on_import_har_action(self, _action, _param):
+        """Triggers the import HAR dialog.
+
+        Args:
+            _action: The action that emitted the signal.
+            _param: The parameter for the action.
+        """
+        from ..export.exporters import GraphExporter
+
+        exporter = GraphExporter(self, lambda x: None)
+        exporter.import_har(self.import_har_file)
+
+    def import_har_file(self, filepath: str):
+        """Imports a HAR file and updates the graph.
+
+        Args:
+            filepath: The path to the HAR file.
+        """
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                har_data = json.load(f)
+
+            log_data = har_data.get("log", {})
+            entries = log_data.get("entries", [])
+
+            if not entries:
+                self.show_error_dialog(
+                    "Import Error", "HAR file contains no entries."
+                )
+                return
+
+            results = []
+            for entry in entries:
+                req = entry.get("request", {})
+                res = entry.get("response", {})
+                timings = entry.get("timings", {})
+
+                # Try to extract layer info if present (from CacheFlow export)
+                layer_name = entry.get("_layerName", req.get("url"))
+                layer_type = entry.get("_layerType", "Unknown")
+                provider = entry.get("_provider", "")
+
+                # Headers to dict
+                headers_dict = {
+                    h["name"]: h["value"] for h in res.get("headers", [])
+                }
+                request_headers_dict = {
+                    h["name"]: h["value"] for h in req.get("headers", [])
+                }
+
+                result = {
+                    "name": layer_name,
+                    "layer_type": layer_type,
+                    "provider": provider,
+                    "url": req.get("url"),
+                    "method": req.get("method"),
+                    "status_code": res.get("status"),
+                    "latency": entry.get("time", 0) or timings.get("wait", 0),
+                    "headers": headers_dict,
+                    "request_headers": request_headers_dict,
+                    "siblings": [],  # HAR entries are linear usually
+                    "sent_host_header": request_headers_dict.get("Host")
+                    or request_headers_dict.get("host"),
+                    "cookies": [],  # Could extract
+                }
+                results.append(result)
+
+            # Process using controller
+            processed_nodes = self.controller.process_results(results)
+            self.on_inspection_succeeded(processed_nodes)
+            self.show_toast(f"Imported {len(entries)} hops from HAR.")
+
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            log.exception("Failed to import HAR.")
+            self.show_error_dialog("Import Error", str(e))
 
     def on_reset_layout_action(self, _action, _param):
         """Resets the node graph layout.

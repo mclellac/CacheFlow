@@ -620,7 +620,32 @@ class CacheFlowEngine:
                 timeout=10,
                 allow_redirects=False,
                 verify=self.verify_ssl,
+                stream=True,
             )
+
+            # Capture TLS info
+            tls_version = None
+            cipher_suite = None
+            if params.url.startswith("https://"):
+                try:
+                    # Attempt to access underlying socket for TLS info
+                    # Note: This relies on internal structure of urllib3/requests
+                    if hasattr(response.raw, "connection") and hasattr(
+                        response.raw.connection, "sock"
+                    ):
+                        sock = response.raw.connection.sock
+                        if sock:
+                            if hasattr(sock, "version"):
+                                tls_version = sock.version()
+                            if hasattr(sock, "cipher"):
+                                cipher = sock.cipher()
+                                if cipher:
+                                    cipher_suite = cipher[0]
+                except Exception:  # pylint: disable=broad-exception-caught
+                    log.warning("Could not extract TLS info", exc_info=True)
+
+            # Force reading content to consume stream and release connection
+            _ = response.content
 
             # We do NOT call response.raise_for_status() because we want to capture
             # and analyze 4xx/5xx responses as valid results from the infrastructure layer.
@@ -631,6 +656,8 @@ class CacheFlowEngine:
                     "headers": dict(response.headers),
                     "cookies": self._extract_cookies(response.cookies),
                     "latency": response.elapsed.total_seconds() * 1000,
+                    "tls_version": tls_version,
+                    "cipher_suite": cipher_suite,
                 }
             )
             log.debug("Request completed. Status: %s", response.status_code)

@@ -135,6 +135,23 @@ class GraphExporter(BaseExporter):
         super().__init__(parent_window)
         self.export_callback = export_callback
 
+    def import_har(self, on_success: Callable[[str], None]) -> None:
+        """Shows dialog to import HAR file."""
+        filter_har = Gtk.FileFilter()
+        filter_har.set_name("HTTP Archive (HAR)")
+        filter_har.add_pattern("*.har")
+
+        def on_file_selected(filepath: str) -> None:
+            if on_success:
+                on_success(filepath)
+
+        self.show_dialog(
+            "Import HAR",
+            Gtk.FileChooserAction.OPEN,
+            [filter_har],
+            on_file_selected,
+        )
+
     def export_graph(self) -> None:
         """Shows dialog to export graph."""
         filter_png = Gtk.FileFilter()
@@ -149,10 +166,14 @@ class GraphExporter(BaseExporter):
         filter_txt.set_name("Text File")
         filter_txt.add_pattern("*.txt")
 
+        filter_har = Gtk.FileFilter()
+        filter_har.set_name("HTTP Archive (HAR)")
+        filter_har.add_pattern("*.har")
+
         self.show_dialog(
             "Export Graph",
             Gtk.FileChooserAction.SAVE,
-            [filter_png, filter_svg, filter_txt],
+            [filter_png, filter_svg, filter_txt, filter_har],
             self.export_callback,
             "graph.png",
         )
