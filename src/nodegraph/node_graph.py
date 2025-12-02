@@ -60,6 +60,7 @@ class NodeGraph(Gtk.DrawingArea):
         # Animation state
         self.animation_time = 0.0
         self.intro_progress = 0.0
+        self.animations_enabled = True
         self.add_tick_callback(self._on_tick)
 
         log.debug("NodeGraph initialized.")
@@ -113,6 +114,16 @@ class NodeGraph(Gtk.DrawingArea):
         """Sets whether to show connection labels."""
         self.show_connection_labels = visible
         self.queue_draw()
+
+    def set_animation_enabled(self, enabled: bool) -> None:
+        """Sets whether animations are enabled.
+
+        Args:
+            enabled: True to enable animations, False to disable.
+        """
+        self.animations_enabled = enabled
+        if enabled:
+            self.queue_draw()
 
     def reset_layout(self) -> None:
         """Resets the layout (scale and offset)."""
@@ -248,6 +259,9 @@ class NodeGraph(Gtk.DrawingArea):
         Returns:
             True to continue calling this function.
         """
+        if not self.animations_enabled:
+            return True
+
         self.animation_time += 0.01
 
         if self.intro_progress < 1.0:

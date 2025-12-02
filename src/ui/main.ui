@@ -34,6 +34,13 @@
               </object>
             </child>
             <child type="end">
+              <object class="GtkToggleButton" id="animation_button">
+                <property name="icon-name">media-playback-start-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Toggle Animation</property>
+                <property name="active">True</property>
+              </object>
+            </child>
+            <child type="end">
               <object class="GtkMenuButton">
                 <property name="icon-name">open-menu-symbolic</property>
                 <property name="menu-model">
