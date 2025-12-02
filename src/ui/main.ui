@@ -21,38 +21,6 @@
               </object>
             </child>
             <child type="end">
-              <object class="GtkButton" id="cookies_button">
-                <property name="icon-name">document-properties-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Cookie Inspector</property>
-              </object>
-            </child>
-            <child type="end">
-              <object class="GtkToggleButton" id="search_button">
-                <property name="icon-name">edit-find-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Search Headers</property>
-              </object>
-            </child>
-            <child type="end">
-              <object class="GtkToggleButton" id="show_all_nodes_button">
-                <property name="icon-name">view-grid-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Show All Configured Infrastructure</property>
-              </object>
-            </child>
-            <child type="end">
-              <object class="GtkToggleButton" id="show_labels_button">
-                <property name="icon-name">text-x-generic-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Show Connection Labels</property>
-                <property name="active">True</property>
-              </object>
-            </child>
-            <child type="end">
-              <object class="GtkToggleButton" id="show_animation_button">
-                <property name="icon-name">media-playback-start-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Show Network Animation</property>
-                <property name="active">True</property>
-              </object>
-            </child>
-            <child type="end">
               <object class="GtkMenuButton">
                 <property name="icon-name">open-menu-symbolic</property>
                 <property name="menu-model">
@@ -98,9 +66,35 @@
               </object>
             </child>
             <child type="end">
-              <object class="GtkButton" id="cookies_button">
+              <object class="GtkButton" id="cookie_inspector_btn">
                 <property name="icon-name">document-properties-symbolic</property>
                 <property name="tooltip-text" translatable="yes">Cookie Inspector</property>
+              </object>
+            </child>
+            <child type="end">
+              <object class="GtkToggleButton" id="search_button">
+                <property name="icon-name">edit-find-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Search Headers</property>
+              </object>
+            </child>
+            <child type="end">
+              <object class="GtkToggleButton" id="show_all_nodes_button">
+                <property name="icon-name">view-grid-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Show All Configured Infrastructure</property>
+              </object>
+            </child>
+            <child type="end">
+              <object class="GtkToggleButton" id="show_labels_button">
+                <property name="icon-name">text-x-generic-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Show Connection Labels</property>
+                <property name="active">True</property>
+              </object>
+            </child>
+            <child type="end">
+              <object class="GtkToggleButton" id="show_animation_button">
+                <property name="icon-name">media-playback-start-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Show Network Animation</property>
+                <property name="active">True</property>
               </object>
             </child>
             <child type="end">
