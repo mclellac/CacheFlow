@@ -10,6 +10,7 @@ from gi.repository import Gtk, Adw, Gio, GLib
 
 from ..nodegraph.node_graph import NodeGraph  # pylint: disable=unused-import
 from .header_dialog import HeaderDialog
+from .cookie_dialog import CookieDialog
 from ..node_data import NodeData
 from ..analysis.analyzer import HeaderAnalyzer
 from ..analysis.analysis_dialog import HeaderAnalysisDialog
@@ -34,6 +35,7 @@ class Window(Adw.ApplicationWindow):
     config_switcher = Gtk.Template.Child()
     content_stack = Gtk.Template.Child()
     toast_overlay = Gtk.Template.Child()
+    cookies_button = Gtk.Template.Child()
     show_all_nodes_button = Gtk.Template.Child()
     show_labels_button = Gtk.Template.Child()
     show_animation_button = Gtk.Template.Child()
@@ -62,6 +64,7 @@ class Window(Adw.ApplicationWindow):
         self.path_entry.set_text(self.settings.get_string("test-path"))
 
         self.connect("close-request", self.on_close_request)
+        self.cookies_button.connect("clicked", self.on_cookies_clicked)
         self.node_graph.connect(
             "node-double-clicked", self._on_node_double_clicked
         )
@@ -348,6 +351,12 @@ class Window(Adw.ApplicationWindow):
 
         self.set_inspection_in_progress(False)
         return GLib.SOURCE_REMOVE
+
+    def on_cookies_clicked(self, _btn):
+        """Callback for the cookies button."""
+        layers = self.node_graph.get_data()
+        win = CookieDialog(layers=layers, parent_window=self)
+        win.present()
 
     def on_show_all_nodes_toggled(self, button):
         """Callback for when the show all nodes button is toggled.

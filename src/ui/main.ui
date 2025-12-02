@@ -21,6 +21,12 @@
               </object>
             </child>
             <child type="end">
+              <object class="GtkButton" id="cookies_button">
+                <property name="icon-name">document-properties-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Cookie Inspector</property>
+              </object>
+            </child>
+            <child type="end">
               <object class="GtkToggleButton" id="show_all_nodes_button">
                 <property name="icon-name">view-grid-symbolic</property>
                 <property name="tooltip-text" translatable="yes">Show All Configured Infrastructure</property>
