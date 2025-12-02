@@ -21,6 +21,7 @@ ui_sources = [
   'ui/ui_utils.py',
   'ui/error_handler.py',
   'ui/cookie_dialog.py',
+  'ui/encyclopedia.py',
 ]
 
 nodegraph_sources = [

@@ -8,6 +8,7 @@ from gi.repository import Gtk, Adw, Gio, GObject, GLib, Pango, Gdk
 
 from ..models import HeaderItem
 from ..analysis import knowledge
+from . import ui_utils
 
 log = logging.getLogger(__name__)
 
