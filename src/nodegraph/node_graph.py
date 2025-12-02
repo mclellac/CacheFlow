@@ -56,6 +56,7 @@ class NodeGraph(Gtk.DrawingArea):
         self.settings = Gio.Settings.new("com.github.mclellac.CacheFlow")
         self.show_all_nodes = False
         self.show_connection_labels = True
+        self.show_animation = True
 
         # Animation state
         self.animation_time = 0.0
@@ -112,6 +113,11 @@ class NodeGraph(Gtk.DrawingArea):
     def set_show_connection_labels(self, visible: bool) -> None:
         """Sets whether to show connection labels."""
         self.show_connection_labels = visible
+        self.queue_draw()
+
+    def set_animation_enabled(self, enabled: bool) -> None:
+        """Sets whether to show the network animation."""
+        self.show_animation = enabled
         self.queue_draw()
 
     def reset_layout(self) -> None:

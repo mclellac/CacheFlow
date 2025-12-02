@@ -36,6 +36,7 @@ class Window(Adw.ApplicationWindow):
     toast_overlay = Gtk.Template.Child()
     show_all_nodes_button = Gtk.Template.Child()
     show_labels_button = Gtk.Template.Child()
+    show_animation_button = Gtk.Template.Child()
     status_page = Gtk.Template.Child()
     status_action_btn = Gtk.Template.Child()
 
@@ -69,6 +70,9 @@ class Window(Adw.ApplicationWindow):
         )
         self.show_labels_button.connect(
             "toggled", self.on_show_labels_toggled
+        )
+        self.show_animation_button.connect(
+            "toggled", self.on_show_animation_toggled
         )
         self.status_action_btn.connect("clicked", self.on_status_action_clicked)
 
@@ -362,6 +366,15 @@ class Window(Adw.ApplicationWindow):
         """
         is_active = button.get_active()
         self.node_graph.set_show_connection_labels(is_active)
+
+    def on_show_animation_toggled(self, button):
+        """Callback for when the show animation button is toggled.
+
+        Args:
+            button: The button that emitted the signal.
+        """
+        is_active = button.get_active()
+        self.node_graph.set_animation_enabled(is_active)
 
     def on_inspection_failed(self, exception: Exception) -> bool:
         """Callback for when an inspection fails.

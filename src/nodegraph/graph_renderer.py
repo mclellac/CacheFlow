@@ -165,7 +165,7 @@ class GraphRenderer:
         cr.stroke()
 
         # Animations
-        if intro_alpha > 0.8:
+        if intro_alpha > 0.8 and self.node_graph.show_animation:
             # Animation Speed and Cycle Logic
             SPEED = 4.0  # Faster speed
             # Cycle length includes a buffer to ensure the full packet train arrives
