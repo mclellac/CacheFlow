@@ -33,7 +33,7 @@ CacheFlow is a powerful tool for visualizing and debugging HTTP header flows thr
 * **Import:** Allow loading a `.har` file to visualize a past request flow (requires HAR files to contain internal hop data, or multiple HARs).
 * **Export:** Export the current inspection result as a standardized HAR file for use in other tools (Chrome DevTools, Charles Proxy).
 
-### 6. CORS Debugger
+### 6. CORS Debugger [x]
 
 **Problem:** CORS errors are a common source of frontend breakage.
 **Feature:** An automatic analysis of `Access-Control-*` headers.

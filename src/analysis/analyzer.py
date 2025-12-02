@@ -216,6 +216,79 @@ class HeaderAnalyzer:
                 )
         return items
 
+    def _check_cors(
+        self, request_headers: Dict[str, str], response_headers: Dict[str, str]
+    ) -> List[AnalysisItem]:
+        """Checks for CORS (Cross-Origin Resource Sharing) issues.
+
+        Args:
+            request_headers: The headers from the request.
+            response_headers: The headers from the response.
+
+        Returns:
+            A list of AnalysisItem objects for each CORS issue found.
+        """
+        items = []
+        origin = request_headers.get("Origin", "") or request_headers.get(
+            "origin", ""
+        )
+        if not origin:
+            return items
+
+        # Origin header is present, check for Access-Control-Allow-Origin
+        acao_key = "access-control-allow-origin"
+        acao_val = response_headers.get(acao_key)
+
+        info = get_header_info(acao_key)
+
+        if not acao_val:
+            items.append(
+                AnalysisItem(
+                    key="Access-Control-Allow-Origin",
+                    value="(Missing)",
+                    change_type="MISSING",
+                    description=(
+                        "CORS header missing when 'Origin' is present. "
+                        f"{info.description}"
+                    ),
+                    category="CORS",
+                    warning="CORS Error: Missing Access-Control-Allow-Origin.",
+                )
+            )
+        else:
+            # Check for mismatch
+            if acao_val != "*" and acao_val != origin:
+                items.append(
+                    AnalysisItem(
+                        key="Access-Control-Allow-Origin",
+                        value=acao_val,
+                        change_type="MODIFIED",  # Or some other status to indicate issue
+                        description=f"Mismatch with Origin '{origin}'.",
+                        category="CORS",
+                        warning=f"CORS Error: Mismatch with Origin '{origin}'.",
+                    )
+                )
+            elif acao_val == "*":
+                # Check for credentials
+                acac_key = "access-control-allow-credentials"
+                acac_val = response_headers.get(acac_key, "").lower()
+                if acac_val == "true":
+                    items.append(
+                        AnalysisItem(
+                            key=acac_key,
+                            value=response_headers.get(acac_key, ""),
+                            change_type="MODIFIED",
+                            description="Wildcard Origin with Credentials.",
+                            category="CORS",
+                            warning=(
+                                "CORS Error: Cannot use wildcard Origin "
+                                "with Access-Control-Allow-Credentials."
+                            ),
+                        )
+                    )
+
+        return items
+
     def analyze_layer(
         self,
         current_layer: Dict[str, Any],
@@ -353,6 +426,12 @@ class HeaderAnalyzer:
                 current_headers, ignore_keys=removed_keys
             )
             items.extend(missing_items)
+
+        # Check for CORS issues
+        request_headers = current_layer.get("request_headers", {})
+        if request_headers:
+            cors_items = self._check_cors(request_headers, current_headers)
+            items.extend(cors_items)
 
         priority = {
             "MISSING": 0,
