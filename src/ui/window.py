@@ -35,7 +35,7 @@ class Window(Adw.ApplicationWindow):
     config_switcher = Gtk.Template.Child()
     content_stack = Gtk.Template.Child()
     toast_overlay = Gtk.Template.Child()
-    cookies_button = Gtk.Template.Child()
+    cookie_inspector_btn = Gtk.Template.Child()
     show_all_nodes_button = Gtk.Template.Child()
     show_labels_button = Gtk.Template.Child()
     show_animation_button = Gtk.Template.Child()
@@ -67,7 +67,7 @@ class Window(Adw.ApplicationWindow):
         self.path_entry.set_text(self.settings.get_string("test-path"))
 
         self.connect("close-request", self.on_close_request)
-        self.cookies_button.connect("clicked", self.on_cookies_clicked)
+        self.cookie_inspector_btn.connect("clicked", self.on_cookies_clicked)
         self.node_graph.connect(
             "node-double-clicked", self._on_node_double_clicked
         )
