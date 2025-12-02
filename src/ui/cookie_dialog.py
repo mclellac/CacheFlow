@@ -19,8 +19,8 @@ class CookieItem(GObject.Object):
     value = GObject.Property(type=str)
     domain = GObject.Property(type=str)
     path = GObject.Property(type=str)
-    secure = GObject.Property(type=bool)
-    http_only = GObject.Property(type=bool)
+    secure = GObject.Property(type=bool, default=False)
+    http_only = GObject.Property(type=bool, default=False)
     same_site = GObject.Property(type=str)
     origin_layer = GObject.Property(type=str)
 
