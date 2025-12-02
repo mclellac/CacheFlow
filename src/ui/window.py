@@ -31,6 +31,7 @@ class Window(Adw.ApplicationWindow):
     inspect_button = Gtk.Template.Child()
     node_graph = Gtk.Template.Child()
     spinner = Gtk.Template.Child()
+    header_search_entry = Gtk.Template.Child()
     config_switcher = Gtk.Template.Child()
     content_stack = Gtk.Template.Child()
     toast_overlay = Gtk.Template.Child()
@@ -60,6 +61,7 @@ class Window(Adw.ApplicationWindow):
         self.inspect_button.connect("clicked", self.on_inspect_clicked)
         self.path_entry.connect("activate", self.on_inspect_clicked)
         self.path_entry.set_text(self.settings.get_string("test-path"))
+        self.header_search_entry.connect("search-changed", self.on_search_changed)
 
         self.connect("close-request", self.on_close_request)
         self.node_graph.connect(
@@ -88,6 +90,15 @@ class Window(Adw.ApplicationWindow):
 
         if width > 0 and height > 0:
             self.set_default_size(width, height)
+
+    def on_search_changed(self, entry):
+        """Callback for when the search entry text changes.
+
+        Args:
+            entry: The search entry widget.
+        """
+        text = entry.get_text()
+        self.node_graph.set_filter_text(text)
 
     def on_close_request(self, _window):
         """Saves window size before closing.

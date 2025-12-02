@@ -157,7 +157,21 @@ class GraphRenderer:
             line_width = 5 + pulse * 2
 
         cr.set_line_width(line_width)
-        cr.set_source_rgba(r, g, b, 0.8 * intro_alpha)
+
+        # Latency-based color coding
+        latency = node_b["data"].latency
+        if latency:
+            if latency < 100:
+                # Green
+                cr.set_source_rgba(0.2, 0.8, 0.2, 0.8 * intro_alpha)
+            elif latency < 500:
+                # Yellow/Orange
+                cr.set_source_rgba(1.0, 0.8, 0.0, 0.8 * intro_alpha)
+            else:
+                # Red
+                cr.set_source_rgba(1.0, 0.2, 0.2, 0.8 * intro_alpha)
+        else:
+            cr.set_source_rgba(r, g, b, 0.8 * intro_alpha)
 
         # Draw Single Line
         cr.move_to(start_x, start_y)
@@ -320,6 +334,10 @@ class GraphRenderer:
         if request_host and request_host != req_host:
             text += f"\nHost: {request_host}"
 
+        latency = node_b["data"].latency
+        if latency:
+            text += f"\n{latency:.0f}ms"
+
         layout.set_text(text, -1)
 
         _, logical_rect = layout.get_extents()
@@ -401,6 +419,11 @@ class GraphRenderer:
 
         # Dim inactive nodes
         alpha_mult = 1.0 if is_active else 0.5
+
+        # Check filter
+        if self.node_graph.filter_text:
+            if not self._node_matches_filter(node, self.node_graph.filter_text):
+                alpha_mult *= 0.1
 
         # Selected state
         if self.node_graph.selected_node_index == node["id"]:
@@ -696,6 +719,18 @@ class GraphRenderer:
         cr.line_to(x + RESIZE_HANDLE_SIZE, y + RESIZE_HANDLE_SIZE)
         cr.close_path()
         cr.fill()
+
+    def _node_matches_filter(self, node: Dict[str, Any], text: str) -> bool:
+        """Checks if a node matches the filter text."""
+        data = node["data"]
+        # Check name
+        if text in data.name.lower():
+            return True
+        # Check headers
+        for k, v, _, _ in data.headers:
+            if text in k.lower() or text in v.lower():
+                return True
+        return False
 
     def _draw_client_node(
         self, cr: cairo.Context, node: Dict[str, Any]

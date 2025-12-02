@@ -13,7 +13,7 @@ CacheFlow is a powerful tool for visualizing and debugging HTTP header flows thr
 **Problem:** It is difficult to predict how the infrastructure behaves under different cache states (Hit, Miss, Pass, Stale).
 **Feature:** Add a "Simulation Mode" where the engine sends specific headers (e.g., `Pragma: no-cache`, `Cache-Control: no-cache`) to force misses, or replays requests to attempt to generate hits, visualizing the change in headers (like `Age`, `X-Cache`).
 
-### 3. Latency Visualization
+### 3. Latency Visualization [x]
 **Problem:** Network issues are often latency-related, not just header-related.
 **Feature:**
 *   Measure TTFB (Time To First Byte) for each hop during inspection.
@@ -36,7 +36,7 @@ CacheFlow is a powerful tool for visualizing and debugging HTTP header flows thr
 *   Visual warning if `Origin` header in request does not match `Access-Control-Allow-Origin`.
 *   Check for missing `Access-Control-Allow-Methods` or `Access-Control-Allow-Headers`.
 
-### 7. Header Search & Filter
+### 7. Header Search & Filter [x]
 **Problem:** In complex configurations with dozens of headers, finding a specific custom header (e.g., `X-Custom-Trace-Id`) is tedious.
 **Feature:** A search bar in the main view that highlights nodes containing the matching header key or value.
 

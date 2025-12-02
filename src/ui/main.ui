@@ -131,6 +131,20 @@
                         <property name="visible">False</property>
                       </object>
                     </child>
+
+                    <child>
+                      <object class="GtkSeparator">
+                        <property name="orientation">vertical</property>
+                        <property name="margin-start">6</property>
+                        <property name="margin-end">6</property>
+                      </object>
+                    </child>
+
+                    <child>
+                      <object class="GtkSearchEntry" id="header_search_entry">
+                        <property name="placeholder-text" translatable="yes">Filter headers...</property>
+                      </object>
+                    </child>
                   </object>
                 </child>
 

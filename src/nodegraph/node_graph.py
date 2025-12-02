@@ -57,6 +57,7 @@ class NodeGraph(Gtk.DrawingArea):
         self.show_all_nodes = False
         self.show_connection_labels = True
         self.show_animation = True
+        self.filter_text = ""
 
         # Animation state
         self.animation_time = 0.0
@@ -118,6 +119,15 @@ class NodeGraph(Gtk.DrawingArea):
     def set_animation_enabled(self, enabled: bool) -> None:
         """Sets whether to show the network animation."""
         self.show_animation = enabled
+        self.queue_draw()
+
+    def set_filter_text(self, text: str) -> None:
+        """Sets the filter text for highlighting nodes.
+
+        Args:
+            text: The text to filter by.
+        """
+        self.filter_text = text.lower().strip()
         self.queue_draw()
 
     def reset_layout(self) -> None:
