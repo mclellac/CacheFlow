@@ -333,15 +333,20 @@ class NodeRow(ConfigRowMixin, Adw.ExpanderRow):
         if prov_idx != -1 and prov_idx < self.provider_model.get_n_items():
             provider = self.provider_model.get_string(prov_idx)
 
-        return {
+        data = {
             "name": self.name_entry.get_text(),
             "host_url": self.host_entry.get_text(),
             "match_header": self.match_header_entry.get_text(),
             "match_value": self.match_value_entry.get_text(),
-            "provider": provider,
             "header_color": self.header_color_button.get_rgba().to_string(),
             "body_color": self.body_color_button.get_rgba().to_string(),
         }
+
+        # Only include provider if it's an Application Backend
+        if self.layer_type == ProviderType.APP_BACKEND:
+            data["provider"] = provider
+
+        return data
 
 
 @Gtk.Template(filename="src/ui/origin_rule_row.ui")

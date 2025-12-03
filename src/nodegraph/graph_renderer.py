@@ -313,6 +313,14 @@ class GraphRenderer:
         if len(display_url) > 60:
             display_url = display_url[:60] + "..."
 
+        # Check for Host header override
+        parsed = urlparse(request_url)
+        url_domain = parsed.netloc
+        host_header = node_b["data"].request_host
+        display_host = None
+        if host_header and host_header.lower() != url_domain.lower():
+            display_host = f"Host: {host_header}"
+
         latency = node_b["data"].latency
         latency_str = f"{latency:.0f}ms" if latency is not None else ""
 
@@ -321,11 +329,11 @@ class GraphRenderer:
         spacing = 8
         line_spacing = 4
 
-        # Font setup
+        # Font setup - Increased sizes
         cr.select_font_face(
             "Adwaita Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
         )
-        cr.set_font_size(12)
+        cr.set_font_size(14)
         method_ext = cr.text_extents(method)
 
         cr.select_font_face(
@@ -333,9 +341,14 @@ class GraphRenderer:
         )
         url_ext = cr.text_extents(display_url)
 
+        host_ext = None
+        if display_host:
+            cr.set_font_size(12)
+            host_ext = cr.text_extents(display_host)
+
         lat_ext = None
         if latency_str:
-            cr.set_font_size(11)
+            cr.set_font_size(12)
             lat_ext = cr.text_extents("⏱ " + latency_str)
 
         # Sizes
@@ -349,12 +362,18 @@ class GraphRenderer:
 
         row2_h = 0
         row2_w = 0
-        if lat_ext:
-            row2_h = lat_ext.height + line_spacing
-            row2_w = lat_ext.width
+        if host_ext:
+            row2_h = host_ext.height + line_spacing
+            row2_w = host_ext.width
 
-        total_w = max(row1_w, row2_w) + 2 * padding
-        total_h = row1_h + row2_h + 2 * padding
+        row3_h = 0
+        row3_w = 0
+        if lat_ext:
+            row3_h = lat_ext.height + line_spacing
+            row3_w = lat_ext.width
+
+        total_w = max(row1_w, row2_w, row3_w) + 2 * padding
+        total_h = row1_h + row2_h + row3_h + 2 * padding
 
         # Orientation Logic
         dx = (
@@ -405,7 +424,7 @@ class GraphRenderer:
         cr.select_font_face(
             "Adwaita Sans", cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD
         )
-        cr.set_font_size(12)
+        cr.set_font_size(14)
         cr.move_to(
             curr_x + badge_padding_x,
             curr_y + method_ext.height + badge_padding_y - 2,
@@ -441,9 +460,30 @@ class GraphRenderer:
         )
         self.node_graph.url_hit_areas.append(hit_rect)
 
-        # 3. Latency
-        if lat_ext:
+        # 3. Host Header
+        if host_ext:
             curr_y += row1_h + line_spacing
+            host_x = start_x + padding
+            host_y = curr_y + host_ext.height
+
+            cr.set_source_rgba(*text_color)
+            # Use slightly lower opacity for host detail
+            if is_dark:
+                 cr.set_source_rgba(0.8, 0.8, 0.8, 1)
+            else:
+                 cr.set_source_rgba(0.3, 0.3, 0.3, 1)
+
+            cr.set_font_size(12)
+            cr.move_to(host_x, host_y)
+            cr.show_text(display_host)
+
+        # 4. Latency
+        if lat_ext:
+            if host_ext:
+                 curr_y += row2_h
+            else:
+                 curr_y += row1_h + line_spacing
+
             lat_x = start_x + padding
             lat_y = curr_y + lat_ext.height
 
@@ -456,7 +496,7 @@ class GraphRenderer:
                 lat_color = (0.9, 0.2, 0.2, 1)  # Red
 
             cr.set_source_rgba(*lat_color)
-            cr.set_font_size(11)
+            cr.set_font_size(12)
             cr.move_to(lat_x, lat_y)
             cr.show_text("⏱ " + latency_str)
 
