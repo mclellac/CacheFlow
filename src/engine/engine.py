@@ -229,7 +229,12 @@ class CacheFlowEngine:
             # Merge active node config into exec_layer
             # Active node attributes override layer defaults
             if active_node:
-                exec_layer.update(active_node)
+                # Filter out empty provider from active_node to avoid overwriting layer provider
+                node_config = active_node.copy()
+                if "provider" in node_config and not node_config["provider"]:
+                    del node_config["provider"]
+
+                exec_layer.update(node_config)
                 # Ensure we use the active node's URL if it's a Cache Proxy (where URL is defined in node)
                 # For App Backend, target_base comes from routing rules, but we matched matched it against node['host_url']
                 # So we should use that.
